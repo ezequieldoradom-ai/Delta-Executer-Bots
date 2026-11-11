@@ -7,7 +7,8 @@
     "start": "node bot.js",
     "remotion:studio": "remotion studio remotion/index.jsx",
     "remotion:render": "remotion render remotion/index.jsx DeltaIntro out/delta-intro.mp4",
-    "render:tunel": "remotion render remotion/index.jsx TunelTierra out/tunel-tierra.mp4"
+    "render:tunel": "remotion render remotion/index.jsx TunelTierra out/tunel-tierra.mp4",
+    "voz": "NODE_USE_ENV_PROXY=1 node scripts/voz.mjs"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.542",
