@@ -602,7 +602,7 @@ const COMMENTS = [
   {user: '@leo_x', text: '¿Y si nunca durmieras?', base: 410},
 ];
 
-export const OutroScene = () => {
+export const OutroScene = ({comments = COMMENTS}) => {
   const t = useT();
   const burst = lin(t, 70.12, 71.0, 0, 1);
   const tapped = t > 72.4;
@@ -720,7 +720,7 @@ export const OutroScene = () => {
           {t < 75.63 ? 'COMENTA' : '¿QUÉ EXPLICO EN EL PRÓXIMO VIDEO?'}
         </div>
       </Pop>
-      {COMMENTS.map((c, i) => (
+      {comments.map((c, i) => (
         <Pop key={i} at={75.9 + i * 0.3} style={{top: 940 + i * 140, left: 40, right: 40}}>
           <CommentCard t={t} c={c} winner={i === 0} />
         </Pop>

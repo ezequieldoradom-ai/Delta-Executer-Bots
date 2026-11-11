@@ -47,13 +47,13 @@ export const useT = () => {
   return frame / fps + useContext(SceneStart);
 };
 
-export const Scene = ({name, start, end, children, fadeOut = true}) => {
+export const Scene = ({name, start, end, children, fadeOut = true, timeBase}) => {
   const {fps} = useVideoConfig();
   const from = Math.round(start * fps);
   const durationInFrames = Math.round(end * fps) - from;
   return (
     <Sequence name={name} from={from} durationInFrames={durationInFrames}>
-      <SceneStart.Provider value={from / fps}>
+      <SceneStart.Provider value={timeBase ?? from / fps}>
         <SceneFade dur={durationInFrames / fps} fadeOut={fadeOut}>
           {children}
         </SceneFade>

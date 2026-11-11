@@ -1,10 +1,10 @@
 import React from 'react';
 import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
 import {BACK, C, FONT, lin, r} from './lib';
-import {CHUNKS} from './timing';
+import {CHUNKS as TUNEL_CHUNKS} from './timing';
 
 // Subtítulos estilo TikTok: bloques cortos, palabra activa resaltada
-export const Captions = () => {
+export const Captions = ({chunks: CHUNKS = TUNEL_CHUNKS}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
@@ -64,4 +64,30 @@ export const Captions = () => {
       </div>
     </AbsoluteFill>
   );
+};
+
+// Convierte palabras con tiempos ({text,start,end}) en bloques de subtítulos.
+// `strong`: palabras (en minúscula, sin signos) que se destacan en color.
+export const chunkWords = (words, strong = [], maxWords = 4, maxChars = 22) => {
+  const clean = (w) => w.toLowerCase().replace(/[^a-záéíóúñü0-9]/gi, '');
+  const chunks = [];
+  let cur = [];
+  const flush = () => {
+    if (cur.length) chunks.push(cur);
+    cur = [];
+  };
+  words.forEach((w, i) => {
+    const len = cur.reduce((a, x) => a + x.text.length + 1, 0) + w.text.length;
+    const prev = words[i - 1];
+    const pause = prev && w.start - prev.end > 0.35;
+    if (cur.length && (cur.length >= maxWords || len > maxChars || pause)) flush();
+    cur.push({...w, strong: strong.includes(clean(w.text))});
+    if (/[.?!:…]$/.test(w.text)) flush();
+  });
+  flush();
+  return chunks.map((ws, i) => ({
+    words: ws,
+    start: ws[0].start,
+    end: i < chunks.length - 1 ? ws[ws.length - 1].end : ws[ws.length - 1].end + 0.6,
+  }));
 };

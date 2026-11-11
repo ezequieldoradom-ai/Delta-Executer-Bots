@@ -205,11 +205,11 @@ export const SvgLabel = ({x, y, children, size = 34, color = '#fff', anchor = 'm
   </text>
 );
 
-export const Brand = () => {
+export const Brand = ({hideAt = 69.5}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
-  const o = Math.min(lin(t, 0.3, 0.8, 0, 1), lin(t, 69.5, 70, 1, 0));
+  const o = Math.min(lin(t, 0.3, 0.8, 0, 1), lin(t, hideAt, hideAt + 0.5, 1, 0));
   return (
     <div
       style={{
