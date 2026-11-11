@@ -332,7 +332,7 @@ export const Ocean = ({t, night = 0}) => (
 );
 
 // Contador de la serie (arriba)
-export const Hud = ({pop, day = 1, highlight = 0}) => (
+export const Hud = ({pop, day = 1, highlight = 0, label = 'DÍA'}) => (
   <div
     style={{
       display: 'flex',
@@ -349,7 +349,7 @@ export const Hud = ({pop, day = 1, highlight = 0}) => (
       scale: String(1 + 0.15 * highlight),
     }}
   >
-    <div style={{background: C.accent, color: '#0b0b14', borderRadius: 40, padding: '6px 18px', fontSize: 34}}>EP {day}</div>
+    <div style={{background: C.accent, color: '#0b0b14', borderRadius: 40, padding: '6px 18px', fontSize: 34}}>{label} {day}</div>
     <svg width={44} height={44} viewBox="0 0 24 24">
       <circle cx={12} cy={7} r={5} fill="#fff" />
       <path d="M3 22 C3 15 21 15 21 22 Z" fill="#fff" />

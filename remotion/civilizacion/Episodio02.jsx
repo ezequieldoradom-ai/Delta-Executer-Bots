@@ -6,15 +6,18 @@ import {Captions, chunkWords} from '../tunel/Captions';
 import {Brand, Check, Heart, ProgressBar} from '../tunel/Visuals';
 import {Hud, IslandWorld, Ocean, Villager, popScale} from './Island';
 import WORDS from '../../public/civilizacion-02.words.json';
+import {makeW} from './words';
 
-export const DURATION = 67.4;
+const W = makeW(WORDS);
+
+export const DURATION = WORDS[WORDS.length - 1].end + 0.8;
 const POP = 58; // 1 fundador + 17 TikTok + 40 Instagram
 
 const CHUNKS = chunkWords(WORDS, [
   'persona', 'ocho', 'problema', 'construido', 'cazadores', 'pescadores', 'doctora', 'herrero',
   'hierro', 'alan', 'cultivos', 'mil', 'catalina', 'kiosco', 'thiago', 'millonario', 'conchas',
   'visionario', 'dylan', 'horizonte', 'manda', 'jorge', 'líder', 'ángel', 'juandi', 'frainel',
-  'fuerte', 'elecciones', 'jefe', 'likes', 'gobernará', 'aldea', 'aprende', 'nombre', 'oficio', 'historia',
+  'fuerte', 'elecciones', 'jefe', 'likes', 'gobernará', 'aldea', 'aprende', 'oficio', 'ideas', 'realidad', 'reglas', 'seguirme', 'mañana', 'historia',
 ]);
 
 // Habitantes reales (de los comentarios), con su sitio en la isla
@@ -126,15 +129,15 @@ const Cast = ({t, focus = []}) => (
 
 // Quién lleva etiqueta con su nombre en cada plano
 const FOCUS = [
-  [11.68, ['THEYY', 'SAMI', 'JUANDI']],
-  [12.84, ['EMII', 'TESERACTO']],
-  [13.84, ['MELISA']],
-  [14.68, ['OSVALDO']],
-  [19.64, ['ALAN']],
-  [24.68, ['CATALINA']],
-  [26.64, ['THIAGO']],
-  [29.64, ['DYLAN']],
-  [34.6, []],
+  [W('ya', 1), ['THEYY', 'SAMI', 'JUANDI']],
+  [W('pescadores', 0), ['EMII', 'TESERACTO']],
+  [W('una', 1), ['MELISA']],
+  [W('hasta', 0), ['OSVALDO']],
+  [W('alan', 0), ['ALAN']],
+  [W('catalina', 0), ['CATALINA']],
+  [W('thiago', 0), ['THIAGO']],
+  [W('y', 3), ['DYLAN']],
+  [(W('y', 3) + 4.96), []],
 ];
 const focusAt = (t) => {
   let f = [];
@@ -170,14 +173,14 @@ const Camera = ({c, cy = 880, children}) => (
 );
 
 // =====================================================================
-// 1-2. LA ISLA CRECE Y SUS HABITANTES (0 – 34.5 s)
+// 1-2. LA ISLA CRECE Y SUS HABITANTES (0 – (W('y', 3) + 4.86) s)
 // =====================================================================
 const IslandTour = () => {
   const t = useT();
-  const pop = t < 4.1 ? 1 : popScale(t, 4.1, 5.9, 1, POP);
+  const pop = t < (W('hoy', 0) + 0.06) ? 1 : popScale(t, (W('hoy', 0) + 0.06), (W('ocho', 0) + 0.22), 1, POP);
   const c = cam(t);
-  const castIn = t > 4.4;
-  const rosterDim = t > 9.09 && t < 11.75 ? Math.min(lin(t, 9.09, 9.4, 0, 0.6), lin(t, 11.4, 11.75, 0.6, 0)) : 0;
+  const castIn = t > (W('hoy', 0) + 0.36);
+  const rosterDim = t > W('pero', 0) && t < (W('ya', 1) + 0.07) ? Math.min(lin(t, W('pero', 0), (W('pero', 0) + 0.31), 0, 0.6), lin(t, (W('pero', 0) + 2.31), (W('ya', 1) + 0.07), 0.6, 0)) : 0;
   return (
     <AbsoluteFill>
       <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{position: 'absolute'}}>
@@ -185,21 +188,21 @@ const IslandTour = () => {
         <Camera c={c}>
           <IslandWorld t={t} pop={pop} maxShown={castIn ? 26 : 1} />
           {castIn ? (
-            <g opacity={lin(t, 4.4, 5.6, 0, 1)}>
+            <g opacity={lin(t, (W('hoy', 0) + 0.36), (W('hoy', 0) + 1.56), 0, 1)}>
               <Cast t={t} focus={focusAt(t)} />
             </g>
           ) : null}
         </Camera>
       </svg>
       <div style={{position: 'absolute', top: 230, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
-        <Hud pop={pop} day={2} highlight={t > 4.1 && t < 6.3 ? 0.7 : 0} />
+        <Hud pop={pop} day={2} highlight={t > (W('hoy', 0) + 0.06) && t < (W('ocho', 0) + 0.62) ? 0.7 : 0} />
       </div>
-      <Pop at={0.1} out={3.9} style={{top: 400, left: 0, right: 0}}>
+      <Pop at={0.1} out={(W('hoy', 0) - 0.14)} style={{top: 400, left: 0, right: 0}}>
         <Pill color="#fff" size={46}>
-          EPISODIO 1: 1 HABITANTE
+          DÍA 1: 1 HABITANTE
         </Pill>
       </Pop>
-      <Pop at={4.6} out={6.2} style={{top: 400, left: 0, right: 0}}>
+      <Pop at={(W('hoy', 0) + 0.56)} out={(W('ocho', 0) + 0.52)} style={{top: 400, left: 0, right: 0}}>
         <div style={{display: 'flex', gap: 16}}>
           <Pill color="#111" text="#fff" size={44} style={{border: `4px solid ${C.cyan}`}}>
             TIKTOK +17
@@ -209,7 +212,7 @@ const IslandTour = () => {
           </Pill>
         </div>
       </Pop>
-      <Pop at={6.36} out={9.0} style={{top: 390, left: 0, right: 0, flexDirection: 'column'}}>
+      <Pop at={W('y', 1)} out={(W('y', 1) + 2.64)} style={{top: 390, left: 0, right: 0, flexDirection: 'column'}}>
         <svg width={170} height={150} viewBox="-85 -80 170 150">
           <path d="M-60 40 L-60 -20 L-30 10 L0 -40 L30 10 L60 -20 L60 40 Z" fill={C.accent} stroke="#05060f" strokeWidth={8} strokeLinejoin="round" />
           <text y={34} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={60} fill="#05060f">
@@ -223,7 +226,7 @@ const IslandTour = () => {
 
       {/* Habitantes fundadores */}
       {rosterDim > 0 ? <AbsoluteFill style={{background: '#050a2a', opacity: rosterDim}} /> : null}
-      <Pop at={9.2} out={11.45} style={{top: 380, left: 40, right: 40, flexDirection: 'column'}}>
+      <Pop at={(W('pero', 0) + 0.11)} out={(W('pero', 0) + 2.36)} style={{top: 380, left: 40, right: 40, flexDirection: 'column'}}>
         <BigText size={64} color={C.accent}>
           HABITANTES FUNDADORES
         </BigText>
@@ -239,7 +242,7 @@ const IslandTour = () => {
                 background: i % 3 === 0 ? C.cyan : i % 3 === 1 ? '#fff' : C.accent,
                 borderRadius: 30,
                 padding: '6px 16px',
-                scale: String(r(t, 9.3 + i * 0.05, 9.6 + i * 0.05, 0, 1, BACK)),
+                scale: String(r(t, (W('pero', 0) + 0.21) + i * 0.05, (W('pero', 0) + 0.51) + i * 0.05, 0, 1, BACK)),
               }}
             >
               {f}
@@ -250,14 +253,14 @@ const IslandTour = () => {
 
       {/* Oficios, en resumen */}
       {[
-        [11.68, 12.75, 'CAZADORES', 'THEYY · SAMI · JUANDI', '#a0703f'],
-        [12.84, 13.75, 'PESCA Y COSTA', 'EMII · TESERACTO', C.cyan],
-        [13.84, 14.6, 'DOCTORA', 'MELISA', '#fff'],
-        [14.68, 19.5, 'HERRERO', 'OSVALDO', '#c9ccd6'],
-        [19.64, 24.6, 'GRANJERO', 'ALAN', '#e8c547'],
-        [24.68, 26.55, 'KIOSQUERA', 'CATALINA', C.pink],
-        [26.64, 29.5, 'MILLONARIO', 'THIAGO', C.accent],
-        [29.64, 34.4, 'VISIONARIO', 'DYLAN', '#a78bfa'],
+        [W('ya', 1), (W('ya', 1) + 1.07), 'CAZADORES', 'THEYY · SAMI · JUANDI', '#a0703f'],
+        [W('pescadores', 0), (W('pescadores', 0) + 0.91), 'PESCA Y COSTA', 'EMII · TESERACTO', C.cyan],
+        [W('una', 1), (W('una', 1) + 0.76), 'DOCTORA', 'MELISA', '#fff'],
+        [W('hasta', 0), (W('aunque', 0) + 3.54), 'HERRERO', 'OSVALDO', '#c9ccd6'],
+        [W('alan', 0), (W('como', 0) + 2.76), 'GRANJERO', 'ALAN', '#e8c547'],
+        [W('catalina', 0), (W('catalina', 0) + 1.87), 'KIOSQUERA', 'CATALINA', C.pink],
+        [W('thiago', 0), (W('en', 1) + 1.06), 'MILLONARIO', 'THIAGO', C.accent],
+        [W('y', 3), (W('y', 3) + 4.76), 'VISIONARIO', 'DYLAN', '#a78bfa'],
       ].map(([at, out, role, who, col]) => (
         <Pop key={role} at={at} out={out} style={{top: 1210, left: 0, right: 0, flexDirection: 'column'}}>
           <Pill color={col} size={52}>
@@ -267,13 +270,13 @@ const IslandTour = () => {
         </Pop>
       ))}
       {/* Datos curiosos */}
-      <Pop at={15.96} out={19.4} style={{top: 400, left: 60, right: 60}}>
+      <Pop at={W('aunque', 0)} out={(W('aunque', 0) + 3.44)} style={{top: 400, left: 60, right: 60}}>
         <FactCard title="DATO" text="El hierro empezó a usarse hace unos 3.000 años" />
       </Pop>
-      <Pop at={21.84} out={24.5} style={{top: 400, left: 60, right: 60}}>
-        <FactCard title="DATO" text="La agricultura nació hace unos 12.000 años" />
+      <Pop at={W('como', 0)} out={(W('como', 0) + 2.66)} style={{top: 400, left: 60, right: 60}}>
+        <FactCard title="DATO" text="La agricultura nació hace unos (W('ya', 1) + 0.32) años" />
       </Pop>
-      <Pop at={28.44} out={29.5} style={{top: 400, left: 60, right: 60}}>
+      <Pop at={W('en', 1)} out={(W('en', 1) + 1.06)} style={{top: 400, left: 60, right: 60}}>
         <FactCard title="DATO" text="Las conchas se usaron como dinero durante siglos" />
       </Pop>
     </AbsoluteFill>
@@ -300,28 +303,28 @@ const FactCard = ({title, text}) => (
 );
 
 // =====================================================================
-// 3. ¿QUIÉN MANDA AQUÍ? (34.5 – 47.6 s)
+// 3. ¿QUIÉN MANDA AQUÍ? ((W('y', 3) + 4.86) – (W('y', 6) + 3.44) s)
 // =====================================================================
 const CANDIDATES = [
-  {n: 'JORGE', claim: '"EL LÍDER"', at: 39.76, shirt: '#3ddc84'},
-  {n: 'ÁNGEL', claim: 'EXPLORADOR LÍDER', at: 41.88, shirt: '#5ec8ff'},
-  {n: 'JUANDI', claim: 'CAZADOR LÍDER', at: 42.32, shirt: '#6b3f1f'},
-  {n: 'FRAINEL', claim: 'EL MÁS FUERTE', at: 44.16, shirt: '#333'},
+  {n: 'JORGE', claim: '"EL LÍDER"', at: W('jorge', 0), shirt: '#3ddc84'},
+  {n: 'ÁNGEL', claim: 'EXPLORADOR LÍDER', at: W('ángel', 0), shirt: '#5ec8ff'},
+  {n: 'JUANDI', claim: 'CAZADOR LÍDER', at: W('juandi', 0), shirt: '#6b3f1f'},
+  {n: 'FRAINEL', claim: 'EL MÁS FUERTE', at: W('y', 6), shirt: '#333'},
 ];
 
 const LeadersScene = () => {
   const t = useT();
-  const lineup = lin(t, 39.3, 39.8, 0, 1);
+  const lineup = lin(t, (W('llega', 0) + 2.78), (W('jorge', 0) + 0.04), 0, 1);
   const active = [...CANDIDATES].reverse().find((c) => t >= c.at);
   // Ángel y Juandi se mencionan juntos
-  const isLit = (c) => active && (c.n === active.n || (active.n === 'JUANDI' && c.n === 'ÁNGEL' && t < 44.16));
-  const crownIdx = t > 44.9 ? Math.floor((t * 2.5) % 4) : CANDIDATES.indexOf(active ?? CANDIDATES[0]);
+  const isLit = (c) => active && (c.n === active.n || (active.n === 'JUANDI' && c.n === 'ÁNGEL' && t < W('y', 6)));
+  const crownIdx = t > (W('y', 6) + 0.74) ? Math.floor((t * 2.5) % 4) : CANDIDATES.indexOf(active ?? CANDIDATES[0]);
   return (
     <AbsoluteFill>
       <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{position: 'absolute'}}>
         <Ocean t={t} night={lineup * 0.7} />
         <g opacity={1 - lineup}>
-          <g transform={`translate(540 880) scale(${r(t, 34.5, 39.3, 1, 1.15)}) translate(-540 -975)`}>
+          <g transform={`translate(540 880) scale(${r(t, (W('y', 3) + 4.86), (W('llega', 0) + 2.78), 1, 1.15)}) translate(-540 -975)`}>
             <IslandWorld t={t} pop={POP} maxShown={26} />
             <Cast t={t} />
           </g>
@@ -332,12 +335,12 @@ const LeadersScene = () => {
             {CANDIDATES.map((c, i) => {
               const x = 165 + i * 250;
               const lit = isLit(c);
-              const flex = c.n === 'FRAINEL' && t > 44.16 ? 40 + Math.sin(t * 10) * 25 : 0;
+              const flex = c.n === 'FRAINEL' && t > W('y', 6) ? 40 + Math.sin(t * 10) * 25 : 0;
               return (
                 <g key={c.n}>
                   {lit ? <path d={`M${x - 30} 260 L${x + 30} 260 L${x + 130} 1200 L${x - 130} 1200 Z`} fill="#fff6c2" opacity={0.25} /> : null}
-                  <g opacity={lit || t > 44.9 ? 1 : 0.45}>
-                    <Villager x={x} y={1150} t={t} seed={i + 30} s={5.2} shirt={c.shirt} wave={flex || (lit ? Math.sin(t * 6) * 30 : 0)} />
+                  <g opacity={lit || t > (W('y', 6) + 0.74) ? 1 : 0.45}>
+                    <Villager x={x} y={1150} t={t} seed={i + 30} s={(W('hoy', 0) + 1.16)} shirt={c.shirt} wave={flex || (lit ? Math.sin(t * 6) * 30 : 0)} />
                   </g>
                   {i === crownIdx ? (
                     <g transform={`translate(${x} ${800 + Math.sin(t * 5) * 10}) scale(1.4)`}>
@@ -350,7 +353,7 @@ const LeadersScene = () => {
           </g>
         ) : null}
       </svg>
-      <Pop at={36.52} out={39.3} style={{top: 400, left: 0, right: 0}}>
+      <Pop at={W('llega', 0)} out={(W('llega', 0) + 2.78)} style={{top: 400, left: 0, right: 0}}>
         <BigText size={110}>
           ¿QUIÉN MANDA
           <br />
@@ -360,14 +363,14 @@ const LeadersScene = () => {
       {lineup > 0 ? (
         <div style={{position: 'absolute', top: 1230, left: 0, right: 0, display: 'flex', justifyContent: 'space-around', padding: '0 20px', opacity: lineup}}>
           {CANDIDATES.map((c) => (
-            <div key={c.n} style={{display: 'flex', flexDirection: 'column', alignItems: 'center', width: 240, opacity: isLit(c) || t > 44.9 ? 1 : 0.5}}>
+            <div key={c.n} style={{display: 'flex', flexDirection: 'column', alignItems: 'center', width: 240, opacity: isLit(c) || t > (W('y', 6) + 0.74) ? 1 : 0.5}}>
               <div style={{fontFamily: FONT, fontWeight: 900, fontSize: 46, color: '#fff', WebkitTextStroke: '8px #05060f', paintOrder: 'stroke fill'}}>{c.n}</div>
               <div style={{fontFamily: FONT, fontWeight: 800, fontSize: 22, color: '#0b0b14', background: C.accent, borderRadius: 14, padding: '4px 10px', marginTop: 4, whiteSpace: 'nowrap'}}>{c.claim}</div>
             </div>
           ))}
         </div>
       ) : null}
-      <Pop at={39.8} style={{top: 260 + 150, left: 0, right: 0}}>
+      <Pop at={(W('jorge', 0) + 0.04)} style={{top: 260 + 150, left: 0, right: 0}}>
         <BigText size={84} color={C.red}>
           ¡LUCHA POR EL PODER!
         </BigText>
@@ -377,20 +380,20 @@ const LeadersScene = () => {
 };
 
 // =====================================================================
-// 4. ELECCIONES (47.6 – 58.0 s)
+// 4. ELECCIONES ((W('y', 6) + 3.44) – (W('gobernará', 0) + 2.36) s)
 // =====================================================================
 const ElectionScene = () => {
   const t = useT();
   const typed = 'Debo ser el jefe porque…';
-  const n = Math.floor(lin(t, 50.0, 52.4, 0, typed.length));
-  const likes = Math.round(r(t, 53.3, 55.5, 0, 1247, (x) => x * x));
-  const crown = r(t, 55.64, 56.2, -500, 0, (x) => x * x);
+  const n = Math.floor(lin(t, (W('si', 0) + 0.16), (W('comenta', 0) + 1.28), 0, typed.length));
+  const likes = Math.round(r(t, (W('quien', 0) + 0.02), (W('quien', 0) + 2.22), 0, 1247, (x) => x * x));
+  const crown = r(t, W('gobernará', 0), (W('gobernará', 0) + 0.56), -500, 0, (x) => x * x);
   return (
     <AbsoluteFill>
       <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{position: 'absolute'}}>
         <Ocean t={t} night={0.7} />
       </svg>
-      <Pop at={47.84} style={{top: 260, left: 0, right: 0, flexDirection: 'column'}}>
+      <Pop at={W('así', 0)} style={{top: 260, left: 0, right: 0, flexDirection: 'column'}}>
         <svg width={220} height={200} viewBox="-110 -100 220 200">
           <rect x={-80} y={-20} width={160} height={110} rx={10} fill="#e8ecf5" stroke="#05060f" strokeWidth={8} />
           <rect x={-50} y={-30} width={100} height={14} rx={6} fill="#05060f" />
@@ -403,7 +406,7 @@ const ElectionScene = () => {
           ELECCIONES
         </BigText>
       </Pop>
-      <Pop at={49.84} style={{top: 760, left: 60, right: 60}}>
+      <Pop at={W('si', 0)} style={{top: 760, left: 60, right: 60}}>
         <div
           style={{
             width: '100%',
@@ -411,8 +414,8 @@ const ElectionScene = () => {
             display: 'flex',
             alignItems: 'center',
             gap: 20,
-            background: t > 55.64 ? 'rgba(255,210,63,0.2)' : 'rgba(8,12,30,0.9)',
-            border: `5px solid ${t > 55.64 ? C.accent : 'rgba(255,255,255,0.2)'}`,
+            background: t > W('gobernará', 0) ? 'rgba(255,210,63,0.2)' : 'rgba(8,12,30,0.9)',
+            border: `5px solid ${t > W('gobernará', 0) ? C.accent : 'rgba(255,255,255,0.2)'}`,
             borderRadius: 30,
             padding: '22px 26px',
             fontFamily: FONT,
@@ -428,23 +431,23 @@ const ElectionScene = () => {
               <span style={{opacity: Math.sin(t * 10) > 0 ? 1 : 0}}>|</span>
             </div>
           </div>
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', scale: String(1 + (t > 53.3 && t < 55.6 ? 0.15 * Math.abs(Math.sin(t * 8)) : 0))}}>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', scale: String(1 + (t > (W('quien', 0) + 0.02) && t < (W('gobernará', 0) - 0.04) ? 0.15 * Math.abs(Math.sin(t * 8)) : 0))}}>
             <Heart size={56} color={likes > 0 ? C.pink : '#c9cfe0'} />
             <div style={{fontWeight: 900, fontSize: 30}}>{likes.toLocaleString('es-ES')}</div>
           </div>
-          {t > 55.64 ? (
+          {t > W('gobernará', 0) ? (
             <svg width={150} height={110} viewBox="-75 -55 150 110" style={{position: 'absolute', top: -95 + crown, left: 30}}>
               <path d="M-60 40 L-60 -20 L-30 10 L0 -40 L30 10 L60 -20 L60 40 Z" fill={C.accent} stroke="#05060f" strokeWidth={8} strokeLinejoin="round" />
             </svg>
           ) : null}
         </div>
       </Pop>
-      <Pop at={53.28} out={55.5} style={{top: 1000, left: 0, right: 0}}>
+      <Pop at={W('quien', 0)} out={(W('quien', 0) + 2.22)} style={{top: 1000, left: 0, right: 0}}>
         <Pill color={C.pink} text="#fff" size={50}>
           + LIKES = + VOTOS
         </Pill>
       </Pop>
-      <Pop at={55.64} style={{top: 1000, left: 0, right: 0}}>
+      <Pop at={W('gobernará', 0)} style={{top: 1000, left: 0, right: 0}}>
         <BigText size={80} color={C.accent}>
           ¡GOBIERNA LA ISLA!
         </BigText>
@@ -454,27 +457,128 @@ const ElectionScene = () => {
 };
 
 // =====================================================================
-// 5. CIERRE: faltan 42 para ser aldea (58.0 – 67.4 s)
+// 5. LAS REGLAS: seguir para unirte, comentar ideas, el más votado se cumple
 // =====================================================================
-const OutroScene = () => {
+const IDEAS = [
+  {user: '@tú', text: 'Quiero ser panadero 🍞', likes: 312},
+  {user: '@otro', text: 'Idea: ¡construir un barco!', likes: 2480},
+];
+
+const RulesScene = () => {
   const t = useT();
-  const tap = t > 62.9 && t < 63.2 ? 0.9 : 1;
-  const tapped = t > 63.05;
-  const pop = tapped ? POP + 1 : POP;
-  const fill = r(t, 58.4, 59.6, 0, POP / 100);
+  const tapAt = W('seguirme') + 0.3;
+  const tap = t > tapAt - 0.15 && t < tapAt + 0.15 ? 0.9 : 1;
+  const tapped = t > tapAt;
+  const pop = POP;
+  const winner = t > W('cada');
+  const boat = r(t, W('realidad'), W('realidad') + 0.6, 0, 1, BACK);
   return (
     <AbsoluteFill>
       <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{position: 'absolute'}}>
         <Ocean t={t} />
-        <g transform={`translate(540 950) scale(1.05) translate(-540 -975)`}>
+        <g transform="translate(540 1000) scale(1.05) translate(-540 -975)">
+          <IslandWorld t={t} pop={pop} maxShown={26} />
+          <Cast t={t} />
+          {boat > 0 ? (
+            <g transform={`translate(${170 + Math.sin(t * 1.5) * 8} 1250) scale(${boat * 1.6})`}>
+              <path d="M-60 0 L60 0 L44 26 L-44 26 Z" fill="#8a5a2c" />
+              <line x1={0} y1={0} x2={0} y2={-90} stroke="#6b3f1f" strokeWidth={5} />
+              <path d="M4 -86 Q50 -50 4 -14 Z" fill="#fff" />
+              <path d={`M0 -90 L26 -84 L0 -78 Z`} fill={C.accent} />
+            </g>
+          ) : null}
+        </g>
+      </svg>
+      <div style={{position: 'absolute', top: 230, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
+        <Hud pop={pop} day={2} />
+      </div>
+      <Pop at={W('recuerda') - 0.1} out={W('si', 1) - 0.2} style={{top: 380, left: 0, right: 0, flexDirection: 'column'}}>
+        <Pill color="#fff" size={52}>
+          LAS REGLAS
+        </Pill>
+        <div style={{display: 'flex', alignItems: 'center', gap: 16, marginTop: 18, padding: '20px 56px', borderRadius: 80, background: tapped ? 'rgba(255,255,255,0.25)' : C.pink, fontFamily: FONT, fontWeight: 900, fontSize: 58, color: '#fff', scale: String(tap)}}>
+          {tapped ? <Check size={58} /> : '+'} {tapped ? 'SIGUIENDO' : 'SEGUIR'}
+        </div>
+        <div style={{marginTop: 14}}>
+          <Pill color={C.green} size={40}>
+            = VIVES EN LA ISLA
+          </Pill>
+        </div>
+      </Pop>
+      <Pop at={W('si', 1) - 0.1} style={{top: 360, left: 50, right: 50, flexDirection: 'column'}}>
+        <div style={{fontFamily: FONT, fontWeight: 900, fontSize: 40, color: '#fff', background: 'rgba(8,12,30,0.88)', borderRadius: 26, padding: '12px 22px', marginBottom: 14}}>
+          OPCIONAL: COMENTA TU OFICIO O TUS IDEAS
+        </div>
+        {IDEAS.map((c, i) => {
+          const hl = winner && i === 1;
+          const likes = Math.round(c.likes * r(t, W('comenta', 1) + i * 0.3, W('likes', 1) + 0.5, 0.05, 1));
+          return (
+            <div
+              key={c.user}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                marginTop: 12,
+                background: hl ? 'rgba(255,210,63,0.22)' : 'rgba(8,12,30,0.88)',
+                border: `4px solid ${hl ? C.accent : 'rgba(255,255,255,0.15)'}`,
+                borderRadius: 24,
+                padding: '12px 20px',
+                fontFamily: FONT,
+                color: '#fff',
+                scale: String(r(t, W('comenta', 1) + i * 0.4, W('comenta', 1) + i * 0.4 + 0.4, 0, 1, BACK)),
+              }}
+            >
+              <div style={{width: 56, height: 56, borderRadius: 28, background: `linear-gradient(135deg, ${C.cyan}, ${C.pink})`, flexShrink: 0}} />
+              <div style={{flex: 1}}>
+                <div style={{fontSize: 22, fontWeight: 800, color: '#b9c3dd', display: 'flex', gap: 10}}>
+                  {c.user}
+                  {hl ? <span style={{background: C.accent, color: '#0b0b14', borderRadius: 10, padding: '0 10px', fontWeight: 900}}>MÁS LIKES</span> : null}
+                </div>
+                <div style={{fontSize: 36, fontWeight: 900}}>{c.text.replace(' 🍞', '')}</div>
+              </div>
+              <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                <Heart size={40} color={hl ? C.pink : '#c9cfe0'} />
+                <div style={{fontWeight: 900, fontSize: 22}}>{likes >= 1000 ? `${(likes / 1000).toFixed(1).replace('.', ',')} K` : likes}</div>
+              </div>
+            </div>
+          );
+        })}
+      </Pop>
+      <Pop at={W('realidad') - 0.1} style={{top: 1220, left: 0, right: 0}}>
+        <BigText size={76} color={C.accent}>
+          ¡SE HACE REALIDAD!
+        </BigText>
+      </Pop>
+    </AbsoluteFill>
+  );
+};
+
+// =====================================================================
+// 6. CIERRE: faltan 42 para ser aldea
+// =====================================================================
+const OutroScene = () => {
+  const t = useT();
+  const tapAt = W('sígueme') + 0.4;
+  const tap = t > tapAt - 0.15 && t < tapAt + 0.15 ? 0.9 : 1;
+  const tapped = t > tapAt;
+  const pop = POP + (tapped ? 1 : 0);
+  const fill = r(t, W('faltan', 1) + 0.1, W('faltan', 1) + 1.3, 0, POP / 100);
+  return (
+    <AbsoluteFill>
+      <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{position: 'absolute'}}>
+        <Ocean t={t} />
+        <g transform="translate(540 950) scale(1.05) translate(-540 -975)">
           <IslandWorld t={t} pop={pop} maxShown={26} />
           <Cast t={t} />
         </g>
       </svg>
       <div style={{position: 'absolute', top: 230, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
-        <Hud pop={pop} day={2} highlight={tapped ? lin(t, 63.05, 64.2, 1, 0) : 0} />
+        <Hud pop={pop} day={2} highlight={tapped ? lin(t, tapAt, tapAt + 1.2, 1, 0) : 0} />
       </div>
-      <Pop at={58.24} out={62.0} style={{top: 390, left: 70, right: 70, flexDirection: 'column'}}>
+      <Pop at={W('faltan', 1)} out={W('sígueme') - 0.2} style={{top: 390, left: 70, right: 70, flexDirection: 'column'}}>
         <div style={{width: '100%', height: 54, borderRadius: 30, background: 'rgba(8,12,30,0.85)', border: '4px solid #fff', overflow: 'hidden'}}>
           <div style={{width: `${fill * 100}%`, height: '100%', background: `linear-gradient(90deg, ${C.green}, ${C.accent})`}} />
         </div>
@@ -486,35 +590,12 @@ const OutroScene = () => {
           ¡FALTAN 42!
         </BigText>
       </Pop>
-      <Pop at={62.19} style={{top: 400, left: 0, right: 0}}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-            padding: '22px 64px',
-            borderRadius: 80,
-            background: tapped ? 'rgba(255,255,255,0.25)' : C.pink,
-            fontFamily: FONT,
-            fontWeight: 900,
-            fontSize: 62,
-            color: '#fff',
-            scale: String(tap),
-            boxShadow: tapped ? 'none' : `0 0 ${40 + 20 * Math.sin(t * 6)}px ${C.pink}`,
-          }}
-        >
+      <Pop at={W('sígueme') - 0.1} style={{top: 400, left: 0, right: 0}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 16, padding: '22px 64px', borderRadius: 80, background: tapped ? 'rgba(255,255,255,0.25)' : C.pink, fontFamily: FONT, fontWeight: 900, fontSize: 62, color: '#fff', scale: String(tap), boxShadow: tapped ? 'none' : `0 0 ${40 + 20 * Math.sin(t * 6)}px ${C.pink}`}}>
           {tapped ? <Check size={62} /> : '+'} {tapped ? 'SIGUIENDO' : 'SEGUIR'}
         </div>
       </Pop>
-      <Pop at={63.36} style={{top: 560, left: 60, right: 60}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 16, fontFamily: FONT, fontWeight: 900, fontSize: 44, color: '#fff', background: 'rgba(8,12,30,0.88)', borderRadius: 30, padding: '16px 26px'}}>
-          <svg width={64} height={60} viewBox="0 0 74 70">
-            <path d="M8 6 H66 Q70 6 70 10 V46 Q70 50 66 50 H30 L14 64 V50 H8 Q4 50 4 46 V10 Q4 6 8 6 Z" fill={C.cyan} />
-          </svg>
-          TU NOMBRE + TU OFICIO
-        </div>
-      </Pop>
-      <Pop at={65.16} style={{top: 1180, left: 0, right: 0}}>
+      <Pop at={W('entra') - 0.1} style={{top: 1180, left: 0, right: 0}}>
         <BigText size={86} color={C.accent}>
           ENTRA EN LA HISTORIA
         </BigText>
@@ -526,16 +607,19 @@ const OutroScene = () => {
 // =====================================================================
 export const Episodio02 = () => (
   <AbsoluteFill style={{backgroundColor: '#0d4f8f'}}>
-    <Scene name="La isla y sus habitantes" start={0} end={34.5} fadeOut={false}>
+    <Scene name="La isla y sus habitantes" start={0} end={W('pero', 1) - 0.3} fadeOut={false}>
       <IslandTour />
     </Scene>
-    <Scene name="¿Quién manda?" start={34.5} end={47.6}>
+    <Scene name="¿Quién manda?" start={W('pero', 1) - 0.3} end={W('así') - 0.3}>
       <LeadersScene />
     </Scene>
-    <Scene name="Elecciones" start={47.6} end={58.0}>
+    <Scene name="Elecciones" start={W('así') - 0.3} end={W('recuerda') - 0.4}>
       <ElectionScene />
     </Scene>
-    <Scene name="Cierre" start={58.0} end={DURATION} fadeOut={false}>
+    <Scene name="Reglas" start={W('recuerda') - 0.4} end={W('faltan', 1) - 0.3}>
+      <RulesScene />
+    </Scene>
+    <Scene name="Cierre" start={W('faltan', 1) - 0.3} end={DURATION} fadeOut={false}>
       <OutroScene />
     </Scene>
     <Brand hideAt={DURATION} />

@@ -163,7 +163,7 @@ const GrowthScene = () => {
         </Camera>
       </svg>
       <div style={{position: 'absolute', top: 230, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
-        <Hud pop={pop} highlight={t > 18.4 && t < 33.4 ? lin(Math.abs(Math.sin(t * 3)), 0, 1, 0.2, 0.6) * (pop < 999 && (t < 20 || (t > 25.3 && t < 27) || (t > 31.4 && t < 33.2)) ? 1 : 0) : 0} />
+        <Hud label="EP" pop={pop} highlight={t > 18.4 && t < 33.4 ? lin(Math.abs(Math.sin(t * 3)), 0, 1, 0.2, 0.6) * (pop < 999 && (t < 20 || (t > 25.3 && t < 27) || (t > 31.4 && t < 33.2)) ? 1 : 0) : 0} />
       </div>
       {tier ? (
         <TierBanner key={tier[1]} t={t} at={tierAt} n={tier[0]} name={tier[1]} color={tier[2]} />
@@ -536,7 +536,7 @@ const NightScene = () => {
         </Camera>
       </svg>
       <div style={{position: 'absolute', top: 230, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
-        <Hud pop={pop} />
+        <Hud pop={pop} label="EP" />
       </div>
       <Pop at={58.72} out={61.5} style={{top: 400, left: 0, right: 0}}>
         <BigText size={96}>AHORA MISMO…</BigText>
@@ -574,7 +574,7 @@ const OutroScene = () => {
         </Camera>
       </svg>
       <div style={{position: 'absolute', top: 230, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
-        <Hud pop={pop} highlight={tapped ? lin(t, 66.05, 67.5, 1, 0) : 0} />
+        <Hud label="EP" pop={pop} highlight={tapped ? lin(t, 66.05, 67.5, 1, 0) : 0} />
       </div>
       <Pop at={64.24} out={67.6} style={{top: 400, left: 0, right: 0, flexDirection: 'column'}}>
         <div
