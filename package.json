@@ -9,7 +9,8 @@
     "remotion:render": "remotion render remotion/index.jsx DeltaIntro out/delta-intro.mp4",
     "render:tunel": "remotion render remotion/index.jsx TunelTierra out/tunel-tierra.mp4",
     "voz": "NODE_USE_ENV_PROXY=1 node scripts/voz.mjs",
-    "render:agujero": "remotion render remotion/index.jsx AgujeroMoneda out/agujero-moneda.mp4"
+    "render:agujero": "remotion render remotion/index.jsx AgujeroMoneda out/agujero-moneda.mp4",
+    "render:civ01": "remotion render remotion/index.jsx Civilizacion01 out/civilizacion-01.mp4"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.542",
