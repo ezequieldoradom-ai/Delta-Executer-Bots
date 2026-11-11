@@ -214,7 +214,7 @@ const STALLS = [
   {x: 430, y: 1010, th: 400, c: C.red}, {x: 480, y: 1050, th: 480, c: C.cyan}, {x: 410, y: 1080, th: 560, c: C.green},
 ];
 
-export const IslandWorld = ({t, pop, tags = []}) => {
+export const IslandWorld = ({t, pop, tags = [], maxShown = 70}) => {
   const items = [];
   const add = (y, el) => items.push({y, el});
 
@@ -250,7 +250,7 @@ export const IslandWorld = ({t, pop, tags = []}) => {
   if (pop >= 500) add(1240, <Dock key="dock" x={250} y={1240} s={appear(pop, 500)} t={t} />);
 
   // Habitantes visibles (como mucho 70 para no saturar)
-  const shown = Math.min(Math.floor(pop), 70);
+  const shown = Math.min(Math.floor(pop), maxShown);
   for (let k = 0; k < shown; k++) {
     const home = k === 0 ? {x: 590, y: 990} : inIsland(k);
     const wander = k === 0 ? 0 : 14;
