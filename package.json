@@ -6,10 +6,13 @@
   "scripts": {
     "start": "node bot.js",
     "remotion:studio": "remotion studio remotion/index.jsx",
-    "remotion:render": "remotion render remotion/index.jsx DeltaIntro out/delta-intro.mp4"
+    "remotion:render": "remotion render remotion/index.jsx DeltaIntro out/delta-intro.mp4",
+    "render:tunel": "remotion render remotion/index.jsx TunelTierra out/tunel-tierra.mp4"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.542",
+    "@remotion/google-fonts": "^4.0.542",
+    "@remotion/media": "^4.0.542",
     "discord.js": "^14.11.0",
     "express": "^4.18.2",
     "react": "^19.3.1",
