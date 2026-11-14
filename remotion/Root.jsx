@@ -7,6 +7,7 @@ import { AgujeroVideo, DURATION as AGUJERO_DURATION } from './agujero/AgujeroVid
 import { Episodio01, DURATION as CIV01_DURATION } from './civilizacion/Episodio01';
 import { Episodio02, DURATION as CIV02_DURATION } from './civilizacion/Episodio02';
 import { Dia03, DURATION as CIV03_DURATION } from './civilizacion/Dia03';
+import { Dia04, DURATION as CIV04_DURATION } from './civilizacion/Dia04';
 
 // Formato por defecto de los videos de Aprende: vertical 1080x1920 a 60 fps
 const FPS = 60;
@@ -59,6 +60,14 @@ export const RemotionRoot = () => {
         id="Civilizacion03"
         component={Dia03}
         durationInFrames={Math.round(CIV03_DURATION * FPS)}
+        fps={FPS}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="Civilizacion04"
+        component={Dia04}
+        durationInFrames={Math.round(CIV04_DURATION * FPS)}
         fps={FPS}
         width={1080}
         height={1920}

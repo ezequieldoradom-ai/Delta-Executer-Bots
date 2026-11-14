@@ -214,7 +214,7 @@ const STALLS = [
   {x: 430, y: 1010, th: 400, c: C.red}, {x: 480, y: 1050, th: 480, c: C.cyan}, {x: 410, y: 1080, th: 560, c: C.green},
 ];
 
-export const IslandWorld = ({t, pop, tags = [], maxShown = 70}) => {
+export const IslandWorld = ({t, pop, tags = [], maxShown = 70, size = 1, children}) => {
   const items = [];
   const add = (y, el) => items.push({y, el});
 
@@ -275,8 +275,8 @@ export const IslandWorld = ({t, pop, tags = [], maxShown = 70}) => {
           key={k}
           cx={ISLAND.x}
           cy={ISLAND.y + 10}
-          rx={ISLAND.rx + 40 + k * 45 + wave(k)}
-          ry={ISLAND.ry + 30 + k * 35 + wave(k) * 0.6}
+          rx={ISLAND.rx * size + 40 + k * 45 + wave(k)}
+          ry={ISLAND.ry * size + 30 + k * 35 + wave(k) * 0.6}
           fill="none"
           stroke="#bfe9ff"
           strokeOpacity={0.35 - k * 0.1}
@@ -285,9 +285,9 @@ export const IslandWorld = ({t, pop, tags = [], maxShown = 70}) => {
           strokeDashoffset={t * 20 * (k % 2 ? 1 : -1)}
         />
       ))}
-      <ellipse cx={ISLAND.x} cy={ISLAND.y + 18} rx={ISLAND.rx + 14} ry={ISLAND.ry + 14} fill="#7fd3e6" opacity={0.6} />
-      <ellipse cx={ISLAND.x} cy={ISLAND.y} rx={ISLAND.rx} ry={ISLAND.ry} fill="#f2d79b" />
-      <ellipse cx={ISLAND.x} cy={ISLAND.y - 12} rx={ISLAND.rx - 50} ry={ISLAND.ry - 46} fill="#6cc25a" />
+      <ellipse cx={ISLAND.x} cy={ISLAND.y + 18} rx={ISLAND.rx * size + 14} ry={ISLAND.ry * size + 14} fill="#7fd3e6" opacity={0.6} />
+      <ellipse cx={ISLAND.x} cy={ISLAND.y} rx={ISLAND.rx * size} ry={ISLAND.ry * size} fill="#f2d79b" />
+      <ellipse cx={ISLAND.x} cy={ISLAND.y - 12} rx={ISLAND.rx * size - 50} ry={ISLAND.ry * size - 46} fill="#6cc25a" />
       <ellipse cx={ISLAND.x - 80} cy={ISLAND.y - 40} rx={160} ry={80} fill="#7fd06a" opacity={0.6} />
       {pop >= 150 ? (
         <path
@@ -298,6 +298,7 @@ export const IslandWorld = ({t, pop, tags = [], maxShown = 70}) => {
           strokeLinecap="round"
         />
       ) : null}
+      {children}
       {items.map((it) => it.el)}
     </g>
   );
