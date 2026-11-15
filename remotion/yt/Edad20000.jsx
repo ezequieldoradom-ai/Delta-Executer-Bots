@@ -1081,12 +1081,12 @@ const AfterScene = () => {
         {MARKS.map(([w, year, label, col], i) => {
           const at = Wa(w, P[22]);
           const s = r(t, at, at + 0.4, 0, 1, BACK);
-          const up = i % 2 === 0;
+          const lift = [-110, 110, -230, 230, -110, 110, -230][i];
           return (
             <g key={w} transform={`translate(${xOf(year)} 600) scale(${s})`}>
-              <line x1={0} y1={0} x2={0} y2={up ? -120 : 120} stroke={col} strokeWidth={5} />
+              <line x1={0} y1={0} x2={0} y2={lift} stroke={col} strokeWidth={5} />
               <circle r={14} fill={col} />
-              <text y={up ? -140 : 170} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={34} fill={col} stroke="#05060f" strokeWidth={6} paintOrder="stroke">
+              <text y={lift < 0 ? lift - 20 : lift + 48} textAnchor="middle" fontFamily={FONT} fontWeight={900} fontSize={34} fill={col} stroke="#05060f" strokeWidth={6} paintOrder="stroke">
                 {label}
               </text>
             </g>
