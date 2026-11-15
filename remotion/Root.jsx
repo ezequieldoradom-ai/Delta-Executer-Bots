@@ -9,7 +9,7 @@ import { Episodio02, DURATION as CIV02_DURATION } from './civilizacion/Episodio0
 import { Dia03, DURATION as CIV03_DURATION } from './civilizacion/Dia03';
 import { Dia04, DURATION as CIV04_DURATION } from './civilizacion/Dia04';
 import { Edad20000, DURATION as YT20000_DURATION } from './yt/Edad20000';
-import { MiniaturaA, MiniaturaB, MiniaturaC } from './yt/Miniaturas';
+import { MiniaturaA, MiniaturaB, MiniaturaC, MiniaturaFosaA, MiniaturaFosaB, MiniaturaFosaC } from './yt/Miniaturas';
 import { Fosa, DURATION as FOSA_DURATION } from './yt/Fosa';
 
 // Formato por defecto de los videos de Aprende: vertical 1080x1920 a 60 fps
@@ -95,6 +95,9 @@ export const RemotionRoot = () => {
         ['Miniatura-20000-A', MiniaturaA],
         ['Miniatura-20000-B', MiniaturaB],
         ['Miniatura-20000-C', MiniaturaC],
+        ['Miniatura-Fosa-A', MiniaturaFosaA],
+        ['Miniatura-Fosa-B', MiniaturaFosaB],
+        ['Miniatura-Fosa-C', MiniaturaFosaC],
       ].map(([id, comp]) => (
         <Composition key={id} id={id} component={comp} durationInFrames={1} fps={FPS} width={1920} height={1080} />
       ))}

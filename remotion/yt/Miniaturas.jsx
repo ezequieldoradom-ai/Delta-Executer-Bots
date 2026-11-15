@@ -133,3 +133,95 @@ export const MiniaturaC = () => (
     </div>
   </AbsoluteFill>
 );
+
+// ---------- Fosa de las Marianas ----------
+import {Anglerfish as _Angler, Submarine as _Sub} from './Oceano';
+
+const Abyss = ({children, top = '#06183a'}) => (
+  <svg {...CANVAS}>
+    <defs>
+      <linearGradient id="abyss" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor={top} />
+        <stop offset="1" stopColor="#010409" />
+      </linearGradient>
+    </defs>
+    <rect x={0} y={0} width={1920} height={1080} fill="url(#abyss)" />
+    {Array.from({length: 70}).map((_, i) => (
+      <circle key={i} cx={(i * 337) % 1920} cy={(i * 211) % 1080} r={2 + (i % 4)} fill="#e8f6ff" opacity={0.35} />
+    ))}
+    {children}
+  </svg>
+);
+
+// A: submarino diminuto frente a un rape abisal gigante
+export const MiniaturaFosaA = () => (
+  <AbsoluteFill>
+    <Abyss>
+      <g transform="translate(1130 720) scale(3.7)">
+        <_Angler x={0} y={0} s={1} t={1.6} />
+      </g>
+      <_Sub x={330} y={760} s={0.75} t={0} lights={1} />
+    </Abyss>
+    <div style={{position: 'absolute', top: 40, left: 50}}>
+      <Big size={230} color={C.accent}>
+        −11 KM
+      </Big>
+    </div>
+    <div style={{position: 'absolute', top: 290, left: 60, background: '#e62117', borderRadius: 20, padding: '8px 26px', border: '8px solid #05060f', fontFamily: FONT, fontWeight: 900, fontSize: 70, color: '#fff'}}>FOSA DE LAS MARIANAS</div>
+  </AbsoluteFill>
+);
+
+// B: el Everest dentro de la fosa
+export const MiniaturaFosaB = () => (
+  <AbsoluteFill>
+    <svg {...CANVAS}>
+      <rect x={0} y={0} width={1920} height={150} fill="#8fd0ff" />
+      <rect x={0} y={150} width={1920} height={930} fill="#0d4f8f" />
+      <rect x={0} y={150} width={1920} height={930} fill="url(#fade)" />
+      <defs>
+        <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#2fa9e0" stopOpacity="0.6" />
+          <stop offset="1" stopColor="#010409" />
+        </linearGradient>
+      </defs>
+      <path d="M0 400 L700 520 L860 1080 L1300 1080 L1460 560 L1920 450 L1920 1080 L0 1080 Z" fill="#14100c" />
+      <path d="M800 1080 L1080 330 L1360 1080 Z" fill="#9aa3b8" stroke="#fff" strokeWidth={8} />
+      <path d="M1080 330 l-60 110 l60 -26 l60 26 Z" fill="#fff" />
+      <line x1={1500} x2={1500} y1={150} y2={330} stroke={C.accent} strokeWidth={10} strokeDasharray="22 14" />
+    </svg>
+    <div style={{position: 'absolute', top: 30, left: 50}}>
+      <Big size={150} color="#fff">
+        EL EVEREST
+        <br />
+        <span style={{color: C.accent}}>CABE AQUÍ</span>
+      </Big>
+    </div>
+    <div style={{position: 'absolute', top: 190, left: 1540}}>
+      <Big size={90} color={C.accent}>
+        +2 km
+      </Big>
+    </div>
+  </AbsoluteFill>
+);
+
+// C: ojos brillando en la oscuridad alrededor del submarino
+export const MiniaturaFosaC = () => (
+  <AbsoluteFill>
+    <Abyss top="#03081a">
+      {[
+        [300, 260], [620, 180], [1500, 230], [1740, 520], [1380, 820], [240, 720], [980, 940], [1640, 900],
+      ].map(([x, y], i) => (
+        <g key={i}>
+          <ellipse cx={x - 40} cy={y} rx={24} ry={15} fill="#c8ffef" style={{filter: 'drop-shadow(0 0 26px #7fffd4)'}} />
+          <ellipse cx={x + 40} cy={y} rx={24} ry={15} fill="#c8ffef" style={{filter: 'drop-shadow(0 0 26px #7fffd4)'}} />
+        </g>
+      ))}
+      <_Sub x={760} y={600} s={1.4} t={0} lights={1} />
+    </Abyss>
+    <div style={{position: 'absolute', top: 40, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
+      <Big size={170} color="#fff">
+        ¿QUÉ HAY <span style={{color: '#7fffd4'}}>AHÍ ABAJO?</span>
+      </Big>
+    </div>
+  </AbsoluteFill>
+);
