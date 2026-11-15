@@ -14,3 +14,12 @@ export const makeW = (words) => (word, nth = 0) => {
   }
   throw new Error(`La palabra "${word}" (${nth}) no está en la voz`);
 };
+
+// Primera vez que se dice `word` a partir del segundo `after`
+export const makeWa = (words) => (word, after = 0) => {
+  const target = clean(word);
+  for (const w of words) {
+    if (w.start >= after && clean(w.text) === target) return w.start;
+  }
+  throw new Error(`La palabra "${word}" no aparece después de ${after}s`);
+};

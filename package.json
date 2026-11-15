@@ -13,7 +13,8 @@
     "render:civ01": "remotion render remotion/index.jsx Civilizacion01 out/civilizacion-01.mp4",
     "render:civ02": "remotion render remotion/index.jsx Civilizacion02 out/civilizacion-02.mp4",
     "render:civ03": "remotion render remotion/index.jsx Civilizacion03 out/civilizacion-dia-03.mp4",
-    "render:civ04": "remotion render remotion/index.jsx Civilizacion04 out/civilizacion-dia-04.mp4"
+    "render:civ04": "remotion render remotion/index.jsx Civilizacion04 out/civilizacion-dia-04.mp4",
+    "render:yt20000": "remotion render remotion/index.jsx YT-Despertar20000 out/yt-despertar-20000.mp4"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.542",

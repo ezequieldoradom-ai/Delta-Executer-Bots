@@ -205,7 +205,7 @@ export const SvgLabel = ({x, y, children, size = 34, color = '#fff', anchor = 'm
   </text>
 );
 
-export const Brand = ({hideAt = 69.5}) => {
+export const Brand = ({hideAt = 69.5, pos = {top: 150, left: 40}}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
@@ -214,8 +214,7 @@ export const Brand = ({hideAt = 69.5}) => {
     <div
       style={{
         position: 'absolute',
-        top: 150,
-        left: 40,
+        ...pos,
         opacity: o,
         display: 'flex',
         alignItems: 'center',

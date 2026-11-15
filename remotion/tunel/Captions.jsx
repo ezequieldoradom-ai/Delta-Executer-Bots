@@ -4,7 +4,7 @@ import {BACK, C, FONT, lin, r} from './lib';
 import {CHUNKS as TUNEL_CHUNKS} from './timing';
 
 // Subtítulos estilo TikTok: bloques cortos, palabra activa resaltada
-export const Captions = ({chunks: CHUNKS = TUNEL_CHUNKS}) => {
+export const Captions = ({chunks: CHUNKS = TUNEL_CHUNKS, top = 1430, width = 960, fontSize = 82}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
@@ -24,8 +24,8 @@ export const Captions = ({chunks: CHUNKS = TUNEL_CHUNKS}) => {
       <div
         style={{
           position: 'absolute',
-          top: 1430,
-          width: 960,
+          top,
+          width,
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'center',
@@ -45,7 +45,7 @@ export const Captions = ({chunks: CHUNKS = TUNEL_CHUNKS}) => {
               style={{
                 fontFamily: FONT,
                 fontWeight: 900,
-                fontSize: 82,
+                fontSize,
                 lineHeight: 1.12,
                 textTransform: 'uppercase',
                 color,
