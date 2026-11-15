@@ -10,6 +10,7 @@ import { Dia03, DURATION as CIV03_DURATION } from './civilizacion/Dia03';
 import { Dia04, DURATION as CIV04_DURATION } from './civilizacion/Dia04';
 import { Edad20000, DURATION as YT20000_DURATION } from './yt/Edad20000';
 import { MiniaturaA, MiniaturaB, MiniaturaC } from './yt/Miniaturas';
+import { Fosa, DURATION as FOSA_DURATION } from './yt/Fosa';
 
 // Formato por defecto de los videos de Aprende: vertical 1080x1920 a 60 fps
 const FPS = 60;
@@ -78,6 +79,14 @@ export const RemotionRoot = () => {
         id="YT-Despertar20000"
         component={Edad20000}
         durationInFrames={Math.round(YT20000_DURATION * FPS)}
+        fps={FPS}
+        width={1920}
+        height={1080}
+      />
+      <Composition
+        id="YT-FosaMarianas"
+        component={Fosa}
+        durationInFrames={Math.round(FOSA_DURATION * FPS)}
         fps={FPS}
         width={1920}
         height={1080}
