@@ -361,3 +361,48 @@ export const Dia05 = () => (
     <Audio src={staticFile('civilizacion-05.mp3')} />
   </AbsoluteFill>
 );
+
+// =====================================================================
+// MINIATURA (portada vertical)
+// =====================================================================
+export const MiniaturaDia05 = () => {
+  const t = 12;
+  return (
+    <AbsoluteFill style={{background: '#050a2a', overflow: 'hidden'}}>
+      <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{position: 'absolute'}}>
+        <Ocean t={t} night={1} />
+        <g transform={cam(0.95, 540, 975, 1060)}>
+          <IslandWorld t={t} pop={POP} maxShown={70} size={BIG}>
+            <Landmarks t={t} rock={false} />
+          </IslandWorld>
+          <Wall k={1} night={1} />
+          <ellipse cx={SPOTS.dylanRock.x} cy={SPOTS.dylanRock.y + 4} rx={30} ry={12} fill="#9aa3b8" />
+          <Villager x={SPOTS.dylanRock.x} y={SPOTS.dylanRock.y} t={t} seed={7} s={1.7} shirt="#a78bfa" crown wave={50} />
+          <rect x={-1000} y={-1000} width={3000} height={4000} fill="#050a2a" opacity={0.3} />
+          <ellipse cx={540} cy={975 + WALL_RY} rx={170} ry={80} fill={C.red} opacity={0.25} />
+          <ellipse cx={540} cy={975 + WALL_RY} rx={120} ry={55} fill="none" stroke={C.red} strokeWidth={12} />
+        </g>
+        <ellipse cx={540} cy={1760} rx={620} ry={260} fill={C.red} opacity={0.18} />
+        <g style={{filter: `drop-shadow(0 0 18px ${C.red}) drop-shadow(0 0 6px ${C.red})`}}>
+          {[[200, 1720, 1.5], [540, 1790, 1.9], [880, 1720, 1.5]].map(([x, y, s], k) => (
+            <Ship key={k} x={x} y={y} s={s} o={1} />
+          ))}
+        </g>
+      </svg>
+      <div style={{position: 'absolute', top: 130, left: 30, right: 30, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18}}>
+        <BigText size={200} color="#fff">DÍA 5</BigText>
+        <BigText size={112} color={C.accent}>
+          ¿AGUANTARÁ
+          <br />
+          LA MURALLA?
+        </BigText>
+        <div style={{marginTop: 10, background: C.red, borderRadius: 999, padding: '14px 40px', fontFamily: FONT, fontWeight: 900, fontSize: 60, color: '#fff', border: '6px solid #05060f', boxShadow: `0 0 50px ${C.red}`}}>QUEDAN 2 DÍAS</div>
+      </div>
+      <div style={{position: 'absolute', top: 40, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
+        <Pill color="rgba(255,255,255,0.14)" text="#fff" size={34} style={{border: '2px solid rgba(255,255,255,0.3)'}}>
+          265 HABITANTES · LA CIVILIZACIÓN
+        </Pill>
+      </div>
+    </AbsoluteFill>
+  );
+};
