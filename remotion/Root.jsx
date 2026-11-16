@@ -14,6 +14,7 @@ import { MiniaturaA, MiniaturaB, MiniaturaC, MiniaturaFosaA, MiniaturaFosaB, Min
 import { Fosa, DURATION as FOSA_DURATION } from './yt/Fosa';
 import { Short20000, SHORT_20000_DURATION, ShortFosa, SHORT_FOSA_DURATION, ShortFuturo, SHORT_FUT_DURATION } from './yt/Clips';
 import { Futuro, DURATION as FUTURO_DURATION } from './yt/Futuro';
+import { DemoCine, DEMO_DURATION } from './yt/DemoCine';
 
 // Formato por defecto de los videos de Aprende: vertical 1080x1920 a 60 fps
 const FPS = 60;
@@ -104,6 +105,7 @@ export const RemotionRoot = () => {
         height={1080}
       />
       <Composition id="YT-Futuro5s" component={Futuro} durationInFrames={Math.round(FUTURO_DURATION * FPS)} fps={FPS} width={1920} height={1080} />
+      <Composition id="Demo-Cine" component={DemoCine} durationInFrames={Math.round(DEMO_DURATION * FPS)} fps={FPS} width={1920} height={1080} />
       <Composition id="Short-Futuro" component={ShortFuturo} durationInFrames={Math.round(SHORT_FUT_DURATION * FPS)} fps={FPS} width={1080} height={1920} />
       <Composition id="Short-20000" component={Short20000} durationInFrames={Math.round(SHORT_20000_DURATION * FPS)} fps={FPS} width={1080} height={1920} />
       <Composition id="Short-Fosa" component={ShortFosa} durationInFrames={Math.round(SHORT_FOSA_DURATION * FPS)} fps={FPS} width={1080} height={1920} />
