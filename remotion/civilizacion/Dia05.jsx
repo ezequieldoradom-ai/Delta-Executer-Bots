@@ -34,7 +34,7 @@ const WALL_RY = 300 * BIG - 34;
 const GAP = [Math.PI * 0.38, Math.PI * 0.62]; // abajo (sur)
 const BLOCKS = Array.from({length: 64}).map((_, i) => (i / 64) * Math.PI * 2 - Math.PI / 2);
 
-const Wall = ({k, night = 0}) => (
+export const Wall = ({k, night = 0}) => (
   <g>
     {BLOCKS.map((a, i) => {
       const norm = (a + Math.PI * 2) % (Math.PI * 2);
@@ -102,7 +102,7 @@ const GoldenCoconut = ({x, y, s = 1, t}) => (
   </g>
 );
 
-const Ship = ({x, y, s = 1, o = 1}) => (
+export const Ship = ({x, y, s = 1, o = 1}) => (
   <g transform={`translate(${x} ${y}) scale(${s})`} opacity={o}>
     <path d="M-90 0 L90 0 L66 38 L-66 38 Z" fill="#0b0b14" />
     <line x1={-20} y1={0} x2={-20} y2={-170} stroke="#0b0b14" strokeWidth={8} />

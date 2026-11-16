@@ -52,7 +52,7 @@ const Feed = ({src, segments, fps, blur = false}) => {
   );
 };
 
-const ClipShort = ({src, words, segments, chip, hook, hookSub, question, accent = C.accent}) => {
+export const ClipShort = ({src, words, segments, chip, hook, hookSub, question, accent = C.accent}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
@@ -158,6 +158,27 @@ export const ShortFosa = () => (
     hook="−10.900 METROS"
     hookSub="El punto más profundo del planeta"
     question="¿SOBREVIVIRÍAS?"
+    accent="#5ee7ff"
+  />
+);
+
+// ---------- Short 3: ¿Qué pasaría si pudieras ver 5 segundos en el futuro? ----------
+import WFUT from '../../public/yt-futuro.words.json';
+const SEG_FUT = [
+  [0, 13.85], // el vaso que ya has visto romperse… y lo atrapas
+  [17.35, 19.95], // "puedes ver cinco segundos en el futuro"
+  [31.45, 38.1], // "…algo que te va a dejar helado: tú ya puedes hacerlo" -> corte
+];
+export const SHORT_FUT_DURATION = clipLength(SEG_FUT) + END_CARD;
+export const ShortFuturo = () => (
+  <ClipShort
+    src={staticFile('clips/futuro.mp4')}
+    words={WFUT}
+    segments={SEG_FUT}
+    chip="FRAGMENTO · 5 SEGUNDOS EN EL FUTURO"
+    hook="¿VER EL FUTURO?"
+    hookSub="Tienes 5 segundos de ventaja…"
+    question="¿CÓMO ES POSIBLE?"
     accent="#5ee7ff"
   />
 );
