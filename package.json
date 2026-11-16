@@ -15,7 +15,8 @@
     "render:civ03": "remotion render remotion/index.jsx Civilizacion03 out/civilizacion-dia-03.mp4",
     "render:civ04": "remotion render remotion/index.jsx Civilizacion04 out/civilizacion-dia-04.mp4",
     "render:yt20000": "remotion render remotion/index.jsx YT-Despertar20000 out/yt-despertar-20000.mp4",
-    "render:fosa": "remotion render remotion/index.jsx YT-FosaMarianas out/yt-fosa-marianas.mp4"
+    "render:fosa": "remotion render remotion/index.jsx YT-FosaMarianas out/yt-fosa-marianas.mp4",
+    "render:civ05": "remotion render remotion/index.jsx Civilizacion05 out/civilizacion-dia-05.mp4 --browser-executable=/opt/pw-browsers/chromium"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.542",

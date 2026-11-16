@@ -8,6 +8,7 @@ import { Episodio01, DURATION as CIV01_DURATION } from './civilizacion/Episodio0
 import { Episodio02, DURATION as CIV02_DURATION } from './civilizacion/Episodio02';
 import { Dia03, DURATION as CIV03_DURATION } from './civilizacion/Dia03';
 import { Dia04, DURATION as CIV04_DURATION } from './civilizacion/Dia04';
+import { Dia05, DURATION as CIV05_DURATION } from './civilizacion/Dia05';
 import { Edad20000, DURATION as YT20000_DURATION } from './yt/Edad20000';
 import { MiniaturaA, MiniaturaB, MiniaturaC, MiniaturaFosaA, MiniaturaFosaB, MiniaturaFosaC } from './yt/Miniaturas';
 import { Fosa, DURATION as FOSA_DURATION } from './yt/Fosa';
@@ -72,6 +73,14 @@ export const RemotionRoot = () => {
         id="Civilizacion04"
         component={Dia04}
         durationInFrames={Math.round(CIV04_DURATION * FPS)}
+        fps={FPS}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="Civilizacion05"
+        component={Dia05}
+        durationInFrames={Math.round(CIV05_DURATION * FPS)}
         fps={FPS}
         width={1080}
         height={1920}
