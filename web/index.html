@@ -120,6 +120,26 @@
   .vid .lbl{font-size:15px}
   .vid .lbl span{font-size:12px}
 
+
+  /* destacado de YouTube */
+  .feat{position:relative;display:block;width:100%;text-decoration:none;color:#fff;border-radius:24px;overflow:hidden;
+    background:#0b0b14;border:1px solid rgba(255,255,255,.14);box-shadow:0 16px 40px rgba(0,0,0,.45);transition:transform .18s}
+  @media(hover:hover){.feat:hover{transform:translateY(-3px)}}
+  .feat:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+  .screen{position:relative;aspect-ratio:16/9;max-width:100%;background:linear-gradient(180deg,#0e3a66 0%,#04122a 60%,#010409 100%);display:grid;place-items:center}
+  .screen .eyes{position:absolute;inset:0}
+  .screen .eyes i{position:absolute;width:10px;height:6px;border-radius:50%;background:#c8ffef;box-shadow:0 0 10px #7fffd4;animation:blink 4s infinite}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  .play{width:64px;height:64px;border-radius:50%;background:#dc2626;display:grid;place-items:center;box-shadow:0 0 0 0 rgba(220,38,38,.6);animation:ping 2s infinite}
+  @keyframes ping{0%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}100%{box-shadow:0 0 0 22px rgba(220,38,38,0)}}
+  .play svg{width:26px;height:26px;margin-left:4px}
+  .dur{position:absolute;right:10px;bottom:10px;background:rgba(0,0,0,.8);border-radius:6px;padding:2px 7px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+  .live{position:absolute;left:10px;top:10px;background:var(--gold);color:#1a0b4a;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;letter-spacing:1px}
+  .feat-t{padding:14px 16px 16px}
+  .feat-t b{display:block;font-family:'Fredoka',sans-serif;font-size:19px;line-height:1.2}
+  .feat-t span{display:block;margin-top:4px;color:var(--muted);font-weight:700;font-size:14px}
+  .feat-cta{display:inline-flex;align-items:center;gap:8px;margin-top:12px;background:#dc2626;border-radius:999px;padding:9px 16px;font-weight:800;font-size:15px}
+
   /* elige tu camino */
   .choose{width:100%;text-align:center;margin-top:4px}
   .choose h2{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:500;color:var(--muted);margin-bottom:12px}
@@ -158,6 +178,25 @@
 
     <h1 class="appear" style="animation-delay:.1s">Aprended</h1>
     <p class="tag appear" style="animation-delay:.2s">Curiosidades e historias donde <b>tú eliges</b> qué pasa después ✨</p>
+
+
+    <a class="feat appear" style="animation-delay:.25s" href="https://www.youtube.com/@aprendedconmigo" target="_blank" rel="noopener" aria-label="Ver los vídeos largos en YouTube">
+      <div class="screen">
+        <div class="eyes" aria-hidden="true">
+          <i style="left:12%;top:24%"></i><i style="left:15%;top:24%"></i>
+          <i style="left:80%;top:30%;animation-delay:1.2s"></i><i style="left:83%;top:30%;animation-delay:1.2s"></i>
+          <i style="left:62%;top:72%;animation-delay:2.4s"></i><i style="left:65%;top:72%;animation-delay:2.4s"></i>
+        </div>
+        <span class="live">🎬 NUEVO EN YOUTUBE</span>
+        <span class="play"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="#fff"/></svg></span>
+        <span class="dur">8:10</span>
+      </div>
+      <div class="feat-t">
+        <b>¿Qué pasaría si bajaras a la Fosa de las Marianas?</b>
+        <span>Ahora también hago vídeos largos de 8 minutos, con todo el detalle.</span>
+        <span class="feat-cta">▶ Ver en YouTube</span>
+      </div>
+    </a>
 
     <div class="tease appear" style="animation-delay:.3s">
       <small>¿Qué pasaría si…?</small>
