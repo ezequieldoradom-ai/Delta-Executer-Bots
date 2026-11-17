@@ -8,11 +8,21 @@ local G = {
 	Packs = require(Server.Packs), Combat = require(Server.Combat), DayNight = require(Server.DayNight),
 	Boards = require(Server.Boards), Shop = require(Server.Shop), serverLuckUntil = 0,
 }
+local function optional(name)
+	local m = Server:FindFirstChild(name)
+	return m and require(m) or nil
+end
+G.AuraFx = optional("AuraFx")
+G.PackStyle = optional("PackStyle")
+G.Vendors = optional("Vendors")
 G.Net.init()
 require(Server.Models).load(G.Config)
 G.Avatars = require(Server.Avatars)
 G.Avatars.init(G)
+if G.AuraFx and G.AuraFx.init then G.AuraFx.init(G) end
+if G.PackStyle and G.PackStyle.init then G.PackStyle.init(G) end
 G.World.init(G)
+if G.Vendors then G.Vendors.init(G) end
 G.DayNight.init(G); G.Combat.init(G); G.Packs.init(G); G.Shop.init(G); G.Boards.init(G); G.Core.init(G)
 G.Packs.refreshAll()
 -- parcela de ejemplo con dioses de todas las rarezas y kilos variados

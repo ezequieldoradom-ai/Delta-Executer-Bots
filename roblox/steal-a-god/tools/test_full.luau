@@ -36,11 +36,23 @@ step("Cargar módulos", function()
 	G.Boards = require(Server.Boards)
 	G.Shop = require(Server.Shop)
 	G.serverLuckUntil = 0
+	local function optional(name)
+		local m = Server:FindFirstChild(name)
+		return m and require(m) or nil
+	end
+	G.AuraFx = optional("AuraFx")
+	G.PackStyle = optional("PackStyle")
+	G.Vendors = optional("Vendors")
 end)
 step("Red", function() G.Net.init() end)
 step("Avatares", function() G.Avatars = require(Server.Avatars) G.Avatars.init(G) end)
 step("Modelos 3D", function() require(Server.Models).load(G.Config) assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("zeus"), "sin zeus") assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("minotaur"), "sin minotauro") end)
-step("Construir mundo", function() G.World.init(G) end)
+step("Construir mundo", function()
+	if G.AuraFx and G.AuraFx.init then G.AuraFx.init(G) end
+	if G.PackStyle and G.PackStyle.init then G.PackStyle.init(G) end
+	G.World.init(G)
+	if G.Vendors then G.Vendors.init(G) end
+end)
 step("Iniciar sistemas", function()
 	G.DayNight.init(G)
 	G.Combat.init(G)

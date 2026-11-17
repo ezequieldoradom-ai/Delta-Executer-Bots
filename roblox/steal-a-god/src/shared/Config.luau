@@ -400,6 +400,44 @@ end
 function Config.kgScale(kg)
 	return math.clamp(0.75 + (kg or 100) / 400, 0.75, 2.6)
 end
+-- Tamaño del SOBRE según sus kilos (se nota mucho más que en el dios): 40 kg ≈ 0.94 · 100 kg ≈ 1.35 · 160 kg ≈ 1.72 · 300 kg ≈ 2.5
+function Config.packScale(kg)
+	return math.clamp(0.6 + 0.75 * ((kg or 100) / 100) ^ 0.85, 0.85, 3.6)
+end
+
+---------------------------------------------------------------------
+-- NIDOS: los sobres de cada zona aparecen juntos en un nido
+---------------------------------------------------------------------
+Config.NEST_OFFSET = 100 -- distancia desde el inicio de la zona hasta el centro del nido
+Config.NEST_RADIUS = 9 -- radio del anillo donde se colocan los sobres
+
+---------------------------------------------------------------------
+-- VENDEDORES: dos dioses junto a la entrada del pasillo
+---------------------------------------------------------------------
+Config.VENDORS = {
+	aura = { es = "Hécate", en = "Hecate", titleEs = "Diosa de la magia", titleEn = "Goddess of magic", pos = Vector3.new(-56, 0, 95), color = Color3.fromRGB(190, 110, 255) },
+	coach = { es = "Quirón", en = "Chiron", titleEs = "Maestro de héroes", titleEn = "Trainer of heroes", pos = Vector3.new(56, 0, 95), color = Color3.fromRGB(255, 190, 70) },
+}
+
+---------------------------------------------------------------------
+-- LUZ del mundo (la usan el servidor y el cliente: deben coincidir)
+---------------------------------------------------------------------
+Config.LIGHT = {
+	day = { clock = 14.2, brightness = 3.2, outdoor = Color3.fromRGB(160, 160, 172), ambient = Color3.fromRGB(112, 106, 118), tint = Color3.fromRGB(255, 250, 244) },
+	night = { clock = 0.5, brightness = 0.8, outdoor = Color3.fromRGB(60, 55, 115), tint = Color3.fromRGB(175, 175, 255) },
+	atmo = { color = Color3.fromRGB(205, 225, 255), decay = Color3.fromRGB(255, 235, 200), density = 0.22, haze = 0.4, glare = 0.3 },
+	zoneDensity = 0.26,
+	cosmicDensity = 0.42,
+	saturation = 0.38,
+	contrast = 0.12,
+}
+
+---------------------------------------------------------------------
+-- SONIDOS propios (subidos a la cuenta del juego). "" = sin sonido
+---------------------------------------------------------------------
+Config.SOUNDS = {
+	chase = "", -- música de persecución (bucle)
+}
 
 
 ---------------------------------------------------------------------

@@ -49,7 +49,7 @@ local function defaults()
 		auras = {},
 		aura = nil,
 		weapon = "bat",
-		settings = { sfx = true, particles = true, shake = true, othersAuras = true, ui = 2 },
+		settings = { sfx = true, music = true, particles = true, shake = true, othersAuras = true, ui = 2 },
 		boosts = { speed = 0, shield = 0 }, -- fin de boosts comprados (os.time)
 		openTokens = {}, -- "Abrir ya" pendientes por categoría
 		receipts = {}, -- PurchaseId ya entregados
@@ -144,7 +144,7 @@ function Data.sanitize(raw, C)
 	d.aura = (raw.aura and d.auras[raw.aura]) and raw.aura or nil
 	d.weapon = (type(raw.weapon) == "string" and C.WEAPONS[raw.weapon]) and raw.weapon or "bat"
 	if type(raw.settings) == "table" then
-		for _, k in ipairs({ "sfx", "particles", "shake", "othersAuras" }) do
+		for _, k in ipairs({ "sfx", "music", "particles", "shake", "othersAuras" }) do
 			d.settings[k] = raw.settings[k] ~= false
 		end
 		d.settings.ui = math.floor(num(raw.settings.ui, 2, 1, 3))

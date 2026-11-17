@@ -432,7 +432,7 @@ function actions.settings(player, tbl)
 		return
 	end
 	local s = {}
-	for _, k in ipairs({ "sfx", "particles", "shake", "othersAuras" }) do
+	for _, k in ipairs({ "sfx", "music", "particles", "shake", "othersAuras" }) do
 		s[k] = tbl[k] ~= false
 	end
 	s.ui = math.clamp(tonumber(tbl.ui) or 2, 1, 3)
@@ -479,11 +479,15 @@ function Core.applyAura(player)
 	if not hrp then
 		return
 	end
+	local a = d.aura and C.AURA_BY_ID[d.aura]
+	if G.AuraFx then
+		G.AuraFx.apply(hrp, a) -- quita el aura anterior y crea la nueva (a puede ser nil)
+		return
+	end
 	local old = hrp:FindFirstChild("AuraFX")
 	if old then
 		old:Destroy()
 	end
-	local a = d.aura and C.AURA_BY_ID[d.aura]
 	if not a then
 		return
 	end

@@ -50,6 +50,10 @@ local function skin(p, key, tileU, color, transparency, faces, tileV)
 end
 World.skin = skin
 World.FACES = { all = FACES_ALL, sides = FACES_SIDES, top = FACES_TOP }
+World.part = part -- part({ Name=..., Size=..., CFrame/Position=..., Color=..., Material=..., Parent=... }) → Part anclada
+function World.getRoot()
+	return root -- carpeta workspace.World
+end
 
 local function brazier(pos, color, parent, scale)
 	scale = scale or 1
@@ -86,6 +90,7 @@ local function brazier(pos, color, parent, scale)
 	light.Parent = att
 	return list
 end
+World.brazier = brazier -- brazier(pos, colorLlama, parent, escala) → lista de piezas
 
 local function billboard(adornee, text, color, size, offset)
 	local bb = Instance.new("BillboardGui")
@@ -617,6 +622,8 @@ local WALL_THEMES = {
 	},
 }
 World.WALL_H = WALL_H
+World.WALL_THEMES = WALL_THEMES -- paleta de cada zona (body, trim, pillar, panel, banner, glow, materiales)
+World.GOLD = GOLD
 
 local function torch(pos, k, color)
 	local holder = part({ Name = "TorchHolder", Size = Vector3.new(2.4, 1, 2.4), Position = pos, Color = Color3.fromRGB(60, 45, 35), Material = Enum.Material.Metal, CanCollide = false })
@@ -643,6 +650,7 @@ local function torch(pos, k, color)
 	light.Shadows = false
 	light.Parent = att
 end
+World.torch = torch -- torch(pos, k, colorLlama): antorcha de pared (k = -1/1 lado del brazo)
 
 local function buildWall(i, z0, zone, k)
 	local C = G.Config

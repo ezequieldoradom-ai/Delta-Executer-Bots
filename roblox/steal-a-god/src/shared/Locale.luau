@@ -115,6 +115,19 @@ local T = {
 	endSign = { es = "🔒 MÁS ZONAS PRÓXIMAMENTE", en = "🔒 MORE ZONES COMING SOON" },
 	chasing = { es = "¡TE PERSIGUE!", en = "CHASING!" },
 	moreZones = { es = "Próxima actualización: Inframundo, Atlántida, Olimpo…", en = "Next update: Underworld, Atlantis, Olympus…" },
+	-- vendedores (dioses junto a la entrada del pasillo)
+	music = { es = "Música", en = "Music" },
+	talk = { es = "Hablar", en = "Talk" },
+	auraShop = { es = "Auras de Hécate", en = "Hecate's Auras" },
+	coachShop = { es = "Entrenadores de Quirón", en = "Chiron's Coaches" },
+	auraSign = { es = "✨ AURAS", en = "✨ AURAS" },
+	coachSign = { es = "🏋️ ENTRENADORES", en = "🏋️ COACHES" },
+	auraHint = { es = "Un aura te rodea de poder: más velocidad y más dinero.", en = "An aura surrounds you with power: more speed and more money." },
+	coachHint = { es = "Cuentan tus 3 mejores entrenadores. Fusiona 2 iguales para subirlos de nivel.", en = "Your best 3 coaches count. Fuse 2 identical ones to level them up." },
+	vendorMoved = { es = "Las auras y los entrenadores los venden Hécate y Quirón, junto a la entrada del pasillo.", en = "Auras and coaches are sold by Hecate and Chiron, next to the corridor entrance." },
+	youHave = { es = "Tienes", en = "You have" },
+	safeFloor = { es = "ZONA SEGURA", en = "SAFE ZONE" },
+	nest = { es = "Nido de sobres", en = "Pack nest" },
 }
 
 local isSpanish = nil
