@@ -31,10 +31,13 @@ end
 
 local function billboard(adornee, text, color, size, offset)
 	local bb = Instance.new("BillboardGui")
-	bb.Size = size or UDim2.fromOffset(260, 60)
+	size = size or UDim2.fromOffset(260, 60)
+	-- tamaño en studs: se hace pequeño con la distancia, como un objeto real
+	bb.Size = UDim2.fromScale(size.X.Offset / 24, size.Y.Offset / 24)
 	bb.StudsOffset = offset or Vector3.new(0, 4, 0)
 	bb.AlwaysOnTop = false
-	bb.MaxDistance = 220
+	bb.LightInfluence = 0
+	bb.MaxDistance = 90
 	bb.Adornee = adornee
 	local label = Instance.new("TextLabel")
 	label.Name = "Label"
@@ -145,7 +148,7 @@ local function buildPlot(index)
 	plot.base = part({ Name = "Base", Size = Vector3.new(World.PLOT_SIZE, 1, World.PLOT_SIZE), Position = center + Vector3.new(0, 0.5, 0), Parent = folder })
 	plot.sign = part({ Name = "Sign", Size = Vector3.new(1, 1, 1), Position = center + Vector3.new(0, 14, 44), Transparency = 1, CanCollide = false, Parent = folder })
 	plot.signGui = billboard(plot.sign, "", Color3.new(1, 1, 1), UDim2.fromOffset(420, 90), Vector3.new(0, 0, 0))
-	plot.signGui.MaxDistance = 400
+	plot.signGui.MaxDistance = 160
 
 	plot.spawn = center + Vector3.new(0, 4, 32)
 
@@ -471,7 +474,7 @@ local function buildCorridor()
 		part({ Name = "ArchR", Size = Vector3.new(4, 30, 4), Position = Vector3.new(W, 15, z0), Color = archColor, Material = Enum.Material.Marble })
 		local top = part({ Name = "ArchTop", Size = Vector3.new(W * 2 + 4, 5, 5), Position = Vector3.new(0, 32, z0), Color = archColor, Material = Enum.Material.Marble })
 		zp.sign = billboard(top, "", Color3.new(1, 1, 1), UDim2.fromOffset(520, 110), Vector3.new(0, 8, 0))
-		zp.sign.MaxDistance = 600
+		zp.sign.MaxDistance = 140
 		zp.sign:SetAttribute("Zone", i)
 		CollectionService:AddTag(zp.sign, "Loc")
 		if i > 1 then
@@ -492,6 +495,7 @@ local function buildCorridor()
 	local zEnd = World.zoneStart(#C.ZONES + 1)
 	local wall = part({ Name = "EndWall", Size = Vector3.new(W * 2 + 4, 60, 4), Position = Vector3.new(0, 30, zEnd), Color = Color3.fromRGB(20, 15, 35), Material = Enum.Material.ForceField })
 	World.endSign = billboard(wall, "", Color3.fromRGB(180, 160, 255), UDim2.fromOffset(520, 110), Vector3.new(0, 0, 0))
+	World.endSign.MaxDistance = 140
 	World.endSign:SetAttribute("EndSign", true)
 	CollectionService:AddTag(World.endSign, "Loc")
 	-- niebla de la noche en la entrada del pasillo

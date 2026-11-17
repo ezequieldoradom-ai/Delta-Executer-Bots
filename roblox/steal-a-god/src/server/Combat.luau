@@ -6,15 +6,15 @@ local C
 local function buildTool(weaponKey)
 	local w = C.WEAPONS[weaponKey] or C.WEAPONS.bat
 	local tool = Instance.new("Tool")
-	tool.Name = "Weapon"
+	tool.Name = w.es
 	tool:SetAttribute("Weapon", weaponKey)
 	tool.RequiresHandle = true
 	tool.CanBeDropped = false
 	tool.ToolTip = w.en
-	tool.GripPos = Vector3.new(0, -1.2, 0)
+	tool.Grip = CFrame.new(0, -0.9, 0) * CFrame.Angles(math.rad(-35), 0, 0)
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(0.6, 4 + w.power * 0.3, 0.6)
+	handle.Size = Vector3.new(0.45, 2.4 + w.power * 0.1, 0.45)
 	handle.Color = w.color
 	handle.Material = (w.order >= 5) and Enum.Material.Neon or Enum.Material.Wood
 	handle.CanCollide = false
@@ -22,7 +22,7 @@ local function buildTool(weaponKey)
 	handle.Parent = tool
 	local headPart = Instance.new("Part")
 	headPart.Name = "Head"
-	headPart.Size = weaponKey == "mjolnir" and Vector3.new(2.4, 1.6, 1.6) or Vector3.new(1, 1.6, 1)
+	headPart.Size = weaponKey == "mjolnir" and Vector3.new(1.8, 1.1, 1.1) or Vector3.new(0.75, 1.1, 0.75)
 	headPart.Color = w.color
 	headPart.Material = (w.order >= 3) and Enum.Material.Metal or Enum.Material.Wood
 	headPart.CanCollide = false
@@ -53,7 +53,7 @@ function Combat.giveWeapon(player)
 	local function clear(container)
 		if container then
 			for _, t in ipairs(container:GetChildren()) do
-				if t:IsA("Tool") and t.Name == "Weapon" then
+				if t:IsA("Tool") and t:GetAttribute("Weapon") then
 					t:Destroy()
 				end
 			end

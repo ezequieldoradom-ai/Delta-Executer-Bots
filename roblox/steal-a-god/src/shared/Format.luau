@@ -11,10 +11,7 @@ function Format.num(n: number): string
 		return "-" .. Format.num(-n)
 	end
 	if n < 1000 then
-		if n == math.floor(n) then
-			return tostring(math.floor(n))
-		end
-		return string.format("%.1f", n)
+		return tostring(math.floor(n))
 	end
 	local tier = math.floor(math.log10(n) / 3)
 	if tier >= #SUFFIXES then

@@ -142,6 +142,14 @@ end
 -- Pantalla principal
 ---------------------------------------------------------------------
 local gui = new("ScreenGui", { Name = "HUD", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = player:WaitForChild("PlayerGui") })
+local uiScale = new("UIScale", { Parent = gui })
+local function updateScale()
+	local cam = workspace.CurrentCamera
+	local h = cam and cam.ViewportSize.Y or 720
+	uiScale.Scale = math.clamp(h / 760, 0.5, 1)
+end
+updateScale()
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
 
 -- Barra superior: dinero, velocidad, día/noche
 local top = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 560, 0, 54), Position = UDim2.new(0.5, 0, 0, 8), AnchorPoint = Vector2.new(0.5, 0), Parent = gui }, {
