@@ -137,36 +137,48 @@ end
 -- Iluminación cinematográfica
 ---------------------------------------------------------------------
 local function setupLighting()
-	Lighting.ClockTime = 16.3
-	Lighting.Brightness = 3
-	Lighting.OutdoorAmbient = Color3.fromRGB(175, 145, 125)
-	Lighting.Ambient = Color3.fromRGB(95, 75, 70)
-	Lighting.ShadowSoftness = 0.35
+	-- Luz viva y limpia (los números están en Config.LIGHT para que servidor y cliente coincidan)
+	local L = G.Config.LIGHT
+	Lighting.ClockTime = L.day.clock
+	Lighting.Brightness = L.day.brightness
+	Lighting.OutdoorAmbient = L.day.outdoor
+	Lighting.Ambient = L.day.ambient
+	Lighting.ShadowSoftness = 0.3
+	Lighting.EnvironmentDiffuseScale = 1
+	Lighting.EnvironmentSpecularScale = 1
 	local atm = Instance.new("Atmosphere")
-	atm.Density = 0.28
-	atm.Haze = 1.4
-	atm.Glare = 0.6
-	atm.Color = Color3.fromRGB(255, 215, 170)
-	atm.Decay = Color3.fromRGB(255, 150, 110)
+	atm.Density = L.atmo.density
+	atm.Haze = L.atmo.haze
+	atm.Glare = L.atmo.glare
+	atm.Color = L.atmo.color
+	atm.Decay = L.atmo.decay
 	atm.Parent = Lighting
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.8
-	bloom.Size = 30
-	bloom.Threshold = 1.6
+	bloom.Intensity = 0.75
+	bloom.Size = 26
+	bloom.Threshold = 1.7
 	bloom.Parent = Lighting
 	local rays = Instance.new("SunRaysEffect")
-	rays.Intensity = 0.12
-	rays.Spread = 0.8
+	rays.Intensity = 0.08
+	rays.Spread = 0.7
 	rays.Parent = Lighting
 	local cc = Instance.new("ColorCorrectionEffect")
 	cc.Name = "Grade"
-	cc.Saturation = 0.22
-	cc.Contrast = 0.1
-	cc.TintColor = Color3.fromRGB(255, 240, 222)
+	cc.Saturation = L.saturation
+	cc.Contrast = L.contrast
+	cc.TintColor = L.day.tint
 	cc.Parent = Lighting
 	local sky = Instance.new("Sky")
 	sky.StarCount = 4000
 	sky.Parent = Lighting
+	-- nubes en movimiento
+	pcall(function()
+		local clouds = Instance.new("Clouds")
+		clouds.Cover = 0.5
+		clouds.Density = 0.6
+		clouds.Color = Color3.new(1, 1, 1)
+		clouds.Parent = workspace.Terrain
+	end)
 end
 
 -- Detalles celestiales que enriquecen la plaza sin sustituir su estilo

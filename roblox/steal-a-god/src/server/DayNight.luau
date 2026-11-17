@@ -9,6 +9,7 @@ local C
 local night = false
 local endsAt = 0
 local warned = false
+local pendingNight = false -- "Noche para el servidor" comprada de noche: la siguiente llega 20 s después del amanecer
 
 function DayNight.isNight()
 	return night
@@ -20,14 +21,12 @@ end
 
 local function tweenLight(toNight)
 	local info = TweenInfo.new(2.5, Enum.EasingStyle.Sine)
-	TweenService:Create(Lighting, info, {
-		ClockTime = toNight and 0.5 or 16.3,
-		Brightness = toNight and 0.7 or 3,
-		OutdoorAmbient = toNight and Color3.fromRGB(50, 45, 100) or Color3.fromRGB(175, 145, 125),
-	}):Play()
+	local L = C.LIGHT
+	local to = toNight and L.night or L.day
+	TweenService:Create(Lighting, info, { ClockTime = to.clock, Brightness = to.brightness, OutdoorAmbient = to.outdoor }):Play()
 	local grade = Lighting:FindFirstChild("Grade")
 	if grade then
-		TweenService:Create(grade, info, { TintColor = toNight and Color3.fromRGB(170, 170, 255) or Color3.fromRGB(255, 240, 222) }):Play()
+		TweenService:Create(grade, info, { TintColor = to.tint }):Play()
 	end
 	local gate = G.World.nightGate
 	if gate then
@@ -55,7 +54,6 @@ local function startDay()
 end
 
 -- Producto "Noche para el servidor": adelanta la noche
-local pendingNight = false
 function DayNight.forceNight(buyerName)
 	if not night then
 		endsAt = math.min(endsAt, os.clock() + 3)

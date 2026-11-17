@@ -73,6 +73,7 @@ def main():
     views, out = arg("--views"), arg("--out")
     if not views or not out:
         sys.exit("render necesita --views y --out")
+    out, views = os.path.abspath(out), os.path.abspath(views)
     os.makedirs(out, exist_ok=True)
     export = arg("--export", os.path.join(HERE, "export_scene.luau"))
     lines = lx.run(export, version)
