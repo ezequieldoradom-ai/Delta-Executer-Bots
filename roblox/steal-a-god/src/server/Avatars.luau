@@ -14,7 +14,7 @@ local HEAD = {
 	WingL = true, WingR = true, Feather = true, Crown = true, Spike = true, Sun = true, Moon = true,
 	Petasos = true, Antler = true, Tine = true, Flower = true, Crest = true, Atef = true, FeatherL = true,
 	FeatherR = true, Brim = true, Cap = true, Halo = true, Torc = true, Question = true, Mane = true,
-	FlameHead = true, NoseRing = true, Nose = true, Fangs = true,
+	FlameHead = true, NoseRing = true, Nose = true, Fangs = true, Crescent = true, Veil = true,
 }
 local ITEM = {
 	Shaft = true, Prong = true, Bar = true, Handle = true, HammerHead = true, Bolt1 = true, Bolt2 = true,

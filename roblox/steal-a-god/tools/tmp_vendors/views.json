@@ -1,0 +1,15 @@
+[
+ {"name":"01-aerea","cam":[0,70,35,0,6,96,60]},
+ {"name":"02-desde-spawn","cam":[0,9,30,0,16,100,80]},
+ {"name":"03-plaza-hecate","cam":[0,6,70,-56,9,95,50]},
+ {"name":"04-plaza-quiron","cam":[0,6,70,56,9,95,50]},
+ {"name":"05-cerca-hecate","cam":[-30.4,7,90.5,-56,10.5,95,62]},
+ {"name":"06-cerca-quiron","cam":[30.4,7,90.5,56,10.5,95,62]},
+ {"name":"07-lado-quiron","cam":[46,9,114,56,8,95,60]},
+ {"name":"08-planta-hecate","cam":[-56,48,92,-56,0,95,30]},
+ {"name":"09-planta-quiron","cam":[56,48,92,56,0,95,30]},
+ {"name":"10-lado-hecate","cam":[-46,9,114,-56,8,95,60]},
+ {"name":"11-jugador-hecate","cam":[-40,8,92,-56,7,95,45]},
+ {"name":"12-jugador-quiron","cam":[40,8,92,56,7,95,45]},
+ {"name":"13-pasillo-atras","cam":[0,14,125,0,10,95,85]}
+]
