@@ -11,13 +11,14 @@ scene.add(new THREE.HemisphereLight(0xffffff,0x6a7a5a,1.1));
 const sun=new THREE.DirectionalLight(0xfff1dd,2.2);sun.position.set(-150,300,-120);sun.castShadow=true;
 sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-400,right:400,top:400,bottom:-400,near:1,far:1200});scene.add(sun);
 const geos={box:new THREE.BoxGeometry(1,1,1),ball:new THREE.SphereGeometry(0.5,24,16),head:new THREE.SphereGeometry(0.55,24,16),wedge:new THREE.BoxGeometry(1,1,1)};
+{const v=[[-.5,-.5,-.5],[.5,-.5,-.5],[.5,-.5,.5],[-.5,-.5,.5],[-.5,.5,.5],[.5,.5,.5]];const tri=[[0,1,2],[0,2,3],[3,2,5],[3,5,4],[0,4,5],[0,5,1],[0,3,4],[1,5,2]];const arr=[];for(const t of tri)for(const i of t)arr.push(...v[i]);const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));wg.computeVertexNormals();geos.wedge=wg;}
 const cyl=new THREE.CylinderGeometry(0.5,0.5,1,24);cyl.rotateZ(Math.PI/2);geos.cyl=cyl;
 window.build=(data)=>{
   for(const row of data.split(';')){
     const f=row.split(',');if(f.length<13)continue;
     const [shape,x,y,z,rx,ry,rz,sx,sy,sz,hex,tr,neon]=f;
     const c=new THREE.Color('#'+hex);
-    const mat=new THREE.MeshStandardMaterial({color:c,roughness:0.7,metalness:0.05,transparent:+tr>0,opacity:1-(+tr),emissive:+neon?c:new THREE.Color(0),emissiveIntensity:+neon?0.9:0});
+    const mat=new THREE.MeshStandardMaterial({color:c,roughness:0.7,metalness:0.05,side:THREE.DoubleSide,transparent:+tr>0,opacity:1-(+tr),emissive:+neon?c:new THREE.Color(0),emissiveIntensity:+neon?0.9:0});
     let g=geos[shape]||geos.box;
     const m=new THREE.Mesh(g,mat);
     let S=[+sx,+sy,+sz];

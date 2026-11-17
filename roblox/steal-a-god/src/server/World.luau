@@ -15,17 +15,76 @@ World.boards = {}
 local root
 
 local function part(props)
-	local p = Instance.new("Part")
+	local p = Instance.new(props.Class or "Part")
 	p.Anchored = true
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	for k, v in pairs(props) do
-		if k ~= "Parent" then
+		if k ~= "Parent" and k ~= "Class" then
 			p[k] = v
 		end
 	end
 	p.Parent = props.Parent or root
 	return p
+end
+
+-- Texturas propias encima del material (se tiñen con color)
+local N = Enum.NormalId
+local FACES_ALL = { N.Front, N.Back, N.Left, N.Right, N.Top, N.Bottom }
+local FACES_SIDES = { N.Front, N.Back, N.Left, N.Right }
+local FACES_TOP = { N.Top }
+local function skin(p, key, tileU, color, transparency, faces, tileV)
+	for _, f in ipairs(faces or FACES_ALL) do
+		local t = Instance.new("Texture")
+		t.Name = "Skin_" .. key
+		t.Texture = G.Config.VFX[key]
+		t.Face = f
+		t.StudsPerTileU = tileU
+		t.StudsPerTileV = tileV or tileU
+		t.Color3 = color or Color3.new(1, 1, 1)
+		t.Transparency = transparency or 0
+		t:SetAttribute("BaseT", t.Transparency)
+		t.Parent = p
+	end
+	return p
+end
+World.skin = skin
+World.FACES = { all = FACES_ALL, sides = FACES_SIDES, top = FACES_TOP }
+
+local function brazier(pos, color, parent, scale)
+	scale = scale or 1
+	local list = {}
+	local function add(pp)
+		pp.Parent = parent or root
+		table.insert(list, pp)
+		return pp
+	end
+	add(part({ Name = "BrazierBase", Size = Vector3.new(3.4, 1, 3.4) * scale, Position = pos + Vector3.new(0, 0.5, 0) * scale, Color = Color3.fromRGB(60, 50, 45), Material = Enum.Material.Slate, Parent = parent }))
+	add(part({ Name = "BrazierPole", Size = Vector3.new(1, 6, 1) * scale, Position = pos + Vector3.new(0, 4, 0) * scale, Color = Color3.fromRGB(70, 55, 40), Material = Enum.Material.Metal, Parent = parent }))
+	local bowl = add(part({ Name = "BrazierBowl", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 4, 4) * scale, CFrame = CFrame.new(pos + Vector3.new(0, 7.4, 0) * scale) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(240, 196, 92), Material = Enum.Material.Foil, Parent = parent }))
+	local att = Instance.new("Attachment")
+	att.Position = Vector3.new(0.6 * scale, 0, 0)
+	att.Parent = bowl
+	local fire = Instance.new("ParticleEmitter")
+	fire.Texture = G.Config.VFX.flame
+	fire.Rate = 22
+	fire.Lifetime = NumberRange.new(0.5, 0.9)
+	fire.Speed = NumberRange.new(2, 4)
+	fire.Acceleration = Vector3.new(0, 9, 0)
+	fire.SpreadAngle = Vector2.new(25, 25)
+	fire.EmissionDirection = Enum.NormalId.Right
+	fire.LightEmission = 1
+	fire.Color = ColorSequence.new(Color3.fromRGB(255, 220, 130), color or Color3.fromRGB(255, 90, 30))
+	fire.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2.6 * scale), NumberSequenceKeypoint.new(1, 0.3) })
+	fire.Transparency = NumberSequence.new(0.05, 1)
+	fire.Parent = att
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 180, 100)
+	light.Range = 18 * scale
+	light.Brightness = 1.6
+	light.Shadows = false
+	light.Parent = att
+	return list
 end
 
 local function billboard(adornee, text, color, size, offset)
@@ -223,6 +282,14 @@ local function buildPlot(index)
 		part({ Name = "Rail", Size = Vector3.new(0.5, 3, 13), CFrame = plot.treadmill.CFrame * CFrame.new(k * 3.8, 1.5, 0), Color = Color3.fromRGB(90, 230, 255), Material = Enum.Material.Neon, Parent = folder })
 	end
 	plot.treadmillGui = billboard(plot.treadmill, "", Color3.fromRGB(90, 230, 255), UDim2.fromOffset(200, 46), Vector3.new(0, 6, 0))
+	-- chasis metálico, consola con pantalla y faldones
+	local tcf = plot.treadmill.CFrame
+	for k = -1, 1, 2 do
+		part({ Name = "TreadSkirt", Size = Vector3.new(0.8, 1.6, 13.4), CFrame = tcf * CFrame.new(k * 3.9, -0.1, 0), Color = Color3.fromRGB(70, 75, 90), Material = Enum.Material.DiamondPlate, Parent = folder })
+		part({ Name = "TreadPost", Size = Vector3.new(0.6, 4.4, 0.6), CFrame = tcf * CFrame.new(k * 3.6, 2.4, 6.2), Color = Color3.fromRGB(60, 62, 75), Material = Enum.Material.Metal, Parent = folder })
+	end
+	local console = part({ Name = "TreadConsole", Size = Vector3.new(7.4, 1.6, 1.4), CFrame = tcf * CFrame.new(0, 4.6, 6.3) * CFrame.Angles(math.rad(25), 0, 0), Color = Color3.fromRGB(45, 48, 60), Material = Enum.Material.Metal, Parent = folder })
+	part({ Name = "TreadScreen", Size = Vector3.new(5, 0.9, 0.1), CFrame = console.CFrame * CFrame.new(0, 0, -0.72), Color = Color3.fromRGB(90, 230, 255), Material = Enum.Material.Neon, Parent = folder })
 
 	-- Pedestales (hasta 36): sin colisión para poder pasar entre ellos
 	for i = 1, 36 do
@@ -249,7 +316,11 @@ local function buildPlot(index)
 		prompt:SetAttribute("Kind", "open")
 		CollectionService:AddTag(prompt, "LocPrompt")
 		local glow = part({ Name = "Glow", Shape = Enum.PartType.Ball, Size = Vector3.new(2.4, 2.4, 2.4), Position = a.Position + Vector3.new(0, 3, 0), Material = Enum.Material.Neon, Transparency = 1, CanCollide = false, Parent = folder })
-		plot.altars[i] = { part = a, prompt = prompt, gui = gui, glow = glow }
+		-- relieve tallado en los lados y losa dorada encima
+		skin(a, "carved", 4, Color3.fromRGB(255, 215, 130), 0, FACES_SIDES, 3.4)
+		local top = part({ Name = "AltarTop", Size = Vector3.new(4.6, 0.5, 4.6), CFrame = at(o.X, 4.65, o.Z), Material = Enum.Material.Foil, Color = Color3.fromRGB(240, 196, 92), CanCollide = false, Parent = folder })
+		skin(top, "meander", 0.5, Color3.new(1, 1, 1), 0.2, FACES_SIDES)
+		plot.altars[i] = { part = a, prompt = prompt, gui = gui, glow = glow, top = top }
 	end
 
 	folder:SetAttribute("PlotCF", cf)
@@ -266,27 +337,90 @@ function World.inPlot(plot, pos)
 	return math.abs(rel.X) <= h and math.abs(rel.Z) <= h
 end
 
+-- Suelo de cada nivel de parcela: textura y tamaño de baldosa
+local PLOT_FLOORS = {
+	{ key = "planks", tile = 8 },
+	{ key = "paving", tile = 7, grime = true },
+	{ key = "paving", tile = 7 },
+	{ key = "paving", tile = 7 },
+	{ key = "paving", tile = 9 },
+	{ key = "hexgrid", tile = 14 },
+	{ key = "hexgrid", tile = 10 },
+}
+
 function World.styleplot(plot, level)
-	local t = tierFor(level)
+	local t, tierIndex = PLOT_TIERS[#PLOT_TIERS], #PLOT_TIERS
+	for i, tt in ipairs(PLOT_TIERS) do
+		if level <= tt.upTo then
+			t, tierIndex = tt, i
+			break
+		end
+	end
 	plot.base.Color = t.color
 	plot.base.Material = t.mat
-	local tex = plot.base:FindFirstChild("Planks")
-	if t.planks and not tex then
-		tex = Instance.new("Texture")
-		tex.Name = "Planks"
-		tex.Texture = G.Config.VFX.planks
-		tex.Face = Enum.NormalId.Top
-		tex.StudsPerTileU = 8
-		tex.StudsPerTileV = 8
-		tex.Parent = plot.base
-	elseif not t.planks and tex then
-		tex:Destroy()
+	for _, c in ipairs(plot.base:GetChildren()) do
+		if c:IsA("Texture") then
+			c:Destroy()
+		end
+	end
+	local fl = PLOT_FLOORS[tierIndex]
+	skin(plot.base, fl.key, fl.tile, t.color:Lerp(Color3.new(1, 1, 1), 0.25), 0, FACES_TOP)
+	if fl.grime then
+		skin(plot.base, "grime", 30, Color3.new(1, 1, 1), 0.35, FACES_TOP)
 	end
 	for _, d in ipairs(plot.decor) do
 		d:Destroy()
 	end
 	plot.decor = {}
 	local S = World.PLOT_SIZE
+	local cf = plot.cf
+	local wood = tierIndex == 1
+	local stoneMat = wood and Enum.Material.Wood or (t.mat == Enum.Material.Neon and Enum.Material.Marble or t.mat)
+	local stoneColor = wood and Color3.fromRGB(150, 100, 60) or t.color
+	local trimMat = (t.mat == Enum.Material.Neon or t.mat == Enum.Material.Glass) and Enum.Material.Neon or (tierIndex >= 4 and Enum.Material.Foil or stoneMat)
+	local function add(props)
+		props.Parent = plot.folder
+		local pp = part(props)
+		table.insert(plot.decor, pp)
+		return pp
+	end
+
+	-- murete con remate alrededor (abierto por delante, hacia la plaza)
+	local wallH = wood and 3 or 3.6
+	for _, e in ipairs({ { 0, -S / 2, S, 1.4 }, { -S / 2, 0, 1.4, S }, { S / 2, 0, 1.4, S } }) do
+		local w = add({ Name = "LowWall", Size = Vector3.new(e[3], wallH, e[4]), CFrame = cf * CFrame.new(e[1], 1 + wallH / 2, e[2]), Color = stoneColor, Material = stoneMat })
+		skin(w, wood and "planks" or (tierIndex == 2 and "bricks" or "ashlar"), wood and 6 or 5, stoneColor, 0, FACES_SIDES)
+		local cap = add({ Name = "Coping", Size = Vector3.new(e[3] + 0.6, 0.6, e[4] + 0.6), CFrame = cf * CFrame.new(e[1], 1.3 + wallH, e[2]), Color = t.trim, Material = trimMat })
+		if tierIndex >= 3 then
+			skin(cap, "meander", 0.6, Color3.new(1, 1, 1), 0.2, FACES_SIDES)
+		end
+	end
+
+	-- pared del fondo (detrás de los altares) con frontón de templo desde el nivel 3
+	local backH = wood and 7 or (8 + math.min(tierIndex, 6) * 1.5)
+	local back = add({ Name = "BackWall", Size = Vector3.new(S, backH, 1.6), CFrame = cf * CFrame.new(0, 1 + backH / 2, -S / 2 - 0.8), Color = stoneColor, Material = stoneMat })
+	skin(back, wood and "planks" or "ashlar", wood and 6 or 7, stoneColor, 0, { Enum.NormalId.Front, Enum.NormalId.Back })
+	if not wood then
+		skin(back, "grime", 24, Color3.new(1, 1, 1), 0.5, { Enum.NormalId.Front })
+		-- paneles tallados y pilastras
+		for k = -2, 2 do
+			local x = k * (S / 5)
+			add({ Name = "BackPilaster", Size = Vector3.new(2, backH, 2), CFrame = cf * CFrame.new(x + S / 10, 1 + backH / 2, -S / 2 + 0.2), Color = t.trim, Material = trimMat })
+			local panel = add({ Name = "BackPanel", Size = Vector3.new(S / 5 - 4, backH * 0.55, 0.3), CFrame = cf * CFrame.new(x, 1 + backH * 0.55, -S / 2 + 0.1), Color = stoneColor:Lerp(Color3.new(0, 0, 0), 0.12), Material = stoneMat })
+			skin(panel, "carved", S / 5 - 4, t.trim, 0, { Enum.NormalId.Front }, backH * 0.55)
+		end
+		add({ Name = "BackPilaster", Size = Vector3.new(2, backH, 2), CFrame = cf * CFrame.new(-S / 2 + 1, 1 + backH / 2, -S / 2 + 0.2), Color = t.trim, Material = trimMat })
+		local cornice = add({ Name = "BackCornice", Size = Vector3.new(S + 2, 1.4, 3), CFrame = cf * CFrame.new(0, 1.7 + backH, -S / 2), Color = t.trim, Material = trimMat })
+		skin(cornice, "meander", 1.4, Color3.new(1, 1, 1), 0.15, { Enum.NormalId.Front })
+		if tierIndex >= 3 then
+			local ph = 6 + tierIndex
+			for _, sgn in ipairs({ -1, 1 }) do
+				add({ Name = "Pediment", Class = "WedgePart", Size = Vector3.new(2.4, ph, S / 2 + 1), CFrame = cf * CFrame.new(sgn * (S / 4 + 0.5), 2.4 + backH + ph / 2, -S / 2) * CFrame.Angles(0, math.rad(-sgn * 90), 0), Color = stoneColor, Material = stoneMat })
+			end
+		end
+	end
+
+	-- columnas a los lados, con basa y capitel
 	local half = S / 2 - 1.5
 	local n = t.columns
 	local perSide = math.max(1, math.ceil(n / 2))
@@ -294,22 +428,34 @@ function World.styleplot(plot, level)
 		local side = (i % 2 == 0) and 1 or -1
 		local k = math.ceil(i / 2)
 		local z = perSide == 1 and -half or (-half + (k - 1) * (2 * half / (perSide - 1)))
-		local h = level <= 2 and (5 + (i * 3) % 6) or 14
-		local col = part({ Name = "Column", Shape = Enum.PartType.Cylinder, Size = Vector3.new(h, 2.4, 2.4), CFrame = plot.cf * CFrame.new(side * half, 1 + h / 2, z) * CFrame.Angles(0, 0, math.rad(90)), Color = t.color, Material = t.mat, Parent = plot.folder })
-		table.insert(plot.decor, col)
-		if level > 2 then
-			local cap = part({ Name = "Cap", Size = Vector3.new(3.2, 0.8, 3.2), CFrame = plot.cf * CFrame.new(side * half, 1.4 + h, z), Color = t.trim, Material = (t.mat == Enum.Material.Neon) and Enum.Material.Neon or Enum.Material.SmoothPlastic, Parent = plot.folder })
-			table.insert(plot.decor, cap)
+		local h = wood and (5 + (i * 3) % 6) or (12 + tierIndex)
+		add({ Name = "Column", Shape = Enum.PartType.Cylinder, Size = Vector3.new(h, 2.4, 2.4), CFrame = cf * CFrame.new(side * half, 1 + h / 2, z) * CFrame.Angles(0, 0, math.rad(90)), Color = t.color, Material = wood and Enum.Material.Wood or t.mat })
+		if not wood then
+			add({ Name = "ColumnBase", Size = Vector3.new(3.4, 1, 3.4), CFrame = cf * CFrame.new(side * half, 1.5, z), Color = t.trim, Material = trimMat })
+			add({ Name = "Cap", Size = Vector3.new(3.4, 0.9, 3.4), CFrame = cf * CFrame.new(side * half, 1.45 + h, z), Color = t.trim, Material = trimMat })
 		end
 	end
-	-- Borde (abierto por delante, hacia la plaza)
-	for _, e in ipairs({ { 0, -S / 2, S, 1 }, { -S / 2, 0, 1, S }, { S / 2, 0, 1, S } }) do
-		local b = part({ Name = "Trim", Size = Vector3.new(e[3], 1.2, e[4]), CFrame = plot.cf * CFrame.new(e[1], 1.6, e[2]), Color = t.trim, Material = Enum.Material.SmoothPlastic, Parent = plot.folder })
-		table.insert(plot.decor, b)
+
+	-- pórtico de entrada (delante, mirando a la plaza)
+	local gateH = wood and 9 or 12 + tierIndex
+	for _, sgn in ipairs({ -1, 1 }) do
+		local pillar = add({ Name = "GatePillar", Size = Vector3.new(2.6, gateH, 2.6), CFrame = cf * CFrame.new(sgn * 10, 1 + gateH / 2, S / 2 - 1.3), Color = stoneColor, Material = stoneMat })
+		skin(pillar, wood and "planks" or "ashlar", 4, stoneColor, 0, FACES_SIDES)
+		add({ Name = "GateCap", Size = Vector3.new(3.4, 1, 3.4), CFrame = cf * CFrame.new(sgn * 10, 1.5 + gateH, S / 2 - 1.3), Color = t.trim, Material = trimMat })
+		if tierIndex >= 3 then
+			for _, pp in ipairs(brazier((cf * CFrame.new(sgn * 15, 1, S / 2 - 2)).Position, nil, plot.folder, 0.8)) do
+				table.insert(plot.decor, pp)
+			end
+		end
 	end
+	local lintel = add({ Name = "GateLintel", Size = Vector3.new(23.4, 1.6, 3), CFrame = cf * CFrame.new(0, 2.8 + gateH, S / 2 - 1.3), Color = t.trim, Material = trimMat })
+	skin(lintel, "meander", 1.6, Color3.new(1, 1, 1), 0.15, { Enum.NormalId.Front, Enum.NormalId.Back })
+
+	-- alfombra central hasta los altares
+	local rug = add({ Name = "Rug", Size = Vector3.new(6, 0.12, S - 8), CFrame = cf * CFrame.new(0, 1.06, 2), Color = tierIndex >= 5 and t.trim or Color3.fromRGB(150, 35, 45), Material = Enum.Material.Fabric, CanCollide = false })
+	skin(rug, "meander", 1.4, Color3.fromRGB(255, 215, 120), 0.1, FACES_TOP, 1.4)
 	if level >= 20 then
-		local halo = part({ Name = "Halo", Size = Vector3.new(S + 6, 0.4, S + 6), CFrame = plot.cf * CFrame.new(0, -0.3, 0), Color = t.trim, Material = Enum.Material.Neon, Transparency = 0.5, CanCollide = false, Parent = plot.folder })
-		table.insert(plot.decor, halo)
+		add({ Name = "Halo", Size = Vector3.new(S + 6, 0.4, S + 6), CFrame = cf * CFrame.new(0, -0.3, 0), Color = t.trim, Material = Enum.Material.Neon, Transparency = 0.5, CanCollide = false })
 	end
 end
 
@@ -322,6 +468,14 @@ function World.altarVisible(plot, count)
 		local on = i <= count
 		a.part.Transparency = on and 0 or 0.85
 		a.gui.Enabled = on
+		for _, d in ipairs(a.part:GetChildren()) do
+			if d:IsA("Texture") then
+				d.Transparency = on and (d:GetAttribute("BaseT") or 0) or 1
+			end
+		end
+		if a.top then
+			a.top.Transparency = on and 0 or 0.85
+		end
 	end
 end
 
@@ -374,6 +528,14 @@ local function buildBoard(name, x, color)
 	local p = part({ Name = "Board_" .. name, Size = Vector3.new(26, 34, 1.5), Position = Vector3.new(x, 18, -112), Color = Color3.fromRGB(25, 22, 35), Material = Enum.Material.SmoothPlastic })
 	p.CFrame = CFrame.new(p.Position) * CFrame.Angles(0, math.rad(180), 0)
 	part({ Name = "Trim", Size = Vector3.new(27, 1, 2), Position = Vector3.new(x, 35.5, -112), Color = color, Material = Enum.Material.Neon })
+	-- marco de mármol con columnas y frontón dorado
+	for _, sx in ipairs({ -1, 1 }) do
+		local col = part({ Name = "BoardColumn", Size = Vector3.new(2.4, 37, 2.4), Position = Vector3.new(x + sx * 14.2, 18.5, -112), Color = Color3.fromRGB(235, 228, 212), Material = Enum.Material.Marble })
+		skin(col, "grime", 14, Color3.new(1, 1, 1), 0.5, FACES_SIDES)
+		part({ Name = "BoardCap", Size = Vector3.new(3.2, 1, 3.2), Position = Vector3.new(x + sx * 14.2, 37.5, -112), Color = Color3.fromRGB(240, 196, 92), Material = Enum.Material.Foil })
+	end
+	local lintel = part({ Name = "BoardLintel", Size = Vector3.new(32, 1.8, 3), Position = Vector3.new(x, 38.8, -112), Color = Color3.fromRGB(240, 196, 92), Material = Enum.Material.Foil })
+	skin(lintel, "meander", 1.8, Color3.new(1, 1, 1), 0.15, FACES_SIDES)
 	local sg = Instance.new("SurfaceGui")
 	sg.Face = Enum.NormalId.Front
 	sg.CanvasSize = Vector2.new(520, 680)
@@ -492,11 +654,20 @@ local function buildWall(i, z0, zone, k)
 	local function at(inset, y, z)
 		return Vector3.new(face + k * inset, y, z)
 	end
+	local inner = { k < 0 and Enum.NormalId.Right or Enum.NormalId.Left }
+	local outerAndInner = { Enum.NormalId.Right, Enum.NormalId.Left }
 	-- cuerpo principal, zócalo, cornisa y almenas
-	part({ Name = "WallVisible", Size = Vector3.new(8, WALL_H, L), Position = at(4, WALL_H / 2, zc), Color = t.body, Material = t.bodyMat })
-	part({ Name = "WallPlinth", Size = Vector3.new(3, 7, L), Position = at(-1.4, 3.5, zc), Color = t.pillar, Material = t.pillarMat })
-	part({ Name = "WallBandLow", Size = Vector3.new(1.4, 1.6, L), Position = at(-0.6, 21.5, zc), Color = t.trim, Material = t.trimMat })
-	part({ Name = "WallBandHigh", Size = Vector3.new(1.4, 1.6, L), Position = at(-0.6, WALL_H - 10, zc), Color = t.trim, Material = t.trimMat })
+	local body = part({ Name = "WallVisible", Size = Vector3.new(8, WALL_H, L), Position = at(4, WALL_H / 2, zc), Color = t.body, Material = t.bodyMat })
+	skin(body, i == 5 and "bricks" or "ashlar", i == 5 and 8 or 14, t.body:Lerp(Color3.new(1, 1, 1), 0.2), 0, outerAndInner)
+	skin(body, "grime", 46, Color3.new(1, 1, 1), 0.3, inner)
+	local plinth = part({ Name = "WallPlinth", Size = Vector3.new(3, 7, L), Position = at(-1.4, 3.5, zc), Color = t.pillar, Material = t.pillarMat })
+	skin(plinth, "ashlar", 7, t.pillar, 0, inner)
+	for _, y in ipairs({ 21.5, WALL_H - 10 }) do
+		local band = part({ Name = "WallBand", Size = Vector3.new(1.4, 1.6, L), Position = at(-0.6, y, zc), Color = t.trim, Material = t.trimMat })
+		if t.trimMat ~= Enum.Material.Neon then
+			skin(band, "meander", 1.6, Color3.new(1, 1, 1), 0.1, inner)
+		end
+	end
 	part({ Name = "WallCornice", Size = Vector3.new(11, 2.4, L), Position = at(3.5, WALL_H + 1.2, zc), Color = t.pillar, Material = t.pillarMat })
 	part({ Name = "WallNeon", Size = Vector3.new(0.6, 0.8, L), Position = at(-2.2, WALL_H + 0.4, zc), Color = t.glow, Material = Enum.Material.Neon })
 	for m = 0, math.floor(L / 10) - 1 do
@@ -506,13 +677,15 @@ local function buildWall(i, z0, zone, k)
 	local step = 25
 	for p = 0, L / step do
 		local z = z0 + p * step
-		part({ Name = "Pilaster", Size = Vector3.new(3, WALL_H - 4, 5), Position = at(-1.5, (WALL_H - 4) / 2 + 2, z), Color = t.pillar, Material = t.pillarMat })
+		local pil = part({ Name = "Pilaster", Size = Vector3.new(3, WALL_H - 4, 5), Position = at(-1.5, (WALL_H - 4) / 2 + 2, z), Color = t.pillar, Material = t.pillarMat })
+		skin(pil, "grime", 20, Color3.new(1, 1, 1), 0.35, inner)
 		part({ Name = "PilasterCap", Size = Vector3.new(4.2, 2.4, 7), Position = at(-2, WALL_H - 1.5, z), Color = t.trim, Material = t.trimMat })
 		part({ Name = "PilasterBase", Size = Vector3.new(4.2, 3, 7), Position = at(-2, 1.5, z), Color = t.trim, Material = t.trimMat })
 		if p < L / step then
 			local zm = z + step / 2
 			-- panel hundido con un emblema que brilla
-			part({ Name = "WallPanel", Size = Vector3.new(0.4, 22, 16), Position = at(-0.1, 33, zm), Color = t.panel, Material = t.bodyMat })
+			local panel = part({ Name = "WallPanel", Size = Vector3.new(0.4, 22, 16), Position = at(-0.1, 33, zm), Color = t.panel, Material = t.bodyMat })
+			skin(panel, "carved", 16, t.trim, 0, inner, 22)
 			local emblem = part({ Name = "WallEmblem", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 6, 6), Position = at(-0.4, 38, zm), Color = t.glow, Material = Enum.Material.Neon, CanCollide = false })
 			emblem.CFrame = CFrame.new(emblem.Position)
 			part({ Name = "EmblemRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 8, 8), Position = at(-0.25, 38, zm), Color = t.trim, Material = t.trimMat, CanCollide = false }).CFrame = CFrame.new(at(-0.25, 38, zm))
@@ -527,7 +700,8 @@ local function buildWall(i, z0, zone, k)
 		end
 	end
 	-- acera de piedra al pie de la muralla
-	part({ Name = "WallWalk", Size = Vector3.new(10, 0.4, L), Position = at(-5.5, 0.2, zc), Color = t.panel:Lerp(Color3.new(1, 1, 1), 0.35), Material = t.floorMat })
+	local walk = part({ Name = "WallWalk", Size = Vector3.new(10, 0.4, L), Position = at(-5.5, 0.2, zc), Color = t.panel:Lerp(Color3.new(1, 1, 1), 0.35), Material = t.floorMat })
+	skin(walk, "paving", 5, t.panel:Lerp(Color3.new(1, 1, 1), 0.5), 0, FACES_TOP)
 	return t
 end
 
@@ -793,7 +967,8 @@ local function buildCorridor()
 		tex.Transparency = 0.15
 		tex.Parent = zp.floor
 		-- pista central más clara
-		part({ Name = "Runway", Size = Vector3.new(W * 2, 0.2, L), Position = Vector3.new(0, 0.1, z0 + L / 2), Color = zone.ground:Lerp(Color3.new(1, 1, 1), 0.18), Material = (WALL_THEMES[i] or WALL_THEMES[1]).floorMat })
+		World.zoneRunway = part({ Name = "Runway", Size = Vector3.new(W * 2, 0.2, L), Position = Vector3.new(0, 0.1, z0 + L / 2), Color = zone.ground:Lerp(Color3.new(1, 1, 1), 0.18), Material = (WALL_THEMES[i] or WALL_THEMES[1]).floorMat })
+		skin(World.zoneRunway, i == 6 and "hexgrid" or "paving", i == 6 and 16 or 14, zone.ground:Lerp(Color3.new(1, 1, 1), 0.45), 0.15, FACES_TOP)
 		-- muros: bajos y de color, con franja de neón; colisión invisible alta
 		for _, k in ipairs({ -1, 1 }) do
 			part({ Name = "Wall", Size = Vector3.new(2, 80, L), Position = Vector3.new(k * (W + 3), 40, z0 + L / 2), Transparency = 1 })
@@ -861,10 +1036,24 @@ function World.init(g)
 	root.Parent = workspace
 	setupLighting()
 	-- suelo de la zona segura
-	part({ Name = "SafeGround", Size = Vector3.new(260, 4, 270), Position = Vector3.new(0, -2, -5), Color = Color3.fromRGB(120, 175, 95), Material = Enum.Material.Grass })
-	part({ Name = "Plaza", Size = Vector3.new(76, 0.4, 216), Position = Vector3.new(0, 0.2, -2), Color = Color3.fromRGB(225, 220, 205), Material = Enum.Material.Marble })
+	local ground = part({ Name = "SafeGround", Size = Vector3.new(260, 4, 270), Position = Vector3.new(0, -2, -5), Color = Color3.fromRGB(120, 175, 95), Material = Enum.Material.Grass })
+	skin(ground, "grass", 9, Color3.fromRGB(170, 215, 120), 0.2, FACES_TOP)
+	skin(ground, "grime", 70, Color3.fromRGB(60, 90, 40), 0.55, FACES_TOP)
+	local plaza = part({ Name = "Plaza", Size = Vector3.new(76, 0.4, 216), Position = Vector3.new(0, 0.2, -2), Color = Color3.fromRGB(225, 220, 205), Material = Enum.Material.Marble })
+	skin(plaza, "paving", 10, Color3.fromRGB(245, 238, 222), 0, FACES_TOP)
+	skin(plaza, "grime", 50, Color3.new(1, 1, 1), 0.55, FACES_TOP)
+	-- franjas con greca dorada y bordillo a los lados de la plaza
 	for k = -3, 3 do
-		part({ Name = "PlazaLine", Size = Vector3.new(76, 0.45, 1), Position = Vector3.new(0, 0.22, k * 28), Color = Color3.fromRGB(230, 190, 80), Material = Enum.Material.SmoothPlastic })
+		local line = part({ Name = "PlazaLine", Size = Vector3.new(76, 0.45, 2.4), Position = Vector3.new(0, 0.22, k * 28), Color = Color3.fromRGB(230, 190, 80), Material = Enum.Material.Foil })
+		skin(line, "meander", 2.4, Color3.fromRGB(255, 245, 210), 0, FACES_TOP)
+	end
+	for _, x in ipairs({ -37, 37 }) do
+		local curb = part({ Name = "PlazaCurb", Size = Vector3.new(2.4, 0.6, 216), Position = Vector3.new(x, 0.3, -2), Color = Color3.fromRGB(215, 205, 185), Material = Enum.Material.Marble })
+		skin(curb, "meander", 2.4, Color3.fromRGB(240, 196, 92), 0, FACES_TOP)
+	end
+	-- braseros que marcan la entrada al pasillo
+	for _, x in ipairs({ -26, 26 }) do
+		brazier(Vector3.new(x, 0, 96), nil, nil, 1.2)
 	end
 	-- Fuente central con agua brillante
 	local F = Vector3.new(0, 0, 68)
@@ -892,8 +1081,14 @@ function World.init(g)
 	-- Farolillos cálidos a los lados de la plaza
 	for z = -96, 96, 32 do
 		for _, x in ipairs({ -36, 36 }) do
-			part({ Name = "LampPost", Size = Vector3.new(0.8, 10, 0.8), Position = Vector3.new(x, 5, z), Color = Color3.fromRGB(90, 60, 35), Material = Enum.Material.Wood })
-			local lamp = part({ Name = "Lamp", Shape = Enum.PartType.Ball, Size = Vector3.new(2, 2, 2), Position = Vector3.new(x, 10.6, z), Color = Color3.fromRGB(255, 190, 90), Material = Enum.Material.Neon })
+			-- farola de hierro con farolillo de cristal
+			part({ Name = "LampFoot", Size = Vector3.new(1.8, 1.2, 1.8), Position = Vector3.new(x, 0.6, z), Color = Color3.fromRGB(45, 40, 38), Material = Enum.Material.Slate })
+			part({ Name = "LampPost", Shape = Enum.PartType.Cylinder, Size = Vector3.new(10, 0.7, 0.7), CFrame = CFrame.new(x, 5.6, z) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(40, 38, 42), Material = Enum.Material.Metal })
+			part({ Name = "LampRing", Size = Vector3.new(1.6, 0.3, 1.6), Position = Vector3.new(x, 9.4, z), Color = Color3.fromRGB(240, 196, 92), Material = Enum.Material.Foil })
+			part({ Name = "LampCage", Size = Vector3.new(1.9, 2.2, 1.9), Position = Vector3.new(x, 10.7, z), Color = Color3.fromRGB(255, 225, 170), Material = Enum.Material.Glass, Transparency = 0.45 })
+			part({ Name = "LampRoof", Class = "WedgePart", Size = Vector3.new(2.4, 0.9, 1.2), CFrame = CFrame.new(x, 12.25, z + 0.6) * CFrame.Angles(0, math.rad(180), 0), Color = Color3.fromRGB(40, 38, 42), Material = Enum.Material.Metal })
+			part({ Name = "LampRoof", Class = "WedgePart", Size = Vector3.new(2.4, 0.9, 1.2), CFrame = CFrame.new(x, 12.25, z - 0.6), Color = Color3.fromRGB(40, 38, 42), Material = Enum.Material.Metal })
+			local lamp = part({ Name = "Lamp", Shape = Enum.PartType.Ball, Size = Vector3.new(1.2, 1.2, 1.2), Position = Vector3.new(x, 10.7, z), Color = Color3.fromRGB(255, 190, 90), Material = Enum.Material.Neon })
 			local pl = Instance.new("PointLight")
 			pl.Color = Color3.fromRGB(255, 170, 80)
 			pl.Range = 22

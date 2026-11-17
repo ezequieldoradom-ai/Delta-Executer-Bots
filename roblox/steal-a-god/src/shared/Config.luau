@@ -422,6 +422,16 @@ Config.VFX = {
 	streak = "rbxassetid://95678528492429",
 	studs = "rbxassetid://131282324801126",
 	planks = "rbxassetid://132280466948067",
+	-- texturas propias (escala de grises, se tiñen con Texture.Color3)
+	paving = "rbxassetid://131562654980056",
+	ashlar = "rbxassetid://94341551083105",
+	bricks = "rbxassetid://105882514398300",
+	grime = "rbxassetid://91574216540620",
+	grass = "rbxassetid://91769058387894",
+	meander = "rbxassetid://84040163115849",
+	carved = "rbxassetid://78978860082772",
+	rays = "rbxassetid://105597901155584",
+	hexgrid = "rbxassetid://90091031894278",
 }
 
 return Config

@@ -95,7 +95,69 @@ local function makePackPart(pack)
 	p.Anchored = true
 	p.CanCollide = false
 	p.Color = rarity.color
-	p.Material = pack.rarity >= 5 and Enum.Material.Neon or Enum.Material.SmoothPlastic
+	p.Material = pack.rarity >= 5 and Enum.Material.Neon or Enum.Material.Foil
+	p.Reflectance = pack.rarity >= 5 and 0 or 0.15
+	-- bordes sellados dorados arriba y abajo (como un sobre de cartas) y lomo lateral
+	local function deco(name, size, offset, color, mat)
+		local d = Instance.new("Part")
+		d.Name = name
+		d.Size = size
+		d.CFrame = p.CFrame * offset
+		d.Color = color
+		d.Material = mat or Enum.Material.Foil
+		d.Anchored = false
+		d.CanCollide = false
+		d.CanQuery = false
+		d.CanTouch = false
+		d.Massless = true
+		d.Parent = p
+		local w = Instance.new("WeldConstraint")
+		w.Part0 = p
+		w.Part1 = d
+		w.Parent = d
+		return d
+	end
+	local gold = Color3.fromRGB(240, 196, 92)
+	for _, sy in ipairs({ -1, 1 }) do
+		local crimp = deco("Crimp", Vector3.new(3.1 * k, 0.4 * k, 0.62 * k), CFrame.new(0, sy * 2.05 * k, 0), gold)
+		local tex = Instance.new("Texture")
+		tex.Texture = C.VFX.meander
+		tex.StudsPerTileU = 0.4 * k
+		tex.StudsPerTileV = 0.4 * k
+		tex.Face = Enum.NormalId.Front
+		tex.Parent = crimp
+		tex:Clone().Parent = crimp
+		crimp:FindFirstChildOfClass("Texture").Face = Enum.NormalId.Back
+	end
+	for _, sx in ipairs({ -1, 1 }) do
+		deco("Seam", Vector3.new(0.18 * k, 3.7 * k, 0.56 * k), CFrame.new(sx * 1.5 * k, 0, 0), gold:Lerp(rarity.color, 0.3))
+	end
+	-- aura suave del color de la rareza detrás del sobre
+	local auraAtt = Instance.new("Attachment")
+	auraAtt.Name = "AuraFX"
+	auraAtt.Parent = p
+	local aura = Instance.new("ParticleEmitter")
+	aura.Texture = C.VFX.glow
+	aura.Rate = 3 + pack.rarity
+	aura.Lifetime = NumberRange.new(1, 1.4)
+	aura.Speed = NumberRange.new(0)
+	aura.LockedToPart = true
+	aura.LightEmission = 1
+	aura.Color = ColorSequence.new(rarity.color)
+	aura.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 4 * k), NumberSequenceKeypoint.new(1, 6 * k) })
+	aura.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.7), NumberSequenceKeypoint.new(0.5, 0.82), NumberSequenceKeypoint.new(1, 1) })
+	aura.ZOffset = -1
+	aura.Parent = auraAtt
+	local glint = Instance.new("ParticleEmitter")
+	glint.Texture = C.VFX.sparkle
+	glint.Rate = 2 + pack.rarity * 0.6
+	glint.Lifetime = NumberRange.new(0.5, 0.9)
+	glint.Speed = NumberRange.new(0.5, 1.5)
+	glint.SpreadAngle = Vector2.new(180, 180)
+	glint.LightEmission = 1
+	glint.Color = ColorSequence.new(Color3.new(1, 1, 1), rarity.color)
+	glint.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.7 * k), NumberSequenceKeypoint.new(1, 0) })
+	glint.Parent = auraAtt
 	local border = Instance.new("SelectionBox")
 	border.Adornee = p
 	border.LineThickness = 0.08
@@ -135,6 +197,43 @@ local function makePackPart(pack)
 		st.Thickness = 14
 		st.Parent = bg
 		bg.Parent = sg
+		local rays = Instance.new("ImageLabel")
+		rays.Name = "Rays"
+		rays.BackgroundTransparency = 1
+		rays.Image = C.VFX.rays
+		rays.ImageColor3 = Color3.fromRGB(255, 240, 200)
+		rays.ImageTransparency = 0.25
+		rays.Size = UDim2.fromScale(1.4, 1.05)
+		rays.Position = UDim2.fromScale(0.5, 0.4)
+		rays.AnchorPoint = Vector2.new(0.5, 0.5)
+		rays.Parent = bg
+		local pattern = Instance.new("ImageLabel")
+		pattern.Name = "Pattern"
+		pattern.BackgroundTransparency = 1
+		pattern.Image = C.VFX.hexgrid
+		pattern.ScaleType = Enum.ScaleType.Tile
+		pattern.TileSize = UDim2.fromOffset(120, 120)
+		pattern.ImageTransparency = 0.82
+		pattern.Size = UDim2.fromScale(1, 1)
+		pattern.Parent = bg
+		local frame = Instance.new("ImageLabel")
+		frame.Name = "Frame"
+		frame.BackgroundTransparency = 1
+		frame.Image = C.VFX.carved
+		frame.ImageColor3 = Color3.fromRGB(255, 225, 130)
+		frame.ImageTransparency = 0.15
+		frame.Size = UDim2.fromScale(1, 1)
+		frame.Parent = bg
+		local shine = Instance.new("Frame")
+		shine.Name = "Shine"
+		shine.BackgroundColor3 = Color3.new(1, 1, 1)
+		shine.BorderSizePixel = 0
+		shine.Size = UDim2.fromScale(1, 1)
+		local sgrad = Instance.new("UIGradient")
+		sgrad.Rotation = 35
+		sgrad.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.42, 1), NumberSequenceKeypoint.new(0.5, 0.65), NumberSequenceKeypoint.new(0.58, 1), NumberSequenceKeypoint.new(1, 1) })
+		sgrad.Parent = shine
+		shine.Parent = bg
 		local q = Instance.new("TextLabel")
 		q.BackgroundTransparency = 1
 		q.Size = UDim2.new(1, 0, 0.55, 0)
@@ -143,6 +242,11 @@ local function makePackPart(pack)
 		q.TextScaled = true
 		q.Text = "?"
 		q.TextColor3 = Color3.new(1, 1, 1)
+		q.ZIndex = 3
+		local qs = Instance.new("UIStroke")
+		qs.Color = Color3.fromRGB(60, 30, 10)
+		qs.Thickness = 5
+		qs.Parent = q
 		q.Parent = bg
 		local w = Instance.new("TextLabel")
 		w.BackgroundTransparency = 1
@@ -152,6 +256,11 @@ local function makePackPart(pack)
 		w.TextScaled = true
 		w.Text = pack.kg .. " KG"
 		w.TextColor3 = Color3.fromRGB(255, 230, 140)
+		w.ZIndex = 3
+		local ws = Instance.new("UIStroke")
+		ws.Color = Color3.fromRGB(60, 30, 10)
+		ws.Thickness = 3
+		ws.Parent = w
 		w.Parent = bg
 		sg.Parent = p
 	end
@@ -191,6 +300,31 @@ local function makePackPart(pack)
 	pack.part = p
 	pack.prompt = prompt
 end
+
+-- Muestra u oculta el sobre con todos sus adornos
+local function setPackVisible(pack, on)
+	local p = pack.part
+	if not p then
+		return
+	end
+	p.Transparency = on and 0 or 1
+	for _, d in ipairs(p:GetDescendants()) do
+		if d:IsA("BasePart") then
+			if d.Name == "Beam" then
+				d.Transparency = on and 0.4 or 1
+			else
+				d.Transparency = on and 0 or 1
+			end
+		elseif d:IsA("Texture") then
+			d.Transparency = on and 0 or 1
+		elseif d:IsA("SelectionBox") then
+			d.Visible = on
+		elseif d:IsA("SurfaceGui") or d:IsA("ParticleEmitter") or d:IsA("PointLight") then
+			d.Enabled = on
+		end
+	end
+end
+Packs.setPackVisible = setPackVisible
 
 local function placeOnGround(pack, pos)
 	local y = pack.part.Size.Y / 2 + 1.4 + math.sin(os.clock() * 2 + pack.id) * 0.35
@@ -407,7 +541,7 @@ local function caught(player, guardIndex)
 		s.carrying = nil
 		pack.carrier = nil
 		pack.state = "pending"
-		pack.part.Transparency = 1
+		setPackVisible(pack, false)
 		pendingSave[player] = { pack = pack, untilT = os.clock() + 10 }
 		G.Net.Offer:FireClient(player, "savePack")
 		task.delay(10.5, function()
@@ -415,7 +549,7 @@ local function caught(player, guardIndex)
 			if p and p.pack == pack then
 				pendingSave[player] = nil
 				if pack.state == "pending" then
-					pack.part.Transparency = 0
+					setPackVisible(pack, true)
 					pack.state = "ground"
 					pack.prompt.Enabled = true
 					placeOnGround(pack, pack.home)

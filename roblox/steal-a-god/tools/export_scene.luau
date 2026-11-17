@@ -32,7 +32,7 @@ for _, p in ipairs(workspace:GetDescendants()) do
 	if p:IsA("BasePart") and p.Transparency < 0.98 and p.Name ~= "Terrain" then
 		local c = p.CFrame
 		local rx, ry, rz = c:ToEulerAnglesXYZ()
-		local shape = p:IsA("Part") and (SHAPES[p.Shape] or "box") or "box"
+		local shape = p:IsA("WedgePart") and "wedge" or (p:IsA("Part") and (SHAPES[p.Shape] or "box") or "box")
 		local mesh = p:FindFirstChildOfClass("SpecialMesh")
 		if mesh and mesh.MeshType == Enum.MeshType.Head then shape = "head" end
 		table.insert(rows, table.concat({
