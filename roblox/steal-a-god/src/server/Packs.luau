@@ -86,185 +86,66 @@ end
 ---------------------------------------------------------------------
 -- Objeto físico del sobre
 ---------------------------------------------------------------------
+local FLOOR_Y = 0.2 -- parte de arriba de la pista del pasillo
+local HALF = 2.25 -- media altura del sobre con sus sellos, por unidad de escala
+local UPRIGHT = CFrame.Angles(0, 0, math.rad(90)) -- pone de pie un cilindro
+
+-- Centro del nido de una zona
+function Packs.nestCentre(zoneIndex)
+	return Vector3.new(0, 0, G.World.zoneStart(zoneIndex) + C.NEST_OFFSET)
+end
+
+-- Altura del lecho del nido (donde se apoyan los sobres)
+local function nestFloor()
+	local PS = G.PackStyle
+	return PS and (PS.FLOOR_Y + PS.NEST_BED) or FLOOR_Y
+end
+
+-- El tamaño depende del peso: k = Config.packScale(kg). El aspecto por rareza lo pone PackStyle.
 local function makePackPart(pack)
 	local rarity = C.RARITIES[pack.rarity]
-	local k = 1.5 * (0.75 + (C.kgScale(pack.kg) - 0.75) * 0.6)
+	local k = C.packScale(pack.kg)
+	pack.k = k
 	local p = Instance.new("Part")
 	p.Name = "Pack"
 	p.Size = Vector3.new(3, 4, 0.5) * k
 	p.Anchored = true
 	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Color = rarity.color
-	p.Material = pack.rarity >= 5 and Enum.Material.Neon or Enum.Material.Foil
-	p.Reflectance = pack.rarity >= 5 and 0 or 0.15
-	-- bordes sellados dorados arriba y abajo (como un sobre de cartas) y lomo lateral
-	local function deco(name, size, offset, color, mat)
-		local d = Instance.new("Part")
-		d.Name = name
-		d.Size = size
-		d.CFrame = p.CFrame * offset
-		d.Color = color
-		d.Material = mat or Enum.Material.Foil
-		d.Anchored = false
-		d.CanCollide = false
-		d.CanQuery = false
-		d.CanTouch = false
-		d.Massless = true
-		d.Parent = p
-		local w = Instance.new("WeldConstraint")
-		w.Part0 = p
-		w.Part1 = d
-		w.Parent = d
-		return d
+	p.Material = Enum.Material.Foil
+	p:SetAttribute("K", k)
+	p:SetAttribute("Rarity", pack.rarity)
+	local top, accent = HALF, rarity.color
+	local PS = G.PackStyle
+	if PS then
+		local info = PS.build(pack, p, k)
+		top, accent = info.top, info.accent
+	else
+		-- sin el módulo de diseño: sobre liso con borde y luz
+		local border = Instance.new("SelectionBox")
+		border.Adornee = p
+		border.LineThickness = 0.08
+		border.Color3 = Color3.fromRGB(255, 220, 120)
+		border.Parent = p
+		local light = Instance.new("PointLight")
+		light.Color = rarity.color
+		light.Range = 10 + pack.rarity
+		light.Brightness = 1 + pack.rarity * 0.2
+		light.Shadows = false
+		light.Parent = p
 	end
-	local gold = Color3.fromRGB(240, 196, 92)
-	for _, sy in ipairs({ -1, 1 }) do
-		local crimp = deco("Crimp", Vector3.new(3.1 * k, 0.4 * k, 0.62 * k), CFrame.new(0, sy * 2.05 * k, 0), gold)
-		local tex = Instance.new("Texture")
-		tex.Texture = C.VFX.meander
-		tex.StudsPerTileU = 0.4 * k
-		tex.StudsPerTileV = 0.4 * k
-		tex.Face = Enum.NormalId.Front
-		tex.Parent = crimp
-		tex:Clone().Parent = crimp
-		crimp:FindFirstChildOfClass("Texture").Face = Enum.NormalId.Back
+	-- cartel con la rareza y el peso: encima de todos los adornos y más grande cuanto más pesa
+	local gui = G.World.billboard(p, "", accent, UDim2.fromOffset(170 + 50 * k, 42 + 13 * k), Vector3.new(0, 0, 0))
+	gui.StudsOffsetWorldSpace = Vector3.new(0, top * k + 0.7 + 0.55 * k, 0)
+	if pack.beam then
+		-- hacia la cámara, por delante de la columna de luz, para que se lea
+		gui.StudsOffset = Vector3.new(0, 0, pack.beam.Size.Y / 2 + 0.4)
 	end
-	for _, sx in ipairs({ -1, 1 }) do
-		deco("Seam", Vector3.new(0.18 * k, 3.7 * k, 0.56 * k), CFrame.new(sx * 1.5 * k, 0, 0), gold:Lerp(rarity.color, 0.3))
-	end
-	-- aura suave del color de la rareza detrás del sobre
-	local auraAtt = Instance.new("Attachment")
-	auraAtt.Name = "AuraFX"
-	auraAtt.Parent = p
-	local aura = Instance.new("ParticleEmitter")
-	aura.Texture = C.VFX.glow
-	aura.Rate = 3 + pack.rarity
-	aura.Lifetime = NumberRange.new(1, 1.4)
-	aura.Speed = NumberRange.new(0)
-	aura.LockedToPart = true
-	aura.LightEmission = 1
-	aura.Color = ColorSequence.new(rarity.color)
-	aura.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 4 * k), NumberSequenceKeypoint.new(1, 6 * k) })
-	aura.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.7), NumberSequenceKeypoint.new(0.5, 0.82), NumberSequenceKeypoint.new(1, 1) })
-	aura.ZOffset = -1
-	aura.Parent = auraAtt
-	local glint = Instance.new("ParticleEmitter")
-	glint.Texture = C.VFX.sparkle
-	glint.Rate = 2 + pack.rarity * 0.6
-	glint.Lifetime = NumberRange.new(0.5, 0.9)
-	glint.Speed = NumberRange.new(0.5, 1.5)
-	glint.SpreadAngle = Vector2.new(180, 180)
-	glint.LightEmission = 1
-	glint.Color = ColorSequence.new(Color3.new(1, 1, 1), rarity.color)
-	glint.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.7 * k), NumberSequenceKeypoint.new(1, 0) })
-	glint.Parent = auraAtt
-	local border = Instance.new("SelectionBox")
-	border.Adornee = p
-	border.LineThickness = 0.08
-	border.Color3 = Color3.fromRGB(255, 220, 120)
-	border.Parent = p
-	local light = Instance.new("PointLight")
-	light.Color = rarity.color
-	light.Range = 10 + pack.rarity
-	light.Brightness = 1 + pack.rarity * 0.2
-	light.Parent = p
-	if rarity.sparkle or rarity.rainbow or pack.dawn then
-		local pe = Instance.new("ParticleEmitter")
-		pe.Rate = 15
-		pe.Lifetime = NumberRange.new(0.8, 1.6)
-		pe.Speed = NumberRange.new(1, 4)
-		pe.LightEmission = 1
-		pe.Color = ColorSequence.new(rarity.color, Color3.new(1, 1, 1))
-		pe.Size = NumberSequence.new(0.5, 0)
-		pe.Parent = p
-	end
-	-- cara de la carta: degradado de la rareza, "?" y el peso
-	for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
-		local sg = Instance.new("SurfaceGui")
-		sg.Face = face
-		sg.CanvasSize = Vector2.new(300, 400)
-		sg.LightInfluence = 0
-		sg.Brightness = 1.5
-		local bg = Instance.new("Frame")
-		bg.Size = UDim2.fromScale(1, 1)
-		bg.BackgroundColor3 = Color3.new(1, 1, 1)
-		local grad = Instance.new("UIGradient")
-		grad.Color = ColorSequence.new(rarity.color, Color3.new(rarity.color.R * 0.35, rarity.color.G * 0.35, rarity.color.B * 0.35))
-		grad.Rotation = 90
-		grad.Parent = bg
-		local st = Instance.new("UIStroke")
-		st.Color = Color3.fromRGB(255, 225, 130)
-		st.Thickness = 14
-		st.Parent = bg
-		bg.Parent = sg
-		local rays = Instance.new("ImageLabel")
-		rays.Name = "Rays"
-		rays.BackgroundTransparency = 1
-		rays.Image = C.VFX.rays
-		rays.ImageColor3 = Color3.fromRGB(255, 240, 200)
-		rays.ImageTransparency = 0.25
-		rays.Size = UDim2.fromScale(1.4, 1.05)
-		rays.Position = UDim2.fromScale(0.5, 0.4)
-		rays.AnchorPoint = Vector2.new(0.5, 0.5)
-		rays.Parent = bg
-		local pattern = Instance.new("ImageLabel")
-		pattern.Name = "Pattern"
-		pattern.BackgroundTransparency = 1
-		pattern.Image = C.VFX.hexgrid
-		pattern.ScaleType = Enum.ScaleType.Tile
-		pattern.TileSize = UDim2.fromOffset(120, 120)
-		pattern.ImageTransparency = 0.82
-		pattern.Size = UDim2.fromScale(1, 1)
-		pattern.Parent = bg
-		local frame = Instance.new("ImageLabel")
-		frame.Name = "Frame"
-		frame.BackgroundTransparency = 1
-		frame.Image = C.VFX.carved
-		frame.ImageColor3 = Color3.fromRGB(255, 225, 130)
-		frame.ImageTransparency = 0.15
-		frame.Size = UDim2.fromScale(1, 1)
-		frame.Parent = bg
-		local shine = Instance.new("Frame")
-		shine.Name = "Shine"
-		shine.BackgroundColor3 = Color3.new(1, 1, 1)
-		shine.BorderSizePixel = 0
-		shine.Size = UDim2.fromScale(1, 1)
-		local sgrad = Instance.new("UIGradient")
-		sgrad.Rotation = 35
-		sgrad.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.42, 1), NumberSequenceKeypoint.new(0.5, 0.65), NumberSequenceKeypoint.new(0.58, 1), NumberSequenceKeypoint.new(1, 1) })
-		sgrad.Parent = shine
-		shine.Parent = bg
-		local q = Instance.new("TextLabel")
-		q.BackgroundTransparency = 1
-		q.Size = UDim2.new(1, 0, 0.55, 0)
-		q.Position = UDim2.fromScale(0, 0.12)
-		q.Font = Enum.Font.LuckiestGuy
-		q.TextScaled = true
-		q.Text = "?"
-		q.TextColor3 = Color3.new(1, 1, 1)
-		q.ZIndex = 3
-		local qs = Instance.new("UIStroke")
-		qs.Color = Color3.fromRGB(60, 30, 10)
-		qs.Thickness = 5
-		qs.Parent = q
-		q.Parent = bg
-		local w = Instance.new("TextLabel")
-		w.BackgroundTransparency = 1
-		w.Size = UDim2.new(1, 0, 0.16, 0)
-		w.Position = UDim2.fromScale(0, 0.74)
-		w.Font = Enum.Font.LuckiestGuy
-		w.TextScaled = true
-		w.Text = pack.kg .. " KG"
-		w.TextColor3 = Color3.fromRGB(255, 230, 140)
-		w.ZIndex = 3
-		local ws = Instance.new("UIStroke")
-		ws.Color = Color3.fromRGB(60, 30, 10)
-		ws.Thickness = 3
-		ws.Parent = w
-		w.Parent = bg
-		sg.Parent = p
-	end
-	local gui = G.World.billboard(p, "", rarity.color, UDim2.fromOffset(240, 60), Vector3.new(0, 3.5 * k, 0))
+	gui.MaxDistance = 90 + pack.rarity * 6
 	gui:SetAttribute("Rarity", pack.rarity)
 	gui:SetAttribute("Kg", pack.kg)
 	gui:SetAttribute("Dawn", pack.dawn == true)
@@ -274,7 +155,8 @@ local function makePackPart(pack)
 	prompt.ActionText = "Steal"
 	prompt.ObjectText = ""
 	prompt.HoldDuration = 0.3
-	prompt.MaxActivationDistance = 10
+	-- los sobres están juntos: distancia corta (algo mayor en los gigantes, cuyo centro queda alto)
+	prompt.MaxActivationDistance = 9 + math.max(0, k - 1.5) * 1.5
 	prompt.RequiresLineOfSight = false
 	prompt:SetAttribute("Kind", "steal")
 	CollectionService:AddTag(prompt, "LocPrompt")
@@ -282,55 +164,155 @@ local function makePackPart(pack)
 	prompt.Triggered:Connect(function(player)
 		Packs.grab(player, pack)
 	end)
-	-- haz de luz para las rarezas Secreta o superiores
-	if pack.rarity >= C.ANNOUNCE_BIG_FROM then
-		local beam = Instance.new("Part")
-		beam.Name = "Beam"
-		beam.Anchored = true
-		beam.CanCollide = false
-		beam.Material = Enum.Material.Neon
-		beam.Color = rarity.id == 10 and Color3.fromRGB(200, 120, 255) or rarity.color
-		beam.Transparency = 0.4
-		beam.Shape = Enum.PartType.Cylinder
-		beam.Size = Vector3.new(300, 3, 3)
-		beam.Parent = p
-		pack.beam = beam
-	end
 	p.Parent = workspace
 	pack.part = p
 	pack.prompt = prompt
 end
 
--- Muestra u oculta el sobre con todos sus adornos
+-- Muestra u oculta el sobre con todos sus adornos (cada pieza recupera su transparencia original)
 local function setPackVisible(pack, on)
 	local p = pack.part
 	if not p then
 		return
 	end
+	local PS = G.PackStyle
+	if PS then
+		PS.setVisible(p, on)
+		return
+	end
 	p.Transparency = on and 0 or 1
 	for _, d in ipairs(p:GetDescendants()) do
-		if d:IsA("BasePart") then
-			if d.Name == "Beam" then
-				d.Transparency = on and 0.4 or 1
-			else
-				d.Transparency = on and 0 or 1
-			end
-		elseif d:IsA("Texture") then
-			d.Transparency = on and 0 or 1
-		elseif d:IsA("SelectionBox") then
+		if d:IsA("SelectionBox") then
 			d.Visible = on
-		elseif d:IsA("SurfaceGui") or d:IsA("ParticleEmitter") or d:IsA("PointLight") then
+		elseif d:IsA("PointLight") or d:IsA("BillboardGui") then
 			d.Enabled = on
 		end
 	end
 end
 Packs.setPackVisible = setPackVisible
 
-local function placeOnGround(pack, pos)
-	local y = pack.part.Size.Y / 2 + 1.4 + math.sin(os.clock() * 2 + pack.id) * 0.35
-	pack.part.CFrame = CFrame.new(pos.X, y, pos.Z) * CFrame.Angles(0, math.rad(os.clock() * 50 % 360), 0)
+-- Postura de reposo: de pie, algo inclinado hacia atrás (5–12°, siempre igual para el mismo id) y mirando hacia `dir`
+local function restCFrame(pack, pos, floorY, dir, sink)
+	local k = pack.k or 1
+	local rng = Random.new(pack.id * 7919 + 13)
+	local lean = math.rad(rng:NextNumber(5, 12))
+	local side = math.rad(rng:NextNumber(-15, 15)) -- hacia qué lado cae un poco
+	local yaw = math.rad(rng:NextNumber(-10, 10))
+	if not dir then
+		dir = CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0).LookVector
+	end
+	local rot = CFrame.lookAt(Vector3.zero, dir) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(lean * math.cos(side), 0, lean * math.sin(side))
+	-- altura para que la esquina más baja toque el suelo (los gigantes no se hunden)
+	local extent = math.abs(rot.RightVector.Y) * 1.55 * k + math.abs(rot.UpVector.Y) * HALF * k + math.abs(rot.LookVector.Y) * 0.31 * k
+	return CFrame.new(pos.X, floorY + extent - (sink or 0), pos.Z) * rot
+end
+
+-- Deja el sobre quieto en su sitio: en su hueco del nido o donde cayó. Solo se llama cuando cambia su estado.
+local function placeAtRest(pack)
+	local pos, floorY, dir, sink
+	if pack.state == "loose" and pack.loosePos then
+		pos, floorY, sink, dir = pack.loosePos, pack.loosePos.Y, 0, pack.looseDir
+	else
+		pos, floorY, sink = pack.home, nestFloor(), 0.12
+		-- la cara mira hacia fuera del nido; el del centro, hacia la entrada de la zona
+		local centre = Packs.nestCentre(pack.zone)
+		local out = Vector3.new(pos.X - centre.X, 0, pos.Z - centre.Z)
+		dir = out.Magnitude > 0.5 and out.Unit or Vector3.new(0, 0, -1)
+	end
+	pack.part.CFrame = restCFrame(pack, pos, floorY, dir, sink)
+	if G.PackStyle then
+		G.PackStyle.settle(pack.part, floorY) -- columna de luz, piezas que orbitan y efectos de suelo
+	end
+end
+
+-- Sobre que alguien lleva: flota de pie sobre su cabeza y gira (único caso en que se mueve cada fotograma)
+local function placeCarried(pack, head, settle)
+	local k = pack.k or 1
+	local c = head.Position + Vector3.new(0, 1.7 + HALF * k, 0)
+	pack.part.CFrame = CFrame.new(c) * CFrame.Angles(0, (os.clock() * 2.1) % (math.pi * 2), 0)
+	if settle and G.PackStyle then
+		G.PackStyle.settle(pack.part, nil)
+	elseif pack.beam then
+		-- la columna de luz va anclada: sube recta desde encima del sobre
+		local base = pack.beam:GetAttribute("Base") or HALF * k
+		pack.beam.CFrame = CFrame.new(c.X, c.Y + base + pack.beam.Size.X / 2, c.Z) * UPRIGHT
+	end
+end
+
+-- Suelo bajo un punto (para los sobres que caen fuera del nido)
+local function floorAt(at, character)
+	local ignore = {}
+	if character then
+		table.insert(ignore, character)
+	end
+	for _, guard in ipairs(G.World.guardians) do
+		table.insert(ignore, guard.model)
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	for _ = 1, 4 do
+		params.FilterDescendantsInstances = ignore
+		local hit = workspace:Raycast(at, Vector3.new(0, -60, 0), params)
+		if not hit then
+			break
+		end
+		if hit.Instance.Anchored and hit.Instance.CanCollide then
+			return hit.Position.Y
+		end
+		table.insert(ignore, hit.Instance) -- otro jugador o algo suelto: se ignora
+	end
+	return at.Z >= C.CORRIDOR_START and FLOOR_Y or math.max(0, math.min(at.Y - 3, 0.4))
+end
+
+-- Si el punto cae dentro de un nido, el suelo es su lecho (las piezas del nido no se detectan con rayos)
+local function nestFloorAt(pos)
+	local zi = G.World.zoneAt(pos.Z)
+	if zi >= 1 then
+		local centre = Packs.nestCentre(zi)
+		local d = Vector3.new(pos.X - centre.X, 0, pos.Z - centre.Z).Magnitude
+		if d <= 13 then
+			return nestFloor() - (d > 10.5 and 0.1 or 0)
+		end
+	end
+	return nil
+end
+
+-- ¿Hay ya otro sobre descansando en el hueco de este?
+local function homeTaken(pack)
+	for _, other in pairs(Packs.list) do
+		if other ~= pack and other.zone == pack.zone and other.spot == pack.spot and other.state == "ground" then
+			return true
+		end
+	end
+	return false
+end
+
+-- Devuelve el sobre a su hueco del nido (o delante del nido si el hueco ya está ocupado)
+local function returnHome(pack)
+	if homeTaken(pack) then
+		local centre = Packs.nestCentre(pack.zone)
+		pack.state = "loose"
+		pack.loosePos = Vector3.new(centre.X + ((pack.id % 5) - 2) * 3.5, FLOOR_Y, centre.Z - 19)
+	else
+		pack.state = "ground"
+		pack.loosePos = nil
+	end
+	placeAtRest(pack)
+end
+
+-- Brillo de la columna de luz: más tenue mientras alguien lleva el sobre
+local function dimBeam(pack, carried)
 	if pack.beam then
-		pack.beam.CFrame = CFrame.new(pos + Vector3.new(0, 150, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		local base = pack.beam:GetAttribute("BaseT") or 0.4
+		pack.beam.Transparency = carried and math.min(0.92, base + 0.3) or base
+	end
+end
+
+-- Estela y chispas mientras lo llevas
+local function carryFx(pack, on)
+	local PS = G.PackStyle
+	if PS then
+		PS.carryFx(pack, on)
 	end
 end
 
@@ -345,7 +327,8 @@ local function destroyPack(pack)
 	Packs.list[pack.id] = nil
 end
 
-local function spawnPack(zoneIndex, spotIndex, dawn)
+-- forced = { rarity, kg } para pruebas y vistas previas; si no, se tira la rareza y el peso
+local function spawnPack(zoneIndex, spotIndex, dawn, forced)
 	local luck = (G.serverLuckUntil and os.clock() < G.serverLuckUntil) and 3 or 1
 	if dawn then
 		luck *= C.DAWN_LUCK
@@ -355,16 +338,37 @@ local function spawnPack(zoneIndex, spotIndex, dawn)
 		id = nextId,
 		zone = zoneIndex,
 		spot = spotIndex,
-		rarity = rollRarity(zoneIndex, luck),
-		kg = C.rollKg(),
+		rarity = forced and forced.rarity or rollRarity(zoneIndex, luck),
+		kg = forced and forced.kg or C.rollKg(),
 		dawn = dawn,
 		state = "ground",
 		carrier = nil,
 	}
 	pack.home = G.World.zoneParts[zoneIndex].spots[spotIndex]
 	makePackPart(pack)
-	placeOnGround(pack, pack.home)
+	placeAtRest(pack)
 	Packs.list[pack.id] = pack
+	return pack
+end
+
+-- Solo para pruebas y vistas previas (módulo de servidor: ningún cliente puede llamarlo).
+-- Crea un sobre concreto en un hueco del nido (sustituye al que hubiera) o, con `at`, suelto en ese punto
+-- (at.Y = altura del suelo; `face` = hacia dónde mira su cara, opcional).
+function Packs.debugSpawn(zoneIndex, spotIndex, rarity, kg, dawn, at, face)
+	if not at then
+		for _, other in pairs(Packs.list) do
+			if other.zone == zoneIndex and other.spot == spotIndex and other.state == "ground" then
+				destroyPack(other)
+			end
+		end
+	end
+	local pack = spawnPack(zoneIndex, spotIndex, dawn == true, { rarity = math.clamp(math.floor(rarity or 1), 1, #C.RARITIES), kg = math.max(1, math.floor(kg or 100)) })
+	if at then
+		pack.state = "loose"
+		pack.loosePos = at
+		pack.looseDir = face
+		placeAtRest(pack)
+	end
 	return pack
 end
 
@@ -435,29 +439,16 @@ function Packs.grab(player, pack)
 	end
 	pack.state = "carried"
 	pack.carrier = player
+	pack.loosePos = nil
+	pack.looseDir = nil
 	s.carrying = pack
 	pack.prompt.Enabled = false
-	Packs.burst(pack.part.Position, C.RARITIES[pack.rarity].color, 40 + pack.rarity * 8)
-	-- aura mientras lo llevas
-	if not pack.part:FindFirstChild("CarryFX") then
-		local att = Instance.new("Attachment")
-		att.Name = "CarryFX"
-		att.Parent = pack.part
-		local pe = Instance.new("ParticleEmitter")
-		pe.Rate = 35
-		pe.Lifetime = NumberRange.new(0.5, 1)
-		pe.Speed = NumberRange.new(2, 6)
-		pe.SpreadAngle = Vector2.new(180, 180)
-		pe.LightEmission = 1
-		pe.Color = ColorSequence.new(C.RARITIES[pack.rarity].color, Color3.new(1, 1, 1))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 0) })
-		pe.Texture = C.VFX.sparkle
-		pe.RotSpeed = NumberRange.new(-120, 120)
-		pe.Parent = att
-	end
-	if pack.beam then
-		pack.beam.Transparency = 0.7
-	end
+	local color = G.PackStyle and G.PackStyle.accent(pack.rarity) or C.RARITIES[pack.rarity].color
+	Packs.burst(pack.part.Position, color, 40 + pack.rarity * 8)
+	-- sube sobre la cabeza con estela y chispas; la columna de luz se atenúa
+	carryFx(pack, true)
+	dimBeam(pack, true)
+	placeCarried(pack, char:FindFirstChild("Head") or hrp, true)
 	-- el guardián de la zona de origen despierta y persigue
 	local guard = G.World.guardians[pack.zone]
 	guard.target = player
@@ -485,23 +476,22 @@ function Packs.dropCarried(player, loose, at)
 		destroyPack(pack)
 		return nil
 	end
-	pack.state = loose and "loose" or "ground"
 	pack.prompt.Enabled = true
-	local fx = pack.part:FindFirstChild("CarryFX")
-	if fx then
-		fx:Destroy()
+	carryFx(pack, false)
+	dimBeam(pack, false)
+	if loose and at then
+		-- se queda quieto donde cayó
+		pack.state = "loose"
+		local floorY = floorAt(at, player.Character)
+		pack.loosePos = Vector3.new(at.X, math.max(floorY, nestFloorAt(at) or floorY), at.Z)
+		placeAtRest(pack)
+	else
+		returnHome(pack)
 	end
-	if pack.beam then
-		pack.beam.Transparency = 0.4
-	end
-	local pos = loose and at and Vector3.new(at.X, 2.5, at.Z) or pack.home
-	pack.loosePos = pos
-	placeOnGround(pack, pos)
 	return pack
 end
 
 local function deliver(player, pack)
-	local d = G.Data.profiles[player]
 	local s = G.Core.sessions[player]
 	local item = { r = pack.rarity, rem = C.RARITIES[pack.rarity].open, dawn = pack.dawn == true, kg = pack.kg }
 	local ok, where = Packs.givePack(player, item)
@@ -541,6 +531,8 @@ local function caught(player, guardIndex)
 		s.carrying = nil
 		pack.carrier = nil
 		pack.state = "pending"
+		carryFx(pack, false)
+		dimBeam(pack, false)
 		setPackVisible(pack, false)
 		pendingSave[player] = { pack = pack, untilT = os.clock() + 10 }
 		G.Net.Offer:FireClient(player, "savePack")
@@ -550,9 +542,8 @@ local function caught(player, guardIndex)
 				pendingSave[player] = nil
 				if pack.state == "pending" then
 					setPackVisible(pack, true)
-					pack.state = "ground"
 					pack.prompt.Enabled = true
-					placeOnGround(pack, pack.home)
+					returnHome(pack)
 				end
 			end
 		end)
@@ -754,7 +745,7 @@ end
 Packs.tierOf = tierOf
 
 ---------------------------------------------------------------------
--- Bucle: guardianes, entregas, sobres flotando, pasillo
+-- Bucle: guardianes, entregas, sobres que alguien lleva, pasillo
 ---------------------------------------------------------------------
 local function guardianStep(guard, dt)
 	local model = guard.model
@@ -809,6 +800,28 @@ local function guardianStep(guard, dt)
 	G.GodModel.animate(model, guard.phase, target and 0.9 or 0.45)
 end
 
+-- Sobres en cada fotograma: solo se mueven los que alguien lleva. Los del suelo descansan quietos
+-- (se colocan una vez al aparecer, al soltarlos o al volver), así no generan tráfico de red.
+function Packs.stepPacks()
+	for _, pack in pairs(Packs.list) do
+		if pack.state == "carried" and pack.carrier then
+			local char = pack.carrier.Character
+			local head = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
+			if head then
+				placeCarried(pack, head, false)
+			end
+			-- ¿ha llegado a su parcela?
+			local s = G.Core.sessions[pack.carrier]
+			if s and s.plot and char and char:FindFirstChild("HumanoidRootPart") then
+				local hp = char.HumanoidRootPart.Position
+				if G.World.inPlot(s.plot, hp) then
+					deliver(pack.carrier, pack)
+				end
+			end
+		end
+	end
+end
+
 function Packs.start()
 	RunService.Heartbeat:Connect(function(dt)
 		for _, guard in ipairs(G.World.guardians) do
@@ -819,28 +832,7 @@ function Packs.start()
 				bb:SetAttribute("Chasing", guard.target ~= nil)
 			end
 		end
-		for _, pack in pairs(Packs.list) do
-			if pack.state == "carried" and pack.carrier then
-				local char = pack.carrier.Character
-				local head = char and char:FindFirstChild("Head")
-				if head then
-					pack.part.CFrame = head.CFrame * CFrame.new(0, 3, 0) * CFrame.Angles(0, math.rad(os.clock() * 120 % 360), 0)
-					if pack.beam then
-						pack.beam.CFrame = CFrame.new(head.Position + Vector3.new(0, 152, 0)) * CFrame.Angles(0, 0, math.rad(90))
-					end
-				end
-				-- ¿ha llegado a su parcela?
-				local s = G.Core.sessions[pack.carrier]
-				if s and s.plot and char and char:FindFirstChild("HumanoidRootPart") then
-					local hp = char.HumanoidRootPart.Position
-					if G.World.inPlot(s.plot, hp) then
-						deliver(pack.carrier, pack)
-					end
-				end
-			elseif pack.state == "ground" or pack.state == "loose" then
-				placeOnGround(pack, pack.state == "loose" and pack.loosePos or pack.home)
-			end
-		end
+		Packs.stepPacks()
 	end)
 	-- control del pasillo (5 veces por segundo)
 	task.spawn(function()
@@ -876,6 +868,28 @@ end
 function Packs.init(g)
 	G = g
 	C = g.Config
+	-- nidos: los seis sobres de cada zona aparecen juntos (uno en el centro y cinco alrededor)
+	local PS = G.PackStyle
+	if PS and PS.init then
+		PS.init(G)
+	end
+	for i = 1, #C.ZONES do
+		local zp = G.World.zoneParts[i]
+		if zp then
+			local centre = Packs.nestCentre(i)
+			zp.nest = centre
+			if PS then
+				zp.spots = PS.spots(centre)
+				PS.buildNest(i, centre)
+			else
+				zp.spots = { centre }
+				for j = 0, C.PACKS_PER_ZONE - 2 do
+					local a = math.rad(-54 + j * 360 / (C.PACKS_PER_ZONE - 1))
+					table.insert(zp.spots, centre + Vector3.new(math.cos(a), 0, math.sin(a)) * C.NEST_RADIUS)
+				end
+			end
+		end
+	end
 	-- altares: abrir
 	for _, plot in ipairs(G.World.plots) do
 		for i, a in ipairs(plot.altars) do
