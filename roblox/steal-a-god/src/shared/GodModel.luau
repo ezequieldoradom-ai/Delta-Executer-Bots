@@ -552,6 +552,7 @@ function GodModel.decorate(model, rarity)
 		-- orbes que giran alrededor (Celestial o más)
 		if rarity.id >= 8 then
 			local orbs = Instance.new("ParticleEmitter")
+			orbs.Name = "CelestialOrbs"
 			orbs.Rate = 10
 			orbs.Lifetime = NumberRange.new(1.5)
 			orbs.Speed = NumberRange.new(4)
@@ -562,6 +563,22 @@ function GodModel.decorate(model, rarity)
 			orbs.Size = NumberSequence.new(0.6, 0)
 			orbs.Texture = VFX.sparkle
 			orbs.Parent = att
+		end
+		-- Motas ascendentes y un halo de luz adicional para las rarezas divinas.
+		if rarity.id >= 7 then
+			local motes = Instance.new("ParticleEmitter")
+			motes.Name = "DivineMotes"
+			motes.Rate = 3 + rarity.id
+			motes.Lifetime = NumberRange.new(1.4, 2.2)
+			motes.Speed = NumberRange.new(1.5, 3.5)
+			motes.Acceleration = Vector3.new(0, 4, 0)
+			motes.SpreadAngle = Vector2.new(180, 180)
+			motes.LightEmission = 1
+			motes.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
+			motes.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.32), NumberSequenceKeypoint.new(1, 0) })
+			motes.Transparency = NumberSequence.new(0.08, 1)
+			motes.Texture = VFX.sparkle
+			motes.Parent = att
 		end
 	end
 end

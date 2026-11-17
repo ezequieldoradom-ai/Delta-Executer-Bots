@@ -105,6 +105,55 @@ local function setupLighting()
 	sky.Parent = Lighting
 end
 
+-- Detalles celestiales que enriquecen la plaza sin sustituir su estilo
+-- mitológico, luminoso y de mármol original. Todo es decorativo y no colisionable.
+local function buildFountainCrown(center)
+	local gold = Color3.fromRGB(255, 211, 105)
+	local ice = Color3.fromRGB(155, 225, 255)
+	local crownFolder = Instance.new("Folder")
+	crownFolder.Name = "CelestialFountainDetails"
+	crownFolder.Parent = root
+	for i = 1, 16 do
+		local angle = (i - 1) / 16 * math.pi * 2
+		local pos = center + Vector3.new(math.cos(angle) * 13.5, 18.5, math.sin(angle) * 13.5)
+		local orb = part({
+			Name = "CrownLight", Shape = Enum.PartType.Ball, Size = Vector3.new(0.85, 0.85, 0.85),
+			Position = pos, Color = i % 2 == 0 and gold or ice, Material = Enum.Material.Neon,
+			CanCollide = false, Parent = crownFolder,
+		})
+		if i % 4 == 0 then
+			local light = Instance.new("PointLight")
+			light.Color = orb.Color
+			light.Range = 10
+			light.Brightness = 0.65
+			light.Shadows = false
+			light.Parent = orb
+		end
+	end
+	local heart = part({
+		Name = "FountainHeart", Shape = Enum.PartType.Ball, Size = Vector3.new(2.2, 2.2, 2.2),
+		Position = center + Vector3.new(0, 22, 0), Color = gold, Material = Enum.Material.Neon,
+		CanCollide = false, Parent = crownFolder,
+	})
+	local heartLight = Instance.new("PointLight")
+	heartLight.Color = Color3.fromRGB(255, 220, 150)
+	heartLight.Range = 24
+	heartLight.Brightness = 1.1
+	heartLight.Shadows = false
+	heartLight.Parent = heart
+	-- Cuatro columnas finas enmarcan la fuente como un pequeño santuario.
+	for _, sx in ipairs({ -1, 1 }) do
+		for _, sz in ipairs({ -1, 1 }) do
+			local pos = center + Vector3.new(sx * 21, 8, sz * 21)
+			part({ Name = "SanctuaryColumn", Size = Vector3.new(1.5, 16, 1.5), Position = pos,
+				Color = Color3.fromRGB(232, 222, 201), Material = Enum.Material.Marble,
+				CanCollide = false, Parent = crownFolder })
+			part({ Name = "SanctuaryCapital", Size = Vector3.new(2.4, 0.7, 2.4), Position = pos + Vector3.new(0, 8.2, 0),
+				Color = gold, Material = Enum.Material.Foil, CanCollide = false, Parent = crownFolder })
+		end
+	end
+end
+
 ---------------------------------------------------------------------
 -- Parcelas
 ---------------------------------------------------------------------
@@ -635,6 +684,24 @@ local function buildCorridor()
 		end
 		part({ Name = "ArchNeonTop", Size = Vector3.new(W * 2 + 12, 1.2, 6.6), Position = Vector3.new(0, 41, z0), Color = archColor, Material = Enum.Material.Neon })
 		local top = part({ Name = "ArchTop", Size = Vector3.new(W * 2 + 12, 6, 6), Position = Vector3.new(0, 44.5, z0), Color = zone.accent, Material = Enum.Material.Marble })
+		-- Medallón rúnico frontal: mantiene la paleta propia de cada mitología.
+		local medallion = part({ Name = "DivineMedallion", Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.65, 5.6, 5.6), Position = Vector3.new(0, 49, z0 - 3.3),
+			CFrame = CFrame.new(0, 49, z0 - 3.3) * CFrame.Angles(0, math.rad(90), 0),
+			Color = Color3.fromRGB(238, 202, 112), Material = Enum.Material.Foil,
+			CanCollide = false })
+		local sigil = part({ Name = "MedallionCore", Shape = Enum.PartType.Ball, Size = Vector3.new(1.7, 1.7, 1.7),
+			Position = Vector3.new(0, 49, z0 - 3.85), Color = zone.accent, Material = Enum.Material.Neon,
+			CanCollide = false })
+		local sigilLight = Instance.new("PointLight")
+		sigilLight.Color = zone.accent
+		sigilLight.Range = 18
+		sigilLight.Brightness = 0.8
+		sigilLight.Shadows = false
+		sigilLight.Parent = sigil
+		local topGlow = part({ Name = "ArchGoldLine", Size = Vector3.new(W * 2 + 12, 0.35, 6.8),
+			Position = Vector3.new(0, 47.7, z0), Color = Color3.fromRGB(255, 215, 125),
+			Material = Enum.Material.Neon, Transparency = 0.28, CanCollide = false })
 		zp.sign = billboard(top, "", Color3.new(1, 1, 1), UDim2.fromOffset(520, 110), Vector3.new(0, 8, 0))
 		zp.sign.MaxDistance = 140
 		zp.sign:SetAttribute("Zone", i)
@@ -698,6 +765,7 @@ function World.init(g)
 	fl.Color = Color3.fromRGB(120, 210, 255)
 	fl.Range = 20
 	fl.Parent = bowl
+	buildFountainCrown(F)
 	-- Farolillos cálidos a los lados de la plaza
 	for z = -96, 96, 32 do
 		for _, x in ipairs({ -36, 36 }) do
