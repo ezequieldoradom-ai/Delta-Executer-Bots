@@ -627,7 +627,7 @@ local function ownedCount()
 end
 
 signatures.index = function(tab)
-	local s = tab
+	local s = tab .. tostring(state.luck)
 	for _, g in ipairs(Config.GODS) do
 		s ..= (state.gods[g.id] or 0)
 	end
@@ -701,21 +701,11 @@ renderers.index = function(tab)
 		listLayout()
 		for zi, zone in ipairs(Config.ZONES) do
 			sectionTitle(zi * 100, string.format("%s %d · %s", t("zone"), zi, Locale.name(zone)), CYAN)
-			local total = 0
-			for _, w in pairs(zone.weights) do
-				total += w
-			end
+			local odds = Config.odds(zi, state.luck or 1)
 			local order = zi * 100
 			for r = 1, #Config.RARITIES do
-				local chance = zone.weights[r] and zone.weights[r] / total or nil
-				if not chance and zi >= 3 then
-					for _, u in ipairs(Config.ULTRA) do
-						if u.r == r then
-							chance = (zi / 6) / u.oneIn
-						end
-					end
-				end
-				if chance then
+				local chance = odds[r]
+				if chance and chance > 0 then
 					order += 1
 					local txt = chance >= 0.001 and string.format("%.2f%%", chance * 100) or Format.oneIn(chance)
 					label({ Parent = content, LayoutOrder = order, Size = UDim2.new(1, -14, 0, 26), Font = BTN, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = rcolor(r), Text = string.format("   ◆ %s — %s", Locale.name(Config.RARITIES[r]), txt), ZIndex = 11 })
@@ -903,7 +893,7 @@ local tapButton = button({ Parent = tread, Text = t("tap") .. (UserInputService.
 tapButton.Font = TITLE
 local Combo = Remotes:WaitForChild("Combo")
 local function markerPos()
-	return (math.sin(os.clock() * 2.6) + 1) / 2
+	return (math.sin(workspace:GetServerTimeNow() * 2.6) + 1) / 2
 end
 local function floatText(text, color, parent, pos)
 	local l = label({ Parent = parent or gui, Font = TITLE, Text = text, TextColor3 = color, Size = UDim2.fromOffset(200, 44), Position = pos or UDim2.new(0.5, -100, 1, -200), ZIndex = 25 })
@@ -918,12 +908,12 @@ local function floatText(text, color, parent, pos)
 end
 local function doTap()
 	local m = markerPos()
+	-- el cliente siempre avisa; el servidor decide si fue acierto
+	Combo:FireServer()
 	if math.abs(m - targetCenter) <= targetWidth / 2 + 0.02 then
-		Combo:FireServer()
 		play("reward", 1 + (state.combo or 1) * 0.12)
 		bump(target, 1.4)
 		target.BackgroundColor3 = WHITE
-		targetCenter = 0.15 + math.random() * 0.7
 		floatText("+COMBO!", GREEN, tread, UDim2.new(0.5, -100, 0, -10))
 		task.delay(0.12, function()
 			target.BackgroundColor3 = GREEN
@@ -1219,6 +1209,9 @@ Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 	lastMoney = s.money or 0
 	state = s
 	stateAt = os.clock()
+	if s.comboTarget then
+		targetCenter = s.comboTarget
+	end
 end)
 
 ---------------------------------------------------------------------
@@ -1507,7 +1500,10 @@ RunService.Heartbeat:Connect(function(dt)
 	local now = os.clock()
 	for _, folder in ipairs(plotFolders()) do
 		local cf = folder:GetAttribute("PlotCF")
-		if cam and (cam.CFrame.Position - cf.Position).Magnitude < 220 then
+		local camDist = cam and (cam.CFrame.Position - cf.Position).Magnitude or math.huge
+		folder:SetAttribute("_skip", ((folder:GetAttribute("_skip") or 0) + 1) % 3)
+		if camDist < 90 or (camDist < 180 and folder:GetAttribute("_skip") == 0) then
+			local dt = camDist < 90 and dt or dt * 3 -- los lejanos se actualizan 1 de cada 3 veces
 			for _, m in ipairs(folder:GetChildren()) do
 				if m:IsA("Model") and m:GetAttribute("Income") and m.PrimaryPart then
 					local st = walkers[m]
@@ -1626,13 +1622,27 @@ end)
 -- Ajuste de partículas (gráficos bajos) y auras de otros jugadores
 ---------------------------------------------------------------------
 local hidden = setmetatable({}, { __mode = "k" })
+local emitters = setmetatable({}, { __mode = "k" })
+local function track(e)
+	if e:IsA("ParticleEmitter") or e:IsA("Fire") then
+		emitters[e] = true
+	end
+end
+for _, e in ipairs(workspace:GetDescendants()) do
+	track(e)
+end
+workspace.DescendantAdded:Connect(track)
+workspace.DescendantRemoving:Connect(function(e)
+	emitters[e] = nil
+	hidden[e] = nil
+end)
 task.spawn(function()
 	while true do
 		task.wait(2)
 		local partsOn = opt("particles")
 		local aurasOn = opt("othersAuras")
-		for _, e in ipairs(workspace:GetDescendants()) do
-			if e:IsA("ParticleEmitter") or e:IsA("Fire") then
+		for e in pairs(emitters) do
+			if e.Parent then
 				local isOtherAura = false
 				local att = e.Parent
 				if att and att.Name == "AuraFX" then

@@ -97,6 +97,8 @@ local T = {
 	normal = { es = "Normal", en = "Normal" },
 	big = { es = "Grande", en = "Large" },
 	controls = { es = "Controles", en = "Controls" },
+	openSaved = { es = "No tienes un sobre de esa categoría: se abrirá el próximo que llegue", en = "No pack of that tier yet: the next one will open instantly" },
+	plotMaxRefund = { es = "Tu parcela ya está al máximo: te damos 2 h de ingresos", en = "Your plot is maxed: you got 2 h of income instead" },
 	ownerPasses = { es = "👑 Usar mis pases (solo creador)", en = "👑 Use my passes (creator only)" },
 	title1 = { es = "Mortal", en = "Mortal" },
 	title2 = { es = "Corredor", en = "Runner" },

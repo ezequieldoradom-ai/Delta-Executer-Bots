@@ -78,12 +78,32 @@ local function mythComplete(d, myth)
 end
 Core.mythComplete = mythComplete
 
+-- Borra las cachés cuando cambia algo que afecta a multiplicadores o colección
+function Core.invalidate(player)
+	local s = Core.sessions[player]
+	if s then
+		s.mcT = nil
+		s.placed = nil
+	end
+end
+
 function Core.mults(player)
 	local d = G.Data.profiles[player]
 	local s = Core.sessions[player]
 	if not d or not s then
 		return 1, 1, 1
 	end
+	local now = os.clock()
+	if s.mcT and now - s.mcT < 0.5 then
+		return s.mc[1], s.mc[2], s.mc[3]
+	end
+	local a, b, c = Core.computeMults(player, d, s)
+	s.mc = { a, b, c }
+	s.mcT = now
+	return a, b, c
+end
+
+function Core.computeMults(player, d, s)
 	local speedAdd, moneyAdd, speedMul, moneyMul = 0, 0, 1, 1
 	local n = uniqueGods(d)
 	for _, rw in ipairs(C.INDEX_REWARDS) do
@@ -108,7 +128,7 @@ function Core.mults(player)
 			tier = tonumber(tier)
 			for _, co in ipairs(C.COACHES) do
 				if co.id == id and tier and C.COACH_TIERS[tier] then
-					for _ = 1, count do
+					for _ = 1, math.min(count, C.COACH_EQUIP) do
 						table.insert(list, co.bonus * C.COACH_TIERS[tier].mult)
 					end
 				end
@@ -136,7 +156,7 @@ function Core.mults(player)
 	if s.passes.money2x then
 		moneyMul *= 2
 	end
-	if os.clock() < (s.speedBoostUntil or 0) then
+	if os.time() < (d.boosts and d.boosts.speed or 0) then
 		speedMul *= 3
 	end
 	local luck = 1
@@ -172,6 +192,18 @@ end
 
 -- Los mejores dioses (por ingresos, contando los kilos) que caben en la parcela
 function Core.placedGods(player)
+	local s = Core.sessions[player]
+	if s and s.placed then
+		return s.placed
+	end
+	local placed = Core.computePlaced(player)
+	if s then
+		s.placed = placed
+	end
+	return placed
+end
+
+function Core.computePlaced(player)
 	local d = G.Data.profiles[player]
 	local all = {}
 	for _, e in ipairs(d.godList or {}) do
@@ -204,6 +236,7 @@ function Core.income(player)
 end
 
 function Core.refreshPlot(player)
+	Core.invalidate(player)
 	local s = Core.sessions[player]
 	local d = G.Data.profiles[player]
 	if not s or not d or not s.plot then
@@ -265,6 +298,8 @@ function Core.addGod(player, god, kg)
 	local isNew = (d.gods[god.id] or 0) == 0
 	d.gods[god.id] = (d.gods[god.id] or 0) + 1
 	table.insert(d.godList, { id = god.id, kg = kg or 100 })
+	G.Data.trimGodList(d, C)
+	Core.invalidate(player)
 	if isNew then
 		local w = Core.bestWeapon(d)
 		if w ~= d.weapon then
@@ -285,6 +320,7 @@ end
 -- Acciones del cliente
 ---------------------------------------------------------------------
 local actions = {}
+Core.actions = actions
 
 function actions.buyTreadmill(player)
 	local d = G.Data.profiles[player]
@@ -565,8 +601,15 @@ local function onCharacter(player, char)
 end
 
 local function onJoin(player)
-	local d = G.Data.load(player)
+	local d, status = G.Data.load(player, C)
 	if not player.Parent then
+		-- salió mientras se cargaba: liberar sin guardar nada
+		G.Data.discard(player)
+		return
+	end
+	if not d then
+		-- NUNCA se juega con una partida vacía si falló la lectura: se le pide volver a entrar
+		player:Kick("⚠️ No se pudo cargar tu partida de forma segura. Vuelve a entrar en un momento.\nYour data could not be loaded safely. Please rejoin in a moment. (" .. tostring(status) .. ")")
 		return
 	end
 	local s = {
@@ -580,6 +623,8 @@ local function onJoin(player)
 		afk = false,
 		joinedAt = os.clock(),
 		carrying = nil,
+		actionTimes = {},
+		comboTarget = 0.5,
 	}
 	Core.sessions[player] = s
 	G.Shop.checkPasses(player)
@@ -648,8 +693,69 @@ local function onLeave(player)
 			s.plot.folder:SetAttribute("Owner", nil)
 		end
 	end
-	G.Data.release(player)
 	Core.sessions[player] = nil
+	G.Data.release(player)
+end
+
+---------------------------------------------------------------------
+-- Entrada del cliente: siempre validada en el servidor
+---------------------------------------------------------------------
+Core.ACTION_LIMIT = 12 -- acciones como máximo...
+Core.ACTION_WINDOW = 2 -- ...cada 2 segundos
+
+function Core.handleAction(player, name, a, b)
+	local s = Core.sessions[player]
+	if type(name) ~= "string" or not actions[name] or not s or not G.Data.profiles[player] then
+		return false
+	end
+	local now = os.clock()
+	local times = s.actionTimes
+	while #times > 0 and now - times[1] > Core.ACTION_WINDOW do
+		table.remove(times, 1)
+	end
+	if #times >= Core.ACTION_LIMIT then
+		return false -- demasiadas peticiones: se ignora
+	end
+	table.insert(times, now)
+	local ok, err = pcall(actions[name], player, a, b)
+	if not ok then
+		warn("Acción con error", name, err)
+	end
+	Core.invalidate(player)
+	Core.sendState(player)
+	return ok
+end
+
+-- Combo de la cinta: el servidor sabe dónde está el marcador (tiempo del servidor compartido)
+-- y dónde está la zona verde; el cliente solo dice "he pulsado".
+function Core.markerPos(t)
+	return (math.sin(t * 2.6) + 1) / 2
+end
+Core.COMBO_WIDTH = 0.18
+function Core.handleCombo(player, serverTime)
+	local s = Core.sessions[player]
+	if not s or not s.onTreadmill or s.afk then
+		return false
+	end
+	local now = os.clock()
+	if now - s.lastTap < 0.3 then
+		return false
+	end
+	s.lastTap = now
+	-- se acepta si el marcador estuvo en la zona verde en los últimos 0,35 s (margen de ping)
+	local hit = false
+	for k = 0, 7 do
+		local m = Core.markerPos(serverTime - k * 0.05)
+		if math.abs(m - s.comboTarget) <= Core.COMBO_WIDTH / 2 + 0.03 then
+			hit = true
+			break
+		end
+	end
+	if hit then
+		s.combo = math.min(C.COMBO_MAX, s.combo + 0.5)
+		s.comboTarget = 0.15 + math.random() * 0.7
+	end
+	return hit
 end
 
 ---------------------------------------------------------------------
@@ -707,8 +813,10 @@ function Core.sendState(player)
 		luck = luck,
 		onTreadmill = s.onTreadmill,
 		zone = s.zone or 0,
-		shieldLeft = math.max(0, s.shieldUntil - os.clock()),
-		boostLeft = math.max(0, s.speedBoostUntil - os.clock()),
+		shieldLeft = math.max(0, (d.boosts.shield or 0) - os.time()),
+		boostLeft = math.max(0, (d.boosts.speed or 0) - os.time()),
+		comboTarget = s.comboTarget,
+		openTokens = d.openTokens,
 		protectedLeft = math.max(0, C.NEWBIE_PROTECTION - d.playtime),
 	})
 end
@@ -804,23 +912,10 @@ function Core.init(g)
 	G = g
 	C = g.Config
 	G.Net.Action.OnServerEvent:Connect(function(player, name, a, b)
-		local fn = type(name) == "string" and actions[name]
-		if fn and G.Data.profiles[player] and Core.sessions[player] then
-			fn(player, a, b)
-			Core.sendState(player)
-		end
+		Core.handleAction(player, name, a, b)
 	end)
 	G.Net.Combo.OnServerEvent:Connect(function(player)
-		local s = Core.sessions[player]
-		if not s or not s.onTreadmill or s.afk then
-			return
-		end
-		local now = os.clock()
-		if now - s.lastTap < 0.3 then
-			return
-		end
-		s.lastTap = now
-		s.combo = math.min(C.COMBO_MAX, s.combo + 0.5)
+		Core.handleCombo(player, workspace:GetServerTimeNow())
 	end)
 	Players.PlayerAdded:Connect(onJoin)
 	Players.PlayerRemoving:Connect(onLeave)
@@ -828,8 +923,17 @@ function Core.init(g)
 		task.spawn(onJoin, p)
 	end
 	game:BindToClose(function()
+		local pending = 0
 		for player in pairs(Core.sessions) do
-			G.Data.save(player)
+			pending += 1
+			task.spawn(function()
+				G.Data.release(player)
+				pending -= 1
+			end)
+		end
+		local t0 = os.clock()
+		while pending > 0 and os.clock() - t0 < 25 do
+			task.wait(0.2)
 		end
 	end)
 end

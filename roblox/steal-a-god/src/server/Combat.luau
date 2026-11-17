@@ -128,7 +128,7 @@ function Combat.swing(player, tool)
 	if not vs or not vd then
 		return
 	end
-	if now < vs.invulnUntil or now < vs.shieldUntil or vs.afk then
+	if now < vs.invulnUntil or os.time() < (vd.boosts and vd.boosts.shield or 0) or vs.afk then
 		return
 	end
 	if vd.playtime < C.NEWBIE_PROTECTION then

@@ -10,64 +10,35 @@ local C
 Packs.list = {} -- sobres en el mundo
 local nextId = 0
 local pendingSave = {} -- [player] = { pack = datos, untilT = tiempo }
+local tierOf
 
 ---------------------------------------------------------------------
 -- Tirada de rareza
 ---------------------------------------------------------------------
 local function rollRarity(zoneIndex, luck)
-	local zone = C.ZONES[zoneIndex]
-	-- rarezas "imposibles" (zona 3 en adelante)
-	if zoneIndex >= 3 then
-		for k = #C.ULTRA, 1, -1 do
-			local u = C.ULTRA[k]
-			if math.random() < (luck * zoneIndex / 6) / u.oneIn then
-				return u.r
-			end
-		end
-	end
-	local total = 0
-	local weights = {}
-	local maxR = 0
-	for r in pairs(zone.weights) do
-		maxR = math.max(maxR, r)
-	end
-	for r, w in pairs(zone.weights) do
-		-- la suerte potencia las dos rarezas más altas de la zona
-		local ww = (r >= maxR - 1) and w * luck or w
-		weights[r] = ww
-		total += ww
-	end
-	local x = math.random() * total
-	for r = 1, #C.RARITIES do
-		local w = weights[r]
-		if w then
-			x -= w
-			if x <= 0 then
-				return r
-			end
-		end
-	end
-	return maxR
+	return C.rollRarity(zoneIndex, luck)
 end
 Packs.rollRarity = rollRarity
 
--- Probabilidades de cada zona (para mostrarlas en el juego)
-function Packs.odds(zoneIndex)
-	local zone = C.ZONES[zoneIndex]
-	local total = 0
-	for _, w in pairs(zone.weights) do
-		total += w
+-- Probabilidades reales de cada zona (las mismas que usa la tirada)
+function Packs.odds(zoneIndex, luck)
+	return C.odds(zoneIndex, luck)
+end
+
+-- Entrega central de sobres: altar libre → cola (con límite) → si no cabe, false
+function Packs.givePack(player, item)
+	local d = G.Data.profiles[player]
+	if not d then
+		return false
 	end
-	local out = {}
-	for r, w in pairs(zone.weights) do
-		out[r] = w / total
+	if #d.altarPacks < G.Core.altarCount(player) then
+		table.insert(d.altarPacks, item)
+		return true, "altar"
+	elseif #d.queue < C.PACK_QUEUE_MAX then
+		table.insert(d.queue, item)
+		return true, "queue"
 	end
-	if zoneIndex >= 3 then
-		for _, u in ipairs(C.ULTRA) do
-			out[u.r] = (zoneIndex / 6) / u.oneIn
-		end
-	end
-	return out
+	return false, "full"
 end
 
 -- Estallido de partículas y luz en un punto del mundo
@@ -399,14 +370,16 @@ local function deliver(player, pack)
 	local d = G.Data.profiles[player]
 	local s = G.Core.sessions[player]
 	local item = { r = pack.rarity, rem = C.RARITIES[pack.rarity].open, dawn = pack.dawn == true, kg = pack.kg }
-	if #d.altarPacks < G.Core.altarCount(player) then
-		table.insert(d.altarPacks, item)
-	elseif #d.queue < C.PACK_QUEUE_MAX then
-		table.insert(d.queue, item)
-		G.Net.toast(player, "altarsFull")
-	else
-		G.Net.toast(player, "queueFull")
+	local ok, where = Packs.givePack(player, item)
+	if not ok then
+		-- avisar como mucho cada 3 s (antes se repetía en cada fotograma)
+		if os.clock() - (s.lastFullToast or 0) > 3 then
+			s.lastFullToast = os.clock()
+			G.Net.toast(player, "queueFull")
+		end
 		return false
+	elseif where == "queue" then
+		G.Net.toast(player, "altarsFull")
 	end
 	s.carrying = nil
 	for _, guard in ipairs(G.World.guardians) do
@@ -473,18 +446,17 @@ function Packs.savePurchased(player)
 		return false
 	end
 	local rarity
-	if p then
-		pendingSave[player] = nil
+	if p and p.pack.state == "pending" then
 		rarity = p.pack.rarity
-		local dawn = p.pack.dawn
-		destroyPack(p.pack)
-		local item = { r = rarity, rem = C.RARITIES[rarity].open, dawn = dawn == true, kg = p.pack.kg }
-		if #d.altarPacks < G.Core.altarCount(player) then
-			table.insert(d.altarPacks, item)
-		else
-			table.insert(d.queue, item)
+		local item = { r = rarity, rem = C.RARITIES[rarity].open, dawn = p.pack.dawn == true, kg = p.pack.kg }
+		if not Packs.givePack(player, item) then
+			G.Net.toast(player, "queueFull")
+			return false -- no cabe: Roblox reintentará la entrega más tarde
 		end
+		pendingSave[player] = nil
+		destroyPack(p.pack)
 	else
+		pendingSave[player] = nil
 		-- si el tiempo se pasó, se le da un sobre de la mejor zona a la que puede entrar
 		local z = 1
 		for i, zone in ipairs(C.ZONES) do
@@ -493,7 +465,10 @@ function Packs.savePurchased(player)
 			end
 		end
 		rarity = rollRarity(z, 1)
-		table.insert(d.queue, { r = rarity, rem = C.RARITIES[rarity].open, dawn = false, kg = C.rollKg() })
+		if not Packs.givePack(player, { r = rarity, rem = C.RARITIES[rarity].open, dawn = false, kg = C.rollKg() }) then
+			G.Net.toast(player, "queueFull")
+			return false
+		end
 	end
 	G.Net.toast(player, "bought")
 	return true
@@ -511,6 +486,14 @@ function Packs.tickAltars(player, mult)
 	local maxA = G.Core.altarCount(player)
 	while #d.altarPacks < maxA and #d.queue > 0 do
 		table.insert(d.altarPacks, table.remove(d.queue, 1))
+	end
+	-- "Abrir ya" comprados sin sobre de esa categoría: se aplican al llegar uno
+	for _, p in ipairs(d.altarPacks) do
+		local tier = tierOf(p.r)
+		if p.rem > 0 and (d.openTokens[tier] or 0) > 0 then
+			d.openTokens[tier] -= 1
+			p.rem = 0
+		end
 	end
 	for _, p in ipairs(d.altarPacks) do
 		if p.rem > 0 then
@@ -612,24 +595,29 @@ function Packs.openNow(player, minR, maxR)
 	if not d then
 		return false
 	end
-	for _, p in ipairs(d.altarPacks) do
-		if p.rem > 0 and p.r >= minR and p.r <= maxR then
-			p.rem = 0
-			return true
-		end
-	end
-	-- si no hay ninguno de ese grupo, se aplica al que más tiempo le quede
+	-- solo un sobre de la categoría comprada (el que más tiempo le quede)
 	local best
 	for _, p in ipairs(d.altarPacks) do
-		if p.rem > 0 and (not best or p.rem > best.rem) then
+		if p.rem > 0 and p.r >= minR and p.r <= maxR and (not best or p.rem > best.rem) then
 			best = p
 		end
 	end
 	if best then
 		best.rem = 0
+		return true
 	end
-	return true
+	return false
 end
+
+tierOf = function(r)
+	if r <= 4 then
+		return "low"
+	elseif r <= 8 then
+		return "mid"
+	end
+	return "high"
+end
+Packs.tierOf = tierOf
 
 ---------------------------------------------------------------------
 -- Bucle: guardianes, entregas, sobres flotando, pasillo

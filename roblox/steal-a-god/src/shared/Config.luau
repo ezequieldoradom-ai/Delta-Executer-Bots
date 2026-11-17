@@ -229,6 +229,57 @@ Config.ULTRA = {
 }
 Config.DAWN_LUCK = 3 -- los sobres del amanecer tienen x3 de suerte (1 por zona)
 
+-- Probabilidades REALES de cada rareza en una zona con una suerte dada.
+-- La tirada (Config.rollRarity) usa exactamente esta tabla, así lo que se muestra es lo que pasa.
+function Config.odds(zoneIndex, luck)
+	luck = luck or 1
+	local zone = Config.ZONES[zoneIndex]
+	local out = {}
+	local rest = 1
+	if zoneIndex >= 3 then
+		-- las imposibles se comprueban de la más rara a la menos rara
+		for k = #Config.ULTRA, 1, -1 do
+			local u = Config.ULTRA[k]
+			local p = math.min(1, (luck * zoneIndex / 6) / u.oneIn)
+			out[u.r] = rest * p
+			rest *= (1 - p)
+		end
+	end
+	local maxR = 0
+	for r in pairs(zone.weights) do
+		maxR = math.max(maxR, r)
+	end
+	local total = 0
+	local weights = {}
+	for r, w in pairs(zone.weights) do
+		-- la suerte potencia las dos rarezas más altas de la zona
+		local ww = (r >= maxR - 1) and w * luck or w
+		weights[r] = ww
+		total += ww
+	end
+	for r, w in pairs(weights) do
+		out[r] = (out[r] or 0) + rest * w / total
+	end
+	return out
+end
+
+function Config.rollRarity(zoneIndex, luck, rng)
+	local odds = Config.odds(zoneIndex, luck)
+	local x = (rng or math.random)()
+	local last = 1
+	for r = #Config.RARITIES, 1, -1 do
+		local p = odds[r]
+		if p and p > 0 then
+			last = r
+			x -= p
+			if x <= 0 then
+				return r
+			end
+		end
+	end
+	return last
+end
+
 ---------------------------------------------------------------------
 -- VELOCIDAD, CINTA Y PARCELA
 ---------------------------------------------------------------------

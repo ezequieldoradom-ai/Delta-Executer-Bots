@@ -47,19 +47,23 @@ end
 
 local function startDay()
 	night = false
-	endsAt = os.clock() + C.DAY_SECONDS
+	endsAt = os.clock() + (pendingNight and 20 or C.DAY_SECONDS)
+	pendingNight = false
 	warned = false
 	tweenLight(false)
 	G.Packs.refreshAll()
 end
 
 -- Producto "Noche para el servidor": adelanta la noche
+local pendingNight = false
 function DayNight.forceNight(buyerName)
 	if not night then
 		endsAt = math.min(endsAt, os.clock() + 3)
-		G.Net.announce("all", "nightBought", { buyerName }, { color = "#A78BFA", big = true })
 		warned = true
+	else
+		pendingNight = true -- ya es de noche: la próxima llegará 20 s después del amanecer
 	end
+	G.Net.announce("all", "nightBought", { buyerName }, { color = "#A78BFA", big = true })
 end
 
 function DayNight.init(g)
