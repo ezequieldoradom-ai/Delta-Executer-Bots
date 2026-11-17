@@ -301,7 +301,6 @@ end
 Config.PASSES = {
 	speed2x = { id = 2092574951, price = 199, es = "Velocidad x2", en = "2x Speed" },
 	money2x = { id = 2092863003, price = 149, es = "Dinero x2", en = "2x Money" },
-	autoTreadmill = { id = 2093738959, price = 249, es = "Cinta automática", en = "Auto Treadmill" },
 	luck2x = { id = 2093762893, price = 299, es = "Suerte x2", en = "2x Luck" },
 	moreSlots = { id = 2093564933, price = 99, es = "+5 pedestales y +2 altares", en = "+5 pedestals & +2 altars" },
 	vip = { id = 2094332929, price = 349, es = "VIP (+10% de todo)", en = "VIP (+10% everything)" },

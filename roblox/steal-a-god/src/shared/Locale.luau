@@ -98,7 +98,6 @@ local T = {
 	big = { es = "Grande", en = "Large" },
 	controls = { es = "Controles", en = "Controls" },
 	ownerPasses = { es = "👑 Usar mis pases (solo creador)", en = "👑 Use my passes (creator only)" },
-	autoActive = { es = "🏃 Cinta automática activa (50 %)", en = "🏃 Auto treadmill active (50%)" },
 	title1 = { es = "Mortal", en = "Mortal" },
 	title2 = { es = "Corredor", en = "Runner" },
 	title3 = { es = "Atleta", en = "Athlete" },

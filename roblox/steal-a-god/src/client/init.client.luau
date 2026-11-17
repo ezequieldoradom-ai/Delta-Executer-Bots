@@ -590,7 +590,7 @@ renderers.robux = function(tab)
 	local green = Color3.fromRGB(80, 220, 120)
 	if tab == "passes" then
 		local order = 0
-		local icons = { speed2x = "⚡", money2x = "💰", autoTreadmill = "🏃", luck2x = "🍀", moreSlots = "📦", vip = "👑" }
+		local icons = { speed2x = "⚡", money2x = "💰", luck2x = "🍀", moreSlots = "📦", vip = "👑" }
 		for key, p in pairs(Config.PASSES) do
 			order += 1
 			local owned = state.passes[key]
@@ -1664,7 +1664,7 @@ task.spawn(function()
 		local left = math.max(0, (state.cycleLeft or 0) - (os.clock() - stateAt))
 		moneyLabel.Text = string.format('$%s <font size="24" color="#C8FFB0">+$%s/s</font>', Format.num(state.money or 0), Format.num(state.income or 0))
 		speedLabel.Text = string.format('⚡ %s <font size="22" color="#C9A6FF">(x%s)</font>', Format.num(state.speed or 0), Format.num(state.speedMult or 1))
-		multLabel.Text = string.format("💰 x%s   🍀 x%s%s", Format.num(state.moneyMult or 1), Format.num(state.luck or 1), state.autoActive and ("   " .. t("autoActive")) or "")
+		multLabel.Text = string.format("💰 x%s   🍀 x%s", Format.num(state.moneyMult or 1), Format.num(state.luck or 1))
 		cycleLabel.Text = string.format('%s <font color="#FFD23F">%s</font>', state.night and t("dawnIn") or t("nightIn"), Format.time(left))
 		-- "NEW" en la tienda si puedes comprar una mejora
 		local canBuy = (state.money or 0) >= Config.treadmillCost((state.treadmill or 1) + 1) or (state.money or 0) >= Config.plotCost((state.plot or 1) + 1)

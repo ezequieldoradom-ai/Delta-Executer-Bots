@@ -678,7 +678,6 @@ function Core.sendState(player)
 	G.Net.State:FireClient(player, {
 		chase = chase,
 		isOwner = s.isOwner,
-		autoActive = s.autoActive,
 		settings = d.settings,
 		offline = s.offline,
 		money = d.money,
@@ -731,9 +730,8 @@ local function tick(dt)
 			end
 			local speedMult = Core.mults(player)
 			local onBelt = s.onTreadmill or s.afk
-			local auto = not onBelt and s.passes.autoTreadmill
-			s.autoActive = auto and true or false
-			if onBelt or auto then
+			local auto = false
+			if onBelt then
 				local combo = s.onTreadmill and not s.afk and s.combo or 1
 				local gain = C.treadmillGain(d.treadmill) * combo * speedMult * (night and C.NIGHT_TREADMILL_MULT or 1) * (auto and 0.5 or 1)
 				d.speed += gain * dt
