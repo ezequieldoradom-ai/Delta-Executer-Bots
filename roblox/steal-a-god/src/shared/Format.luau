@@ -26,7 +26,9 @@ function Format.num(n: number): string
 	else
 		s = string.format("%.2f", math.floor(scaled * 100) / 100)
 	end
-	s = s:gsub("%.?0+$", "")
+	if string.find(s, ".", 1, true) then
+		s = s:gsub("0+$", ""):gsub("%.$", "")
+	end
 	return s .. SUFFIXES[tier + 1]
 end
 
