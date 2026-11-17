@@ -436,7 +436,7 @@ Config.LIGHT = {
 -- SONIDOS propios (subidos a la cuenta del juego). "" = sin sonido
 ---------------------------------------------------------------------
 Config.SOUNDS = {
-	chase = "", -- música de persecución (bucle)
+	chase = "rbxassetid://134426853581343", -- música de persecución original (bucle de 36 s; tools/audio/gen_chase.py)
 }
 
 
