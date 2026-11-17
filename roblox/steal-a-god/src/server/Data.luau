@@ -3,6 +3,7 @@ local DataStoreService = game:GetService("DataStoreService")
 
 local Data = {}
 Data.profiles = {} -- [player] = datos
+Data.elapsed = {} -- [player] = segundos fuera del juego
 
 local store = nil
 local function getStore()
@@ -66,6 +67,7 @@ function Data.load(player)
 	local d = merge(raw)
 	-- Progreso mientras estabas fuera: los sobres siguen abriéndose
 	local elapsed = math.max(0, os.time() - (d.savedAt or os.time()))
+	Data.elapsed[player] = raw and elapsed or 0
 	for _, pack in ipairs(d.altarPacks) do
 		pack.rem = math.max(0, (pack.rem or 0) - elapsed)
 	end
@@ -91,6 +93,7 @@ end
 function Data.release(player)
 	Data.save(player)
 	Data.profiles[player] = nil
+	Data.elapsed[player] = nil
 end
 
 return Data

@@ -263,32 +263,38 @@ end
 updateScale()
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
 
--- Barra superior: dinero, velocidad, día/noche
-local top = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 600, 0, 58), Position = UDim2.new(0.5, 0, 0, 8), AnchorPoint = Vector2.new(0.5, 0), Parent = gui }, {
-	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10) }),
-})
-local pillGradients = {}
-local function pill(order, width, color, icon)
-	local f = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(0, width, 1, 0), LayoutOrder = order, Parent = top }, {
-		corner(29),
-		stroke(color, 3),
-	})
-	local g = gradient(Color3.fromRGB(34, 22, 70), darker(color, 0.35), 90)
-	g.Parent = f
-	table.insert(pillGradients, g)
-	local iconL = label({ Parent = f, Text = icon, Font = TITLE, Size = UDim2.new(0, 44, 1, -10), Position = UDim2.fromOffset(8, 5), Stroke = false })
-	local l = label({ Parent = f, Font = TITLE, Size = UDim2.new(1, -60, 1, -12), Position = UDim2.fromOffset(52, 6), TextColor3 = color, TextXAlignment = Enum.TextXAlignment.Left })
-	return l, f, iconL
+-- Letra gruesa en cursiva con borde negro (como los simuladores)
+local HEAVY = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
+local function heavy(props)
+	props.StrokeThickness = props.StrokeThickness or 3
+	local l = label(props)
+	l.FontFace = HEAVY
+	return l
 end
-local moneyLabel, moneyPill = pill(1, 250, GOLD, "💰")
-local speedLabel, speedPill = pill(2, 200, CYAN, "⚡")
-local cycleLabel, cyclePill, cycleIcon = pill(3, 130, Color3.fromRGB(255, 170, 80), "☀️")
+local pillGradients = {}
 
-local zoneLabel = label({ Parent = gui, Font = BTN, Size = UDim2.new(0, 520, 0, 28), Position = UDim2.new(0.5, 0, 0, 72), AnchorPoint = Vector2.new(0.5, 0) })
-local carryLabel = label({ Parent = gui, Font = TITLE, Size = UDim2.new(0, 620, 0, 38), Position = UDim2.new(0.5, 0, 0, 102), AnchorPoint = Vector2.new(0.5, 0) })
+-- Abajo a la izquierda: velocidad y dinero
+local stats = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(460, 132), Position = UDim2.new(0, 18, 1, -14), AnchorPoint = Vector2.new(0, 1), Parent = gui })
+local speedLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 44), Position = UDim2.fromOffset(0, 0), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = CYAN })
+local moneyLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 54), Position = UDim2.fromOffset(0, 44), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = GREEN, StrokeThickness = 3.5 })
+local multLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 24), Position = UDim2.fromOffset(2, 102), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(255, 200, 90), StrokeThickness = 2 })
+local moneyPill = moneyLabel
+local speedPill = speedLabel
+
+-- Abajo a la derecha: reloj de la noche
+local cyclePill = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(250, 62), Position = UDim2.new(1, -18, 1, -150), AnchorPoint = Vector2.new(1, 1), Parent = gui }, {
+	corner(16),
+	gradient(Color3.fromRGB(40, 30, 90), Color3.fromRGB(14, 10, 34), 90),
+	stroke(Color3.fromRGB(170, 140, 255), 3),
+})
+local cycleIcon = label({ Parent = cyclePill, Text = "🌙", Font = TITLE, Size = UDim2.fromOffset(46, 46), Position = UDim2.fromOffset(8, 8), Stroke = false })
+local cycleLabel = heavy({ Parent = cyclePill, Size = UDim2.new(1, -66, 1, -14), Position = UDim2.fromOffset(58, 7), TextXAlignment = Enum.TextXAlignment.Left })
+
+local zoneLabel = heavy({ Parent = gui, Size = UDim2.new(0, 560, 0, 30), Position = UDim2.new(0.5, 0, 0, 10), AnchorPoint = Vector2.new(0.5, 0) })
+local carryLabel = heavy({ Parent = gui, Size = UDim2.new(0, 640, 0, 40), Position = UDim2.new(0.5, 0, 0, 44), AnchorPoint = Vector2.new(0.5, 0) })
 
 -- Mensajes cortos que entran deslizando
-local toastHolder = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 540, 0, 240), Position = UDim2.new(0.5, 0, 0, 146), AnchorPoint = Vector2.new(0.5, 0), Parent = gui }, {
+local toastHolder = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 540, 0, 240), Position = UDim2.new(0.5, 0, 0, 92), AnchorPoint = Vector2.new(0.5, 0), Parent = gui }, {
 	new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 6) }),
 })
 local function toast(text, color)
@@ -350,7 +356,7 @@ end
 ---------------------------------------------------------------------
 -- Paneles
 ---------------------------------------------------------------------
-local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 90, 0, 400), Position = UDim2.new(0, 10, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
+local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 300), Position = UDim2.new(0, 14, 0.4, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
 	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center }),
 })
 
@@ -708,15 +714,20 @@ end
 -- Botones laterales con iconos que flotan
 ---------------------------------------------------------------------
 local floaters = {}
+local badges = {}
 local function sideButton(order, emoji, text, color, onClick)
-	local b = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(84, 84), LayoutOrder = order, Parent = side }, {
-		corner(22),
-		gradient(color, darker(color, 0.45), 120),
-		stroke(darker(color, 0.3), 3),
+	local b = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(200, 60), LayoutOrder = order, Parent = side }, {
+		corner(16),
+		gradient(color, darker(color, 0.45), 100),
+		stroke(darker(color, 0.25), 3.5),
 	})
 	pressable(b)
-	local icon = label({ Parent = b, Text = emoji, Font = TITLE, Size = UDim2.new(1, -16, 0.58, 0), Position = UDim2.fromOffset(8, 4), Stroke = false })
-	label({ Parent = b, Text = text, Font = TITLE, Size = UDim2.new(1, -8, 0.3, 0), Position = UDim2.new(0, 4, 0.66, 0), TextColor3 = WHITE })
+	local iconBg = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(52, 52), Position = UDim2.fromOffset(4, 4), Parent = b }, { corner(14), gradient(WHITE, darker(color, 0.8), 90) })
+	local icon = label({ Parent = iconBg, Text = emoji, Font = TITLE, Size = UDim2.new(1, -8, 1, -8), Position = UDim2.fromOffset(4, 4), Stroke = false })
+	heavy({ Parent = b, Text = string.upper(text), Size = UDim2.new(1, -70, 1, -14), Position = UDim2.fromOffset(64, 7), TextXAlignment = Enum.TextXAlignment.Left })
+	local badge = new("Frame", { BackgroundColor3 = Color3.fromRGB(255, 50, 70), Size = UDim2.fromOffset(58, 22), Position = UDim2.new(1, -40, 0, -10), Visible = false, ZIndex = 3, Parent = b }, { corner(11), stroke(WHITE, 2) })
+	heavy({ Parent = badge, Text = t("new"), Size = UDim2.new(1, -6, 1, -4), Position = UDim2.fromOffset(3, 2), ZIndex = 4, StrokeThickness = 1.5 })
+	badges[order] = badge
 	table.insert(floaters, { gui = icon, phase = order })
 	b.Activated:Connect(function()
 		play("click")
@@ -725,10 +736,10 @@ local function sideButton(order, emoji, text, color, onClick)
 	return b
 end
 
-sideButton(1, "📖", t("index"), GOLD, function()
+sideButton(2, "📖", t("index"), GOLD, function()
 	openPanel("index", "📖 " .. t("indexTitle"), { { id = "gods", text = t("index") }, { id = "rewards", text = "🎁" }, { id = "odds", text = "🎲 " .. t("odds") } }, GOLD)
 end)
-sideButton(2, "🛒", t("shop"), CYAN, function()
+sideButton(1, "🛒", t("shop"), Color3.fromRGB(255, 80, 60), function()
 	openPanel("shop", "🛒 " .. t("shop"), { { id = "up", text = t("upgrades") }, { id = "coach", text = t("coaches") }, { id = "aura", text = t("auras") } }, CYAN)
 end)
 sideButton(3, "💎", t("robux"), GREEN, function()
@@ -1012,7 +1023,36 @@ Remotes:WaitForChild("Knock").OnClientEvent:Connect(function(vel)
 	end
 end)
 
-Remotes:WaitForChild("Offer").OnClientEvent:Connect(function(key)
+local offlinePopup = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(440, 300), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 45, Parent = gui }, {
+	corner(26),
+	gradient(Color3.fromRGB(40, 120, 60), Color3.fromRGB(12, 30, 20), 90),
+	stroke(GREEN, 5),
+})
+local offlineScale = new("UIScale", { Parent = offlinePopup })
+heavy({ Parent = offlinePopup, Text = "", Size = UDim2.new(1, -30, 0, 44), Position = UDim2.fromOffset(15, 16), ZIndex = 46 }).Name = "Title"
+heavy({ Parent = offlinePopup, Text = "", Size = UDim2.new(1, -30, 0, 90), Position = UDim2.fromOffset(15, 66), TextColor3 = GREEN, ZIndex = 46, StrokeThickness = 4 }).Name = "Amount"
+label({ Parent = offlinePopup, Font = BTN, Text = "", Size = UDim2.new(1, -30, 0, 30), Position = UDim2.fromOffset(15, 160), ZIndex = 46 }).Name = "Sub"
+local claimBtn = button({ Parent = offlinePopup, Text = t("claim"), Size = UDim2.new(1, -60, 0, 64), Position = UDim2.new(0, 30, 1, -84), Color = GREEN, ZIndex = 47, OnClick = function()
+	Action:FireServer("claimOffline")
+	play("reward", 0.9)
+	TweenService:Create(offlineScale, TweenInfo.new(0.2), { Scale = 0 }):Play()
+	task.delay(0.21, function()
+		offlinePopup.Visible = false
+	end)
+end })
+claimBtn.FontFace = HEAVY
+
+Remotes:WaitForChild("Offer").OnClientEvent:Connect(function(key, amount, away)
+	if key == "offline" then
+		offlinePopup.Title.Text = t("offlineTitle")
+		offlinePopup.Amount.Text = "$" .. Format.num(amount or 0)
+		offlinePopup.Sub.Text = t("offlineSub", Format.time(away or 0))
+		offlinePopup.Visible = true
+		offlineScale.Scale = 0.3
+		TweenService:Create(offlineScale, TweenInfo.new(0.5, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		play("reward", 0.8)
+		return
+	end
 	local p = Config.PRODUCTS[key]
 	if p and p.id ~= 0 then
 		showBanner(t("savePackAsk"), Color3.fromRGB(255, 120, 120))
@@ -1039,6 +1079,11 @@ local function locLabel(bb)
 		return
 	end
 	l.Font = TITLE
+	if bb:GetAttribute("Overhead") then
+		l.FontFace = HEAVY
+		l.Text = string.format('<font color="#FFB347">[%s]</font>\n<font color="#7CFF8A">$%s/s</font>', t("title" .. (bb:GetAttribute("Title") or 1)), Format.num(bb:GetAttribute("Income") or 0))
+		return
+	end
 	if bb:GetAttribute("Altar") then
 		local r = bb:GetAttribute("Rarity") or 0
 		if r > 0 then
@@ -1083,9 +1128,9 @@ local function setupTrail(char)
 	if not hrp then
 		return
 	end
-	local a0 = new("Attachment", { Position = Vector3.new(0, 1, 0), Parent = hrp })
-	local a1 = new("Attachment", { Position = Vector3.new(0, -1, 0), Parent = hrp })
-	trail = new("Trail", { Attachment0 = a0, Attachment1 = a1, Lifetime = 0.3, LightEmission = 1, Color = ColorSequence.new(CYAN, PURPLE), Transparency = NumberSequence.new(0.2, 1), Enabled = false, Parent = hrp })
+	local a0 = new("Attachment", { Position = Vector3.new(0, 1.6, 0), Parent = hrp })
+	local a1 = new("Attachment", { Position = Vector3.new(0, -2.2, 0), Parent = hrp })
+	trail = new("Trail", { Attachment0 = a0, Attachment1 = a1, Lifetime = 0.45, LightEmission = 1, Color = ColorSequence.new(WHITE, CYAN), Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) }), Enabled = false, Parent = hrp })
 end
 player.CharacterAdded:Connect(setupTrail)
 if player.Character then
@@ -1110,7 +1155,7 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 	local now = os.clock()
 	for _, f in ipairs(floaters) do
-		f.gui.Position = UDim2.new(0, 8, 0, 4 + math.sin(now * 2.2 + f.phase) * 3)
+		f.gui.Position = UDim2.new(0, 4, 0, 4 + math.sin(now * 2.2 + f.phase) * 3)
 		f.gui.Rotation = math.sin(now * 1.6 + f.phase) * 6
 	end
 	for i, g in ipairs(pillGradients) do
@@ -1125,23 +1170,136 @@ RunService.RenderStepped:Connect(function(dt)
 end)
 
 ---------------------------------------------------------------------
+-- Modo persecución: pantalla roja, ¡CORRE! y soltar sobre
+---------------------------------------------------------------------
+local chaseCC = new("ColorCorrectionEffect", { TintColor = WHITE, Parent = game:GetService("Lighting") })
+local runBadge = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(300, 70), Position = UDim2.new(0.5, 0, 0, 90), AnchorPoint = Vector2.new(0.5, 0), Visible = false, ZIndex = 15, Parent = gui }, {
+	corner(18),
+	gradient(Color3.fromRGB(255, 80, 60), Color3.fromRGB(170, 20, 40), 90),
+	stroke(Color3.fromRGB(255, 220, 120), 4),
+})
+heavy({ Parent = runBadge, Text = t("run"), Size = UDim2.new(1, -20, 1, -12), Position = UDim2.fromOffset(10, 6), ZIndex = 16, StrokeThickness = 4 })
+local distLabel = heavy({ Parent = gui, Size = UDim2.fromOffset(460, 30), Position = UDim2.new(0.5, 0, 0, 166), AnchorPoint = Vector2.new(0.5, 0), ZIndex = 15 })
+local dropBtn = button({ Parent = gui, Text = t("dropPack"), Size = UDim2.fromOffset(230, 58), Position = UDim2.new(0.5, 0, 1, -24), AnchorPoint = Vector2.new(0.5, 1), Color = Color3.fromRGB(255, 60, 120), ZIndex = 15, OnClick = function()
+	Action:FireServer("dropPack")
+end })
+dropBtn.FontFace = HEAVY
+dropBtn.Visible = false
+
+local function updateChase()
+	local carrying = state.carrying ~= nil
+	if carrying and not runBadge.Visible then
+		bump(runBadge, 1.5)
+		play("whoosh", 1.4)
+	end
+	runBadge.Visible = carrying
+	dropBtn.Visible = carrying
+	distLabel.Visible = carrying and state.chase ~= nil
+	if carrying then
+		local pulse = 0.5 + 0.5 * math.sin(os.clock() * 8)
+		chaseCC.TintColor = Color3.new(1, 0.72 + 0.12 * pulse, 0.72 + 0.12 * pulse)
+		runBadge.Rotation = math.sin(os.clock() * 10) * 3
+		if state.chase then
+			distLabel.Text = t("guardianDist", state.chase)
+			distLabel.TextColor3 = state.chase < 40 and Color3.fromRGB(255, 90, 90) or WHITE
+		end
+	else
+		chaseCC.TintColor = WHITE
+	end
+end
+
+-- Título grande al entrar en una zona
+local zoneTitle = heavy({ Parent = gui, Size = UDim2.fromOffset(800, 80), Position = UDim2.fromScale(0.5, 0.3), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 14, StrokeThickness = 5 })
+local zoneSub = heavy({ Parent = zoneTitle, Size = UDim2.new(1, 0, 0, 30), Position = UDim2.new(0, 0, 1, 0), TextColor3 = CYAN, ZIndex = 14 })
+local zoneToken = 0
+local function showZone(zi)
+	local zone = Config.ZONES[zi]
+	zoneToken += 1
+	local my = zoneToken
+	zoneTitle.Text = string.upper(Locale.name(zone))
+	zoneTitle.TextColor3 = zone.accent
+	zoneSub.Text = zi > 1 and t("recommended", Format.num(Config.ZONES[zi].guardian.speed)) or t("recommended", Format.num(zone.guardian.speed))
+	zoneTitle.Visible = true
+	bump(zoneTitle, 1.6)
+	play("whoosh", 0.9)
+	task.delay(2.5, function()
+		if my == zoneToken then
+			zoneTitle.Visible = false
+		end
+	end)
+end
+
+-- "+$" saltando sobre tus dioses
+local function myPlot()
+	local w = workspace:FindFirstChild("World")
+	if not w then
+		return nil
+	end
+	for _, f in ipairs(w:GetChildren()) do
+		if f:IsA("Folder") and f:GetAttribute("Owner") == player.UserId then
+			return f
+		end
+	end
+	return nil
+end
+task.spawn(function()
+	while true do
+		task.wait(2.5)
+		local plot = myPlot()
+		if plot then
+			local statues = {}
+			for _, m in ipairs(plot:GetChildren()) do
+				if m:IsA("Model") and m:GetAttribute("Income") then
+					table.insert(statues, m)
+				end
+			end
+			for k = 1, math.min(5, #statues) do
+				local m = table.remove(statues, math.random(1, #statues))
+				local torso = m:FindFirstChild("Torso")
+				if torso then
+					local bb = new("BillboardGui", { Size = UDim2.fromScale(5, 1.4), StudsOffset = Vector3.new(0, 2.5, 0), LightInfluence = 0, MaxDistance = 70, Parent = torso })
+					local l = heavy({ Parent = bb, Text = "+$" .. Format.num((m:GetAttribute("Income") or 0) * (state.moneyMult or 1) * 2.5), TextColor3 = GREEN })
+					TweenService:Create(bb, TweenInfo.new(1.1, Enum.EasingStyle.Quad), { StudsOffset = Vector3.new(0, 5, 0) }):Play()
+					TweenService:Create(l, TweenInfo.new(1.1), { TextTransparency = 1 }):Play()
+					task.delay(1.15, function()
+						bb:Destroy()
+					end)
+				end
+			end
+		end
+	end
+end)
+
+---------------------------------------------------------------------
 -- Actualización de la interfaz (10 veces por segundo)
 ---------------------------------------------------------------------
 task.spawn(function()
 	local renderAcc = 0
 	local lastNight = nil
+	local lastZone = 0
 	while true do
 		task.wait(0.1)
 		local left = math.max(0, (state.cycleLeft or 0) - (os.clock() - stateAt))
-		moneyLabel.Text = string.format('%s <font size="18" color="#FFF2B0">+%s/s</font>', Format.num(state.money or 0), Format.num(state.income or 0))
-		speedLabel.Text = Format.num(state.speed or 0)
-		cycleLabel.Text = Format.time(left)
+		moneyLabel.Text = string.format('$%s <font size="24" color="#C8FFB0">+$%s/s</font>', Format.num(state.money or 0), Format.num(state.income or 0))
+		speedLabel.Text = string.format('⚡ %s <font size="22" color="#C9A6FF">(x%s)</font>', Format.num(state.speed or 0), Format.num(state.speedMult or 1))
+		multLabel.Text = string.format("💰 x%s   🍀 x%s", Format.num(state.moneyMult or 1), Format.num(state.luck or 1))
+		cycleLabel.Text = string.format('%s <font color="#FFD23F">%s</font>', state.night and t("dawnIn") or t("nightIn"), Format.time(left))
+		-- "NEW" en la tienda si puedes comprar una mejora
+		local canBuy = (state.money or 0) >= Config.treadmillCost((state.treadmill or 1) + 1) or (state.money or 0) >= Config.plotCost((state.plot or 1) + 1)
+		badges[1].Visible = canBuy
 		if lastNight ~= state.night then
 			lastNight = state.night
-			cycleIcon.Text = state.night and "🌙" or "☀️"
+			cycleIcon.Text = state.night and "☀️" or "🌙"
 			bump(cyclePill, 1.2)
 		end
 		local z = state.zone or 0
+		updateChase()
+		if z ~= lastZone then
+			if z > 0 then
+				showZone(z)
+			end
+			lastZone = z
+		end
 		if z > 0 then
 			zoneLabel.Text = string.format("%s · %s %d: %s", t("combatZone"), t("zone"), z, Locale.name(Config.ZONES[z]))
 			zoneLabel.TextColor3 = Color3.fromRGB(255, 120, 110)

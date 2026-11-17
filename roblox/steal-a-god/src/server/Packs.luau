@@ -354,7 +354,7 @@ local function caught(player, guardIndex)
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if hrp and s.plot then
-		hrp.CFrame = CFrame.new(s.plot.spawn)
+		hrp.CFrame = s.plot.spawnCF
 	end
 end
 
@@ -588,8 +588,7 @@ function Packs.start()
 				local s = G.Core.sessions[pack.carrier]
 				if s and s.plot and char and char:FindFirstChild("HumanoidRootPart") then
 					local hp = char.HumanoidRootPart.Position
-					local c = s.plot.center
-					if math.abs(hp.X - c.X) <= G.World.PLOT_SIZE / 2 and math.abs(hp.Z - c.Z) <= G.World.PLOT_SIZE / 2 then
+					if G.World.inPlot(s.plot, hp) then
 						deliver(pack.carrier, pack)
 					end
 				end
@@ -611,7 +610,7 @@ function Packs.start()
 					local p = hrp.Position
 					if p.Z >= C.CORRIDOR_START - 3 then
 						if night then
-							hrp.CFrame = CFrame.new(s.plot.spawn)
+							hrp.CFrame = s.plot.spawnCF
 							G.Net.toast(player, "nightClosed")
 						else
 							local zi = G.World.zoneAt(p.Z)

@@ -9,6 +9,51 @@ local C
 
 Core.sessions = {} -- [player] = estado temporal (no se guarda)
 
+-- Títulos según la mejor velocidad (el cliente los traduce)
+Core.TITLES = { 0, 1e3, 5e4, 2e6, 1e8, 5e9, 1e12, 1e15, 1e18, 1e21 }
+local function titleIndex(best)
+	local idx = 1
+	for i, v in ipairs(Core.TITLES) do
+		if best >= v then
+			idx = i
+		end
+	end
+	return idx
+end
+
+local CollectionService = game:GetService("CollectionService")
+local function overhead(player, char)
+	local head = char:FindFirstChild("Head")
+	if not head then
+		return
+	end
+	local old = head:FindFirstChild("Overhead")
+	if old then
+		old:Destroy()
+	end
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "Overhead"
+	bb.Size = UDim2.fromScale(9, 2.6)
+	bb.StudsOffset = Vector3.new(0, 3.4, 0)
+	bb.MaxDistance = 120
+	bb.LightInfluence = 0
+	bb:SetAttribute("Overhead", true)
+	bb:SetAttribute("Title", 1)
+	bb:SetAttribute("Income", 0)
+	local l = Instance.new("TextLabel")
+	l.Name = "Label"
+	l.BackgroundTransparency = 1
+	l.Size = UDim2.fromScale(1, 1)
+	l.TextScaled = true
+	l.RichText = true
+	l.Font = Enum.Font.FredokaOne
+	l.TextColor3 = Color3.new(1, 1, 1)
+	l.Text = ""
+	l.Parent = bb
+	bb.Parent = head
+	CollectionService:AddTag(bb, "Loc")
+end
+
 ---------------------------------------------------------------------
 -- Multiplicadores
 ---------------------------------------------------------------------
@@ -327,6 +372,24 @@ function actions.equipAura(player, id)
 	end
 end
 
+function actions.dropPack(player)
+	local s = Core.sessions[player]
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if s and s.carrying and hrp then
+		G.Packs.dropCarried(player, true, hrp.Position)
+	end
+end
+
+function actions.claimOffline(player)
+	local s = Core.sessions[player]
+	if s and s.offline and s.offline > 0 then
+		Core.addMoney(player, s.offline)
+		s.offline = 0
+		G.Net.toast(player, "bought")
+	end
+end
+
 function actions.afk(player, on)
 	Core.setAfk(player, on == true)
 end
@@ -463,7 +526,7 @@ local function onCharacter(player, char)
 	end
 	if s.plot then
 		task.wait(0.1)
-		hrp.CFrame = CFrame.new(s.plot.spawn)
+		hrp.CFrame = s.plot.spawnCF
 	end
 	hum.WalkSpeed = C.walkSpeedFor(d.speed)
 	hum.Died:Connect(function()
@@ -472,6 +535,7 @@ local function onCharacter(player, char)
 		end
 	end)
 	Core.applyAura(player)
+	overhead(player, char)
 	G.Combat.giveWeapon(player)
 	if s.afk then
 		task.wait(0.5)
@@ -502,9 +566,23 @@ local function onJoin(player)
 	if plot then
 		plot.owner = player
 		s.plot = plot
+		plot.folder:SetAttribute("Owner", player.UserId)
 	end
 	setupLeaderstats(player)
 	Core.refreshPlot(player)
+	-- dinero ganado mientras no estabas (50 %, máximo 8 h)
+	local away = G.Data.elapsed[player] or 0
+	if away >= 60 then
+		local amount = math.min(away, 8 * 3600) * Core.income(player) * 0.5
+		if amount > 0 then
+			s.offline = amount
+			task.delay(3, function()
+				if player.Parent then
+					G.Net.Offer:FireClient(player, "offline", amount, away)
+				end
+			end)
+		end
+	end
 	-- volver del "rejoin" AFK
 	local jd = player:GetJoinData()
 	if jd and type(jd.TeleportData) == "table" and jd.TeleportData.afk then
@@ -538,6 +616,7 @@ local function onLeave(player)
 			s.plot.signGui.Label.Text = ""
 			s.plot.treadmillGui.Label.Text = ""
 			s.plot.owner = nil
+			s.plot.folder:SetAttribute("Owner", nil)
 		end
 	end
 	G.Data.release(player)
@@ -558,7 +637,18 @@ function Core.sendState(player)
 	for i, p in ipairs(d.altarPacks) do
 		altars[i] = { r = p.r, rem = p.rem, dawn = p.dawn }
 	end
+	local chase = nil
+	if s.carrying then
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		for _, guard in ipairs(G.World.guardians) do
+			if guard.target == player and hrp then
+				chase = math.floor((guard.model:GetPivot().Position - hrp.Position).Magnitude)
+			end
+		end
+	end
 	G.Net.State:FireClient(player, {
+		chase = chase,
+		offline = s.offline,
 		money = d.money,
 		speed = d.speed,
 		income = Core.income(player),
@@ -647,6 +737,12 @@ function Core.start()
 						ls["⚡"].Value = G.Format.num(d.speed)
 						ls["💰"].Value = G.Format.num(d.money)
 						ls["⏱️"].Value = G.Format.time(d.playtime)
+					end
+					local head = player.Character and player.Character:FindFirstChild("Head")
+					local bb = head and head:FindFirstChild("Overhead")
+					if bb then
+						bb:SetAttribute("Title", titleIndex(d.bestSpeed))
+						bb:SetAttribute("Income", Core.income(player))
 					end
 					if s.plot then
 						s.plot.treadmillGui.Label.Text = string.format("⚡ +%s/s", G.Format.num(C.treadmillGain(d.treadmill) * Core.mults(player)))

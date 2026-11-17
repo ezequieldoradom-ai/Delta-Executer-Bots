@@ -177,8 +177,8 @@ Config.INDEX_REWARDS = {
 ---------------------------------------------------------------------
 -- ZONAS (6 en la v1; las demás llegarán en actualizaciones)
 ---------------------------------------------------------------------
-Config.ZONE_LENGTH = 260
-Config.CORRIDOR_START = 160 -- Z donde empieza el pasillo
+Config.ZONE_LENGTH = 200
+Config.CORRIDOR_START = 110 -- Z donde empieza el pasillo
 Config.CORRIDOR_HALF_WIDTH = 36
 Config.PACKS_PER_ZONE = 6
 Config.ZONES = {
@@ -326,6 +326,6 @@ Config.PRODUCTS = {
 ---------------------------------------------------------------------
 Config.AFK_REJOIN_AFTER = 17 * 60
 
-Config.MAX_PLAYERS_PLOTS = 8
+Config.MAX_PLAYERS_PLOTS = 6
 
 return Config

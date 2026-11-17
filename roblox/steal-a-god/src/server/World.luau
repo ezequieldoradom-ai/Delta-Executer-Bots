@@ -5,9 +5,8 @@ local CollectionService = game:GetService("CollectionService")
 local World = {}
 local G
 
-World.PLOT_SIZE = 84
-World.PLOT_Z = -60
-World.SAFE_Z = 152 -- por debajo de esta Z estás a salvo
+World.PLOT_SIZE = 56
+World.SAFE_Z = 102 -- por debajo de esta Z estás a salvo
 World.plots = {}
 World.zoneParts = {}
 World.guardians = {}
@@ -127,67 +126,92 @@ local function tierFor(level)
 	return PLOT_TIERS[#PLOT_TIERS]
 end
 
+-- Disposición dentro de la parcela (coordenadas locales; +Z mira hacia la plaza)
 local function pedestalOffset(i)
-	local col = (i - 1) % 9
-	local row = math.floor((i - 1) / 9)
-	return Vector3.new(-32 + col * 8, 0, -20 + row * 9)
+	local col = (i - 1) % 6
+	local row = math.floor((i - 1) / 6)
+	return Vector3.new(-13.75 + col * 5.5, 0, 11 - row * 5.2)
 end
 
 local function altarOffset(i)
-	return Vector3.new(-31.5 + (i - 1) * 9, 0, -34)
+	return Vector3.new(-22.5 + (i - 1) * 5, 0, -23)
 end
 
+-- 6 parcelas: 3 a cada lado de la plaza, mirando al centro
+local PLOT_SPOTS = {
+	{ x = -66, z = -58, yaw = 90 },
+	{ x = -66, z = 0, yaw = 90 },
+	{ x = -66, z = 58, yaw = 90 },
+	{ x = 66, z = -58, yaw = -90 },
+	{ x = 66, z = 0, yaw = -90 },
+	{ x = 66, z = 58, yaw = -90 },
+}
+
 local function buildPlot(index)
-	local cx = -332.5 + (index - 1) * 95
-	local center = Vector3.new(cx, 0, World.PLOT_Z)
+	local spot = PLOT_SPOTS[index]
+	local cf = CFrame.new(spot.x, 0, spot.z) * CFrame.Angles(0, math.rad(spot.yaw), 0)
+	local function at(x, y, z)
+		return cf * CFrame.new(x, y, z)
+	end
 	local folder = Instance.new("Folder")
 	folder.Name = "Plot" .. index
 	folder.Parent = root
-	local plot = { index = index, center = center, folder = folder, owner = nil, pedestals = {}, altars = {}, decor = {} }
+	local plot = { index = index, cf = cf, center = cf.Position, folder = folder, owner = nil, pedestals = {}, altars = {}, decor = {} }
+	local S = World.PLOT_SIZE
 
-	plot.base = part({ Name = "Base", Size = Vector3.new(World.PLOT_SIZE, 1, World.PLOT_SIZE), Position = center + Vector3.new(0, 0.5, 0), Parent = folder })
-	plot.sign = part({ Name = "Sign", Size = Vector3.new(1, 1, 1), Position = center + Vector3.new(0, 14, 44), Transparency = 1, CanCollide = false, Parent = folder })
-	plot.signGui = billboard(plot.sign, "", Color3.new(1, 1, 1), UDim2.fromOffset(420, 90), Vector3.new(0, 0, 0))
+	plot.base = part({ Name = "Base", Size = Vector3.new(S, 1, S), CFrame = at(0, 0.5, 0), Parent = folder })
+	plot.sign = part({ Name = "Sign", Size = Vector3.new(1, 1, 1), CFrame = at(0, 13, S / 2 - 2), Transparency = 1, CanCollide = false, Parent = folder })
+	plot.signGui = billboard(plot.sign, "", Color3.new(1, 1, 1), UDim2.fromOffset(380, 84), Vector3.new(0, 0, 0))
 	plot.signGui.MaxDistance = 160
 
-	plot.spawn = center + Vector3.new(0, 4, 32)
+	plot.spawn = at(0, 4, S / 2 - 6).Position
+	plot.spawnCF = CFrame.lookAt(plot.spawn, at(0, 4, 0).Position)
 
-	-- Cinta de correr
-	plot.treadmill = part({ Name = "Treadmill", Size = Vector3.new(10, 1, 18), Position = center + Vector3.new(-28, 1.4, 24), Color = Color3.fromRGB(35, 35, 45), Material = Enum.Material.SmoothPlastic, Parent = folder })
+	-- Cinta de correr (esquina delantera)
+	plot.treadmill = part({ Name = "Treadmill", Size = Vector3.new(7, 1, 13), CFrame = at(-S / 2 + 6, 1.4, S / 2 - 9), Color = Color3.fromRGB(35, 35, 45), Material = Enum.Material.SmoothPlastic, Parent = folder })
 	for k = -1, 1, 2 do
-		part({ Name = "Rail", Size = Vector3.new(0.6, 3, 18), Position = plot.treadmill.Position + Vector3.new(k * 5.3, 1.5, 0), Color = Color3.fromRGB(90, 230, 255), Material = Enum.Material.Neon, Parent = folder })
+		part({ Name = "Rail", Size = Vector3.new(0.5, 3, 13), CFrame = plot.treadmill.CFrame * CFrame.new(k * 3.8, 1.5, 0), Color = Color3.fromRGB(90, 230, 255), Material = Enum.Material.Neon, Parent = folder })
 	end
-	plot.treadmillGui = billboard(plot.treadmill, "", Color3.fromRGB(90, 230, 255), UDim2.fromOffset(220, 50), Vector3.new(0, 6, 0))
+	plot.treadmillGui = billboard(plot.treadmill, "", Color3.fromRGB(90, 230, 255), UDim2.fromOffset(200, 46), Vector3.new(0, 6, 0))
 
-	-- Pedestales (hasta 36)
+	-- Pedestales (hasta 36): sin colisión para poder pasar entre ellos
 	for i = 1, 36 do
-		local p = part({ Name = "Pedestal" .. i, Size = Vector3.new(5, 1.4, 5), Position = center + pedestalOffset(i) + Vector3.new(0, 1.7, 0), Material = Enum.Material.Marble, Color = Color3.fromRGB(230, 230, 235), Transparency = 1, CanCollide = false, Parent = folder })
+		local o = pedestalOffset(i)
+		local p = part({ Name = "Pedestal" .. i, Size = Vector3.new(3.8, 1.2, 3.8), CFrame = at(o.X, 1.6, o.Z), Material = Enum.Material.Marble, Color = Color3.fromRGB(230, 230, 235), Transparency = 1, CanCollide = false, Parent = folder })
 		plot.pedestals[i] = { part = p, statue = nil, godId = nil }
 	end
 
-	-- Altares para abrir sobres (hasta 8 + 2 del pase)
+	-- Altares para abrir sobres (hasta 8 + 2 del pase), al fondo
 	for i = 1, G.Config.ALTARS_MAX + 2 do
-		local a = part({ Name = "Altar" .. i, Size = Vector3.new(6, 4, 6), Position = center + altarOffset(i) + Vector3.new(0, 3, 0), Material = Enum.Material.Basalt, Color = Color3.fromRGB(60, 55, 70), Parent = folder })
+		local o = altarOffset(i)
+		local a = part({ Name = "Altar" .. i, Size = Vector3.new(4, 3.4, 4), CFrame = at(o.X, 2.7, o.Z), Material = Enum.Material.Basalt, Color = Color3.fromRGB(60, 55, 70), Parent = folder })
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ObjectText = "Altar"
 		prompt.ActionText = "Open"
 		prompt.HoldDuration = 0.4
-		prompt.MaxActivationDistance = 12
+		prompt.MaxActivationDistance = 10
 		prompt.RequiresLineOfSight = false
 		prompt.Enabled = false
 		prompt.Parent = a
-		local gui = billboard(a, "", Color3.new(1, 1, 1), UDim2.fromOffset(200, 70), Vector3.new(0, 5, 0))
+		local gui = billboard(a, "", Color3.new(1, 1, 1), UDim2.fromOffset(150, 60), Vector3.new(0, 4.5, 0))
 		gui:SetAttribute("Altar", true)
 		CollectionService:AddTag(gui, "Loc")
 		prompt:SetAttribute("Kind", "open")
 		CollectionService:AddTag(prompt, "LocPrompt")
-		local glow = part({ Name = "Glow", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 3, 3), Position = a.Position + Vector3.new(0, 3.5, 0), Material = Enum.Material.Neon, Transparency = 1, CanCollide = false, Parent = folder })
+		local glow = part({ Name = "Glow", Shape = Enum.PartType.Ball, Size = Vector3.new(2.4, 2.4, 2.4), Position = a.Position + Vector3.new(0, 3, 0), Material = Enum.Material.Neon, Transparency = 1, CanCollide = false, Parent = folder })
 		plot.altars[i] = { part = a, prompt = prompt, gui = gui, glow = glow }
 	end
 
 	World.plots[index] = plot
 	World.styleplot(plot, 1)
 	return plot
+end
+
+-- ¿Está esta posición dentro de la parcela?
+function World.inPlot(plot, pos)
+	local rel = plot.cf:PointToObjectSpace(pos)
+	local h = World.PLOT_SIZE / 2 + 1
+	return math.abs(rel.X) <= h and math.abs(rel.Z) <= h
 end
 
 function World.styleplot(plot, level)
@@ -198,42 +222,36 @@ function World.styleplot(plot, level)
 		d:Destroy()
 	end
 	plot.decor = {}
-	local c = plot.center
+	local S = World.PLOT_SIZE
+	local half = S / 2 - 1.5
 	local n = t.columns
+	local perSide = math.max(1, math.ceil(n / 2))
 	for i = 1, n do
 		local side = (i % 2 == 0) and 1 or -1
 		local k = math.ceil(i / 2)
-		local z = -38 + (k - 1) * (76 / math.max(1, math.ceil(n / 2) - 1 + 0.0001))
-		if n <= 2 then
-			z = -38
-		end
-		local h = level <= 2 and (6 + (i * 3) % 7) or 18
-		local col = part({ Name = "Column", Size = Vector3.new(3, h, 3), Position = c + Vector3.new(side * 40, 1 + h / 2, math.clamp(z, -38, 38)), Color = t.color, Material = t.mat, Parent = plot.folder })
-		col.Shape = Enum.PartType.Cylinder
-		col.Size = Vector3.new(h, 3, 3)
-		col.CFrame = CFrame.new(col.Position) * CFrame.Angles(0, 0, math.rad(90))
+		local z = perSide == 1 and -half or (-half + (k - 1) * (2 * half / (perSide - 1)))
+		local h = level <= 2 and (5 + (i * 3) % 6) or 14
+		local col = part({ Name = "Column", Shape = Enum.PartType.Cylinder, Size = Vector3.new(h, 2.4, 2.4), CFrame = plot.cf * CFrame.new(side * half, 1 + h / 2, z) * CFrame.Angles(0, 0, math.rad(90)), Color = t.color, Material = t.mat, Parent = plot.folder })
 		table.insert(plot.decor, col)
 		if level > 2 then
-			local cap = part({ Name = "Cap", Size = Vector3.new(4, 1, 4), Position = c + Vector3.new(side * 40, 1 + h + 0.5, math.clamp(z, -38, 38)), Color = t.trim, Material = (t.mat == Enum.Material.Neon) and Enum.Material.Neon or Enum.Material.SmoothPlastic, Parent = plot.folder })
+			local cap = part({ Name = "Cap", Size = Vector3.new(3.2, 0.8, 3.2), CFrame = plot.cf * CFrame.new(side * half, 1.4 + h, z), Color = t.trim, Material = (t.mat == Enum.Material.Neon) and Enum.Material.Neon or Enum.Material.SmoothPlastic, Parent = plot.folder })
 			table.insert(plot.decor, cap)
 		end
 	end
-	-- Borde
-	for _, e in ipairs({ { 0, -42, 84, 1 }, { -42, 0, 1, 84 }, { 42, 0, 1, 84 } }) do
-		local b = part({ Name = "Trim", Size = Vector3.new(e[3], 1.2, e[4]), Position = c + Vector3.new(e[1], 1.6, e[2]), Color = t.trim, Material = Enum.Material.SmoothPlastic, Parent = plot.folder })
+	-- Borde (abierto por delante, hacia la plaza)
+	for _, e in ipairs({ { 0, -S / 2, S, 1 }, { -S / 2, 0, 1, S }, { S / 2, 0, 1, S } }) do
+		local b = part({ Name = "Trim", Size = Vector3.new(e[3], 1.2, e[4]), CFrame = plot.cf * CFrame.new(e[1], 1.6, e[2]), Color = t.trim, Material = Enum.Material.SmoothPlastic, Parent = plot.folder })
 		table.insert(plot.decor, b)
 	end
 	if level >= 20 then
-		local halo = part({ Name = "Halo", Size = Vector3.new(90, 0.4, 90), Position = c + Vector3.new(0, -0.3, 0), Color = t.trim, Material = Enum.Material.Neon, Transparency = 0.5, CanCollide = false, Parent = plot.folder })
+		local halo = part({ Name = "Halo", Size = Vector3.new(S + 6, 0.4, S + 6), CFrame = plot.cf * CFrame.new(0, -0.3, 0), Color = t.trim, Material = Enum.Material.Neon, Transparency = 0.5, CanCollide = false, Parent = plot.folder })
 		table.insert(plot.decor, halo)
 	end
 end
 
 function World.pedestalVisible(plot, count)
 	for i, ped in ipairs(plot.pedestals) do
-		local on = i <= count
-		ped.part.Transparency = on and 0 or 1
-		ped.part.CanCollide = on
+		ped.part.Transparency = i <= count and 0 or 1
 	end
 end
 
@@ -245,7 +263,7 @@ function World.altarVisible(plot, count)
 	end
 end
 
--- Estatua sencilla del dios sobre su pedestal
+-- Estatua del dios sobre su pedestal, mirando a la plaza
 function World.setStatue(plot, i, god)
 	local ped = plot.pedestals[i]
 	if not ped then
@@ -265,17 +283,19 @@ function World.setStatue(plot, i, god)
 	local rarity = G.Config.RARITIES[god.r]
 	local m = G.GodModel.build(god, rarity.color)
 	G.GodModel.decorate(m, rarity)
-	local lift = god.r >= 8 and 1.5 or 0
-	local base = ped.part.Position + Vector3.new(0, 0.7 + lift, 0)
-	m:PivotTo(CFrame.new(base) * CFrame.Angles(0, math.rad(180), 0))
+	m:SetAttribute("Income", rarity.income)
+	m:SetAttribute("Rarity", god.r)
+	local lift = god.r >= 8 and 1.2 or 0
+	local top = ped.part.CFrame * CFrame.new(0, 0.6 + lift, 0)
+	m:ScaleTo(0.8)
+	m:PivotTo(top * CFrame.Angles(0, math.rad(180), 0))
 	local torso = m:FindFirstChild("Torso")
 	if torso then
-		local tag = billboard(torso, string.format("<b>%s</b>", god.name), rarity.id == 10 and Color3.fromRGB(210, 140, 255) or rarity.color, UDim2.fromOffset(150, 34), Vector3.new(0, 4.2, 0))
-		tag.MaxDistance = 60
+		local tag = billboard(torso, string.format("<b>%s</b>", god.name), rarity.id == 10 and Color3.fromRGB(210, 140, 255) or rarity.color, UDim2.fromOffset(130, 30), Vector3.new(0, 3.6, 0))
+		tag.MaxDistance = 50
 	end
 	if lift > 0 then
-		local beam = part({ Name = "Levitate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 4, 4), CFrame = CFrame.new(ped.part.Position + Vector3.new(0, 0.9, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = rarity.color, Material = Enum.Material.Neon, Transparency = 0.3, CanCollide = false, Parent = m })
-		beam.Name = "Levitate"
+		part({ Name = "Levitate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 3.4, 3.4), CFrame = ped.part.CFrame * CFrame.new(0, 0.75, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rarity.color, Material = Enum.Material.Neon, Transparency = 0.3, CanCollide = false, Parent = m })
 	end
 	m.Parent = plot.folder
 	ped.statue = m
@@ -285,9 +305,9 @@ end
 -- Plaza central: rankings
 ---------------------------------------------------------------------
 local function buildBoard(name, x, color)
-	local p = part({ Name = "Board_" .. name, Size = Vector3.new(26, 34, 1.5), Position = Vector3.new(x, 18, 70), Color = Color3.fromRGB(25, 22, 35), Material = Enum.Material.SmoothPlastic })
+	local p = part({ Name = "Board_" .. name, Size = Vector3.new(26, 34, 1.5), Position = Vector3.new(x, 18, -112), Color = Color3.fromRGB(25, 22, 35), Material = Enum.Material.SmoothPlastic })
 	p.CFrame = CFrame.new(p.Position) * CFrame.Angles(0, math.rad(180), 0)
-	part({ Name = "Trim", Size = Vector3.new(27, 1, 2), Position = Vector3.new(x, 35.5, 70), Color = color, Material = Enum.Material.Neon })
+	part({ Name = "Trim", Size = Vector3.new(27, 1, 2), Position = Vector3.new(x, 35.5, -112), Color = color, Material = Enum.Material.Neon })
 	local sg = Instance.new("SurfaceGui")
 	sg.Face = Enum.NormalId.Front
 	sg.CanvasSize = Vector2.new(520, 680)
@@ -325,7 +345,7 @@ local function decorZone(i, z0, zone)
 	local L = G.Config.ZONE_LENGTH
 	local function side(fn)
 		for k = 0, 5 do
-			local z = z0 + 25 + k * 42
+			local z = z0 + 20 + k * 34
 			fn(-50 - (k % 2) * 8, z)
 			fn(50 + (k % 2) * 8, z)
 		end
@@ -494,7 +514,7 @@ local function buildCorridor()
 		zp.spots = {}
 		for row = 0, 1 do
 			for col = -1, 1 do
-				table.insert(zp.spots, Vector3.new(col * 22, 2.5, z0 + 90 + row * 90))
+				table.insert(zp.spots, Vector3.new(col * 22, 2.5, z0 + 65 + row * 70))
 			end
 		end
 		zp.guardianHome = Vector3.new(0, 0, z0 + L - 25)
@@ -519,13 +539,15 @@ function World.init(g)
 	root.Parent = workspace
 	setupLighting()
 	-- suelo de la zona segura
-	part({ Name = "SafeGround", Size = Vector3.new(780, 4, 320), Position = Vector3.new(0, -2, 15), Color = Color3.fromRGB(120, 175, 95), Material = Enum.Material.Grass })
-	part({ Name = "Plaza", Size = Vector3.new(160, 0.4, 150), Position = Vector3.new(0, 0.2, 75), Color = Color3.fromRGB(225, 220, 205), Material = Enum.Material.Marble })
-	part({ Name = "Path", Size = Vector3.new(70, 0.4, 20), Position = Vector3.new(0, 0.2, 158), Color = Color3.fromRGB(225, 220, 205), Material = Enum.Material.Marble })
+	part({ Name = "SafeGround", Size = Vector3.new(260, 4, 270), Position = Vector3.new(0, -2, -5), Color = Color3.fromRGB(120, 175, 95), Material = Enum.Material.Grass })
+	part({ Name = "Plaza", Size = Vector3.new(76, 0.4, 216), Position = Vector3.new(0, 0.2, -2), Color = Color3.fromRGB(225, 220, 205), Material = Enum.Material.Marble })
+	for k = -3, 3 do
+		part({ Name = "PlazaLine", Size = Vector3.new(76, 0.45, 1), Position = Vector3.new(0, 0.22, k * 28), Color = Color3.fromRGB(230, 190, 80), Material = Enum.Material.SmoothPlastic })
+	end
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(12, 1, 12)
-	spawn.Position = Vector3.new(0, 0.5, 110)
+	spawn.Position = Vector3.new(0, 0.5, 30)
 	spawn.Transparency = 1
 	spawn.CanCollide = false
 	spawn.Neutral = true
@@ -533,9 +555,9 @@ function World.init(g)
 	for i = 1, G.Config.MAX_PLAYERS_PLOTS do
 		buildPlot(i)
 	end
-	World.boards.speed = buildBoard("SPEED", -40, Color3.fromRGB(90, 230, 255))
+	World.boards.speed = buildBoard("SPEED", -28, Color3.fromRGB(90, 230, 255))
 	World.boards.money = buildBoard("MONEY", 0, Color3.fromRGB(255, 210, 60))
-	World.boards.time = buildBoard("TIME", 40, Color3.fromRGB(180, 140, 255))
+	World.boards.time = buildBoard("TIME", 28, Color3.fromRGB(180, 140, 255))
 	buildCorridor()
 	for i = 1, #G.Config.ZONES do
 		local model, height = World.makeGuardian(i)
