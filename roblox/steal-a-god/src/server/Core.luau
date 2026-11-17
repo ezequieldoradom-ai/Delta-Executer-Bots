@@ -400,7 +400,13 @@ function actions.settings(player, tbl)
 		s[k] = tbl[k] ~= false
 	end
 	s.ui = math.clamp(tonumber(tbl.ui) or 2, 1, 3)
+	s.ownerPasses = tbl.ownerPasses == true
+	local changed = (d.settings and d.settings.ownerPasses) ~= s.ownerPasses
 	d.settings = s
+	if changed then
+		G.Shop.checkPasses(player)
+		Core.refreshPlot(player)
+	end
 end
 
 function actions.afk(player, on)
@@ -671,6 +677,8 @@ function Core.sendState(player)
 	end
 	G.Net.State:FireClient(player, {
 		chase = chase,
+		isOwner = s.isOwner,
+		autoActive = s.autoActive,
 		settings = d.settings,
 		offline = s.offline,
 		money = d.money,
@@ -722,10 +730,12 @@ local function tick(dt)
 				s.combo = 1
 			end
 			local speedMult = Core.mults(player)
-			local gaining = s.onTreadmill or s.afk or s.passes.autoTreadmill
-			if gaining then
+			local onBelt = s.onTreadmill or s.afk
+			local auto = not onBelt and s.passes.autoTreadmill
+			s.autoActive = auto and true or false
+			if onBelt or auto then
 				local combo = s.onTreadmill and not s.afk and s.combo or 1
-				local gain = C.treadmillGain(d.treadmill) * combo * speedMult * (night and C.NIGHT_TREADMILL_MULT or 1)
+				local gain = C.treadmillGain(d.treadmill) * combo * speedMult * (night and C.NIGHT_TREADMILL_MULT or 1) * (auto and 0.5 or 1)
 				d.speed += gain * dt
 				if d.speed > d.bestSpeed then
 					d.bestSpeed = d.speed

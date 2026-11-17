@@ -11,6 +11,14 @@ function Shop.checkPasses(player)
 	if not s then
 		return
 	end
+	-- El creador tiene todos los pases gratis: por defecto se desactivan para probar como un jugador normal
+	local d = G.Data.profiles[player]
+	local isOwner = player.UserId == game.CreatorId
+	s.isOwner = isOwner
+	if isOwner and not (d and d.settings and d.settings.ownerPasses) then
+		s.passes = {}
+		return
+	end
 	for key, pass in pairs(C.PASSES) do
 		if pass.id ~= 0 then
 			local ok, owns = pcall(function()

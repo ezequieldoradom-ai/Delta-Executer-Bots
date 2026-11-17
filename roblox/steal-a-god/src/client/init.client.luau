@@ -759,7 +759,7 @@ sideButton(1, "🛒", t("shop"), Color3.fromRGB(255, 80, 60), function()
 end)
 signatures.settings = function()
 	local st = state.settings or {}
-	return string.format("%s%s%s%s%s", tostring(st.sfx), tostring(st.particles), tostring(st.shake), tostring(st.othersAuras), tostring(st.ui))
+	return string.format("%s%s%s%s%s%s%s", tostring(st.sfx), tostring(st.particles), tostring(st.shake), tostring(st.othersAuras), tostring(st.ui), tostring(st.ownerPasses), tostring(state.isOwner))
 end
 renderers.settings = function()
 	listLayout()
@@ -786,6 +786,12 @@ renderers.settings = function()
 		row(i, r[1], r[3], "", on and t("on") or t("off"), on and GREEN or Color3.fromRGB(255, 80, 100), true, function()
 			send(r[2], not on)
 		end, on and GREEN or Color3.fromRGB(255, 80, 100))
+	end
+	if state.isOwner then
+		local on = st.ownerPasses == true
+		row(9, "👑", t("ownerPasses"), "", on and t("on") or t("off"), on and GREEN or Color3.fromRGB(255, 80, 100), true, function()
+			send("ownerPasses", not on)
+		end, GOLD)
 	end
 	local sizes = { t("small"), t("normal"), t("big") }
 	local ui = st.ui or 2
@@ -1658,7 +1664,7 @@ task.spawn(function()
 		local left = math.max(0, (state.cycleLeft or 0) - (os.clock() - stateAt))
 		moneyLabel.Text = string.format('$%s <font size="24" color="#C8FFB0">+$%s/s</font>', Format.num(state.money or 0), Format.num(state.income or 0))
 		speedLabel.Text = string.format('⚡ %s <font size="22" color="#C9A6FF">(x%s)</font>', Format.num(state.speed or 0), Format.num(state.speedMult or 1))
-		multLabel.Text = string.format("💰 x%s   🍀 x%s", Format.num(state.moneyMult or 1), Format.num(state.luck or 1))
+		multLabel.Text = string.format("💰 x%s   🍀 x%s%s", Format.num(state.moneyMult or 1), Format.num(state.luck or 1), state.autoActive and ("   " .. t("autoActive")) or "")
 		cycleLabel.Text = string.format('%s <font color="#FFD23F">%s</font>', state.night and t("dawnIn") or t("nightIn"), Format.time(left))
 		-- "NEW" en la tienda si puedes comprar una mejora
 		local canBuy = (state.money or 0) >= Config.treadmillCost((state.treadmill or 1) + 1) or (state.money or 0) >= Config.plotCost((state.plot or 1) + 1)
