@@ -407,6 +407,130 @@ end
 ---------------------------------------------------------------------
 -- Pasillo con zonas
 ---------------------------------------------------------------------
+-- Murallas altas de fortaleza, con estilo propio de cada mitología
+local WALL_H = 56
+local GOLD = Color3.fromRGB(240, 196, 92)
+local WALL_THEMES = {
+	{ -- griega: mármol blanco, oro y estandartes azules
+		body = Color3.fromRGB(236, 228, 212), bodyMat = Enum.Material.Marble,
+		trim = GOLD, trimMat = Enum.Material.Foil,
+		pillar = Color3.fromRGB(248, 244, 234), pillarMat = Enum.Material.Marble,
+		panel = Color3.fromRGB(205, 196, 178), banner = Color3.fromRGB(45, 95, 200),
+		glow = Color3.fromRGB(120, 200, 255), floorMat = Enum.Material.Marble,
+	},
+	{ -- celta: piedra con musgo, madera y runas verdes
+		body = Color3.fromRGB(96, 104, 98), bodyMat = Enum.Material.Slate,
+		trim = Color3.fromRGB(70, 140, 60), trimMat = Enum.Material.Grass,
+		pillar = Color3.fromRGB(88, 62, 40), pillarMat = Enum.Material.Wood,
+		panel = Color3.fromRGB(72, 80, 76), banner = Color3.fromRGB(30, 110, 60),
+		glow = Color3.fromRGB(90, 255, 150), floorMat = Enum.Material.Cobblestone,
+	},
+	{ -- egipcia: arenisca, lapislázuli y oro
+		body = Color3.fromRGB(228, 190, 120), bodyMat = Enum.Material.Sandstone,
+		trim = GOLD, trimMat = Enum.Material.Foil,
+		pillar = Color3.fromRGB(240, 210, 150), pillarMat = Enum.Material.Sandstone,
+		panel = Color3.fromRGB(200, 160, 95), banner = Color3.fromRGB(30, 60, 160),
+		glow = Color3.fromRGB(255, 210, 90), floorMat = Enum.Material.Sand,
+	},
+	{ -- azteca: roca tallada, jade y rojo
+		body = Color3.fromRGB(150, 140, 115), bodyMat = Enum.Material.Limestone,
+		trim = Color3.fromRGB(50, 170, 140), trimMat = Enum.Material.Marble,
+		pillar = Color3.fromRGB(125, 115, 92), pillarMat = Enum.Material.Rock,
+		panel = Color3.fromRGB(120, 110, 90), banner = Color3.fromRGB(185, 40, 35),
+		glow = Color3.fromRGB(60, 255, 210), floorMat = Enum.Material.Cobblestone,
+	},
+	{ -- babilonia: ladrillo vidriado azul y oro (puerta de Ishtar)
+		body = Color3.fromRGB(40, 80, 185), bodyMat = Enum.Material.Brick,
+		trim = GOLD, trimMat = Enum.Material.Foil,
+		pillar = Color3.fromRGB(225, 190, 95), pillarMat = Enum.Material.Brick,
+		panel = Color3.fromRGB(30, 60, 150), banner = Color3.fromRGB(245, 205, 80),
+		glow = Color3.fromRGB(255, 220, 110), floorMat = Enum.Material.Slate,
+	},
+	{ -- cósmica: basalto oscuro y neón violeta
+		body = Color3.fromRGB(34, 26, 56), bodyMat = Enum.Material.Basalt,
+		trim = Color3.fromRGB(170, 90, 255), trimMat = Enum.Material.Neon,
+		pillar = Color3.fromRGB(50, 38, 80), pillarMat = Enum.Material.Basalt,
+		panel = Color3.fromRGB(24, 18, 40), banner = Color3.fromRGB(95, 40, 160),
+		glow = Color3.fromRGB(120, 230, 255), floorMat = Enum.Material.Glass,
+	},
+}
+World.WALL_H = WALL_H
+
+local function torch(pos, k, color)
+	local holder = part({ Name = "TorchHolder", Size = Vector3.new(2.4, 1, 2.4), Position = pos, Color = Color3.fromRGB(60, 45, 35), Material = Enum.Material.Metal, CanCollide = false })
+	part({ Name = "TorchArm", Size = Vector3.new(3, 0.6, 0.6), Position = pos + Vector3.new(k * 1.5, -0.8, 0), Color = Color3.fromRGB(60, 45, 35), Material = Enum.Material.Metal, CanCollide = false })
+	local att = Instance.new("Attachment")
+	att.Position = Vector3.new(0, 0.8, 0)
+	att.Parent = holder
+	local fire = Instance.new("ParticleEmitter")
+	fire.Texture = G.Config.VFX.flame
+	fire.Rate = 14
+	fire.Lifetime = NumberRange.new(0.4, 0.7)
+	fire.Speed = NumberRange.new(1, 3)
+	fire.Acceleration = Vector3.new(0, 8, 0)
+	fire.SpreadAngle = Vector2.new(20, 20)
+	fire.LightEmission = 1
+	fire.Color = ColorSequence.new(Color3.fromRGB(255, 210, 120), color)
+	fire.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2.2), NumberSequenceKeypoint.new(1, 0.3) })
+	fire.Transparency = NumberSequence.new(0.1, 1)
+	fire.Parent = att
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 190, 110)
+	light.Range = 22
+	light.Brightness = 1.4
+	light.Shadows = false
+	light.Parent = att
+end
+
+local function buildWall(i, z0, zone, k)
+	local C = G.Config
+	local L = C.ZONE_LENGTH
+	local W = C.CORRIDOR_HALF_WIDTH
+	local t = WALL_THEMES[i] or WALL_THEMES[#WALL_THEMES]
+	local zc = z0 + L / 2
+	local face = k * (W + 1) -- cara interior de la muralla
+	local function at(inset, y, z)
+		return Vector3.new(face + k * inset, y, z)
+	end
+	-- cuerpo principal, zócalo, cornisa y almenas
+	part({ Name = "WallVisible", Size = Vector3.new(8, WALL_H, L), Position = at(4, WALL_H / 2, zc), Color = t.body, Material = t.bodyMat })
+	part({ Name = "WallPlinth", Size = Vector3.new(3, 7, L), Position = at(-1.4, 3.5, zc), Color = t.pillar, Material = t.pillarMat })
+	part({ Name = "WallBandLow", Size = Vector3.new(1.4, 1.6, L), Position = at(-0.6, 21.5, zc), Color = t.trim, Material = t.trimMat })
+	part({ Name = "WallBandHigh", Size = Vector3.new(1.4, 1.6, L), Position = at(-0.6, WALL_H - 10, zc), Color = t.trim, Material = t.trimMat })
+	part({ Name = "WallCornice", Size = Vector3.new(11, 2.4, L), Position = at(3.5, WALL_H + 1.2, zc), Color = t.pillar, Material = t.pillarMat })
+	part({ Name = "WallNeon", Size = Vector3.new(0.6, 0.8, L), Position = at(-2.2, WALL_H + 0.4, zc), Color = t.glow, Material = Enum.Material.Neon })
+	for m = 0, math.floor(L / 10) - 1 do
+		part({ Name = "Merlon", Size = Vector3.new(4, 5, 5), Position = at(1.5, WALL_H + 4.9, z0 + 5 + m * 10), Color = t.body, Material = t.bodyMat })
+	end
+	-- pilastras cada 25 studs con capitel dorado; entre ellas paneles, estandartes y antorchas
+	local step = 25
+	for p = 0, L / step do
+		local z = z0 + p * step
+		part({ Name = "Pilaster", Size = Vector3.new(3, WALL_H - 4, 5), Position = at(-1.5, (WALL_H - 4) / 2 + 2, z), Color = t.pillar, Material = t.pillarMat })
+		part({ Name = "PilasterCap", Size = Vector3.new(4.2, 2.4, 7), Position = at(-2, WALL_H - 1.5, z), Color = t.trim, Material = t.trimMat })
+		part({ Name = "PilasterBase", Size = Vector3.new(4.2, 3, 7), Position = at(-2, 1.5, z), Color = t.trim, Material = t.trimMat })
+		if p < L / step then
+			local zm = z + step / 2
+			-- panel hundido con un emblema que brilla
+			part({ Name = "WallPanel", Size = Vector3.new(0.4, 22, 16), Position = at(-0.1, 33, zm), Color = t.panel, Material = t.bodyMat })
+			local emblem = part({ Name = "WallEmblem", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 6, 6), Position = at(-0.4, 38, zm), Color = t.glow, Material = Enum.Material.Neon, CanCollide = false })
+			emblem.CFrame = CFrame.new(emblem.Position)
+			part({ Name = "EmblemRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 8, 8), Position = at(-0.25, 38, zm), Color = t.trim, Material = t.trimMat, CanCollide = false }).CFrame = CFrame.new(at(-0.25, 38, zm))
+			if p % 2 == 0 then
+				-- estandarte colgante con borde dorado
+				part({ Name = "Banner", Size = Vector3.new(0.3, 16, 9), Position = at(-0.8, 11.5, zm), Color = t.banner, Material = Enum.Material.Fabric, CanCollide = false })
+				part({ Name = "BannerTrim", Size = Vector3.new(0.35, 1.2, 9.6), Position = at(-0.85, 19.2, zm), Color = GOLD, Material = Enum.Material.Foil, CanCollide = false })
+				part({ Name = "BannerTip", Size = Vector3.new(0.35, 1.2, 9.6), Position = at(-0.85, 4, zm), Color = GOLD, Material = Enum.Material.Foil, CanCollide = false })
+			else
+				torch(at(-2.6, 14, zm), k, t.glow)
+			end
+		end
+	end
+	-- acera de piedra al pie de la muralla
+	part({ Name = "WallWalk", Size = Vector3.new(10, 0.4, L), Position = at(-5.5, 0.2, zc), Color = t.panel:Lerp(Color3.new(1, 1, 1), 0.35), Material = t.floorMat })
+	return t
+end
+
 local function decorZone(i, z0, zone)
 	local L = G.Config.ZONE_LENGTH
 	local function side(fn)
@@ -669,29 +793,28 @@ local function buildCorridor()
 		tex.Transparency = 0.15
 		tex.Parent = zp.floor
 		-- pista central más clara
-		part({ Name = "Runway", Size = Vector3.new(W * 2, 0.2, L), Position = Vector3.new(0, 0.1, z0 + L / 2), Color = zone.ground:Lerp(Color3.new(1, 1, 1), 0.18), Material = Enum.Material.SmoothPlastic })
+		part({ Name = "Runway", Size = Vector3.new(W * 2, 0.2, L), Position = Vector3.new(0, 0.1, z0 + L / 2), Color = zone.ground:Lerp(Color3.new(1, 1, 1), 0.18), Material = (WALL_THEMES[i] or WALL_THEMES[1]).floorMat })
 		-- muros: bajos y de color, con franja de neón; colisión invisible alta
 		for _, k in ipairs({ -1, 1 }) do
 			part({ Name = "Wall", Size = Vector3.new(2, 80, L), Position = Vector3.new(k * (W + 3), 40, z0 + L / 2), Transparency = 1 })
-			part({ Name = "WallVisible", Size = Vector3.new(4, 9, L), Position = Vector3.new(k * (W + 3), 4.5, z0 + L / 2), Color = zone.accent, Material = Enum.Material.SmoothPlastic })
-			part({ Name = "WallNeon", Size = Vector3.new(4.4, 0.8, L), Position = Vector3.new(k * (W + 3), 9.2, z0 + L / 2), Color = zone.ground:Lerp(Color3.new(1, 1, 1), 0.35), Material = Enum.Material.Neon })
+			buildWall(i, z0, zone, k)
 		end
 		-- arco de neón en la entrada de la zona
 		local archColor = zone.ground:Lerp(Color3.new(1, 1, 1), 0.3)
 		for _, k in ipairs({ -1, 1 }) do
-			part({ Name = "ArchPillar", Size = Vector3.new(6, 42, 6), Position = Vector3.new(k * (W + 3), 21, z0), Color = zone.accent, Material = Enum.Material.Marble })
-			part({ Name = "ArchNeon", Size = Vector3.new(1.2, 42, 6.6), Position = Vector3.new(k * (W + 3) - k * 3.2, 21, z0), Color = archColor, Material = Enum.Material.Neon })
+			part({ Name = "ArchPillar", Size = Vector3.new(10, 70, 10), Position = Vector3.new(k * (W + 3), 35, z0), Color = zone.accent, Material = Enum.Material.Marble })
+			part({ Name = "ArchNeon", Size = Vector3.new(1.2, 70, 10.6), Position = Vector3.new(k * (W + 3) - k * 5.2, 35, z0), Color = archColor, Material = Enum.Material.Neon })
 		end
-		part({ Name = "ArchNeonTop", Size = Vector3.new(W * 2 + 12, 1.2, 6.6), Position = Vector3.new(0, 41, z0), Color = archColor, Material = Enum.Material.Neon })
-		local top = part({ Name = "ArchTop", Size = Vector3.new(W * 2 + 12, 6, 6), Position = Vector3.new(0, 44.5, z0), Color = zone.accent, Material = Enum.Material.Marble })
+		part({ Name = "ArchNeonTop", Size = Vector3.new(W * 2 + 16, 1.2, 10.6), Position = Vector3.new(0, 69, z0), Color = archColor, Material = Enum.Material.Neon })
+		local top = part({ Name = "ArchTop", Size = Vector3.new(W * 2 + 16, 8, 10), Position = Vector3.new(0, 73.5, z0), Color = (WALL_THEMES[i] or WALL_THEMES[1]).pillar, Material = (WALL_THEMES[i] or WALL_THEMES[1]).pillarMat })
 		-- Medallón rúnico frontal: mantiene la paleta propia de cada mitología.
 		local medallion = part({ Name = "DivineMedallion", Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.65, 5.6, 5.6), Position = Vector3.new(0, 49, z0 - 3.3),
-			CFrame = CFrame.new(0, 49, z0 - 3.3) * CFrame.Angles(0, math.rad(90), 0),
+			Size = Vector3.new(0.65, 9, 9), Position = Vector3.new(0, 73.5, z0 - 5.3),
+			CFrame = CFrame.new(0, 73.5, z0 - 5.3) * CFrame.Angles(0, math.rad(90), 0),
 			Color = Color3.fromRGB(238, 202, 112), Material = Enum.Material.Foil,
 			CanCollide = false })
-		local sigil = part({ Name = "MedallionCore", Shape = Enum.PartType.Ball, Size = Vector3.new(1.7, 1.7, 1.7),
-			Position = Vector3.new(0, 49, z0 - 3.85), Color = zone.accent, Material = Enum.Material.Neon,
+		local sigil = part({ Name = "MedallionCore", Shape = Enum.PartType.Ball, Size = Vector3.new(2.8, 2.8, 2.8),
+			Position = Vector3.new(0, 73.5, z0 - 5.85), Color = zone.accent, Material = Enum.Material.Neon,
 			CanCollide = false })
 		local sigilLight = Instance.new("PointLight")
 		sigilLight.Color = zone.accent
@@ -699,15 +822,15 @@ local function buildCorridor()
 		sigilLight.Brightness = 0.8
 		sigilLight.Shadows = false
 		sigilLight.Parent = sigil
-		local topGlow = part({ Name = "ArchGoldLine", Size = Vector3.new(W * 2 + 12, 0.35, 6.8),
-			Position = Vector3.new(0, 47.7, z0), Color = Color3.fromRGB(255, 215, 125),
+		local topGlow = part({ Name = "ArchGoldLine", Size = Vector3.new(W * 2 + 16, 0.35, 10.8),
+			Position = Vector3.new(0, 77.7, z0), Color = Color3.fromRGB(255, 215, 125),
 			Material = Enum.Material.Neon, Transparency = 0.28, CanCollide = false })
 		zp.sign = billboard(top, "", Color3.new(1, 1, 1), UDim2.fromOffset(520, 110), Vector3.new(0, 8, 0))
 		zp.sign.MaxDistance = 140
 		zp.sign:SetAttribute("Zone", i)
 		CollectionService:AddTag(zp.sign, "Loc")
 		if i > 1 then
-			zp.curtain = part({ Name = "Curtain", Size = Vector3.new(W * 2, 40, 0.6), Position = Vector3.new(0, 20, z0), Color = archColor, Material = Enum.Material.ForceField, Transparency = 0.55, CanCollide = false })
+			zp.curtain = part({ Name = "Curtain", Size = Vector3.new(W * 2, 68, 0.6), Position = Vector3.new(0, 34, z0), Color = archColor, Material = Enum.Material.ForceField, Transparency = 0.55, CanCollide = false })
 		end
 		-- puntos donde aparecen los sobres
 		zp.spots = {}
@@ -722,7 +845,7 @@ local function buildCorridor()
 	end
 	-- fin del pasillo (más zonas próximamente)
 	local zEnd = World.zoneStart(#C.ZONES + 1)
-	local wall = part({ Name = "EndWall", Size = Vector3.new(W * 2 + 4, 60, 4), Position = Vector3.new(0, 30, zEnd), Color = Color3.fromRGB(20, 15, 35), Material = Enum.Material.ForceField })
+	local wall = part({ Name = "EndWall", Size = Vector3.new(W * 2 + 4, 76, 4), Position = Vector3.new(0, 38, zEnd), Color = Color3.fromRGB(20, 15, 35), Material = Enum.Material.ForceField })
 	World.endSign = billboard(wall, "", Color3.fromRGB(180, 160, 255), UDim2.fromOffset(520, 110), Vector3.new(0, 0, 0))
 	World.endSign.MaxDistance = 140
 	World.endSign:SetAttribute("EndSign", true)
