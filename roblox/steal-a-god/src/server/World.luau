@@ -73,16 +73,17 @@ end
 -- Iluminación cinematográfica
 ---------------------------------------------------------------------
 local function setupLighting()
-	Lighting.ClockTime = 14
-	Lighting.Brightness = 2.5
-	Lighting.OutdoorAmbient = Color3.fromRGB(140, 130, 150)
-	Lighting.Ambient = Color3.fromRGB(70, 60, 80)
+	Lighting.ClockTime = 16.3
+	Lighting.Brightness = 3
+	Lighting.OutdoorAmbient = Color3.fromRGB(175, 145, 125)
+	Lighting.Ambient = Color3.fromRGB(95, 75, 70)
+	Lighting.ShadowSoftness = 0.35
 	local atm = Instance.new("Atmosphere")
-	atm.Density = 0.32
-	atm.Haze = 1.6
-	atm.Glare = 0.4
-	atm.Color = Color3.fromRGB(255, 225, 190)
-	atm.Decay = Color3.fromRGB(120, 90, 160)
+	atm.Density = 0.28
+	atm.Haze = 1.4
+	atm.Glare = 0.6
+	atm.Color = Color3.fromRGB(255, 215, 170)
+	atm.Decay = Color3.fromRGB(255, 150, 110)
 	atm.Parent = Lighting
 	local bloom = Instance.new("BloomEffect")
 	bloom.Intensity = 0.8
@@ -95,9 +96,9 @@ local function setupLighting()
 	rays.Parent = Lighting
 	local cc = Instance.new("ColorCorrectionEffect")
 	cc.Name = "Grade"
-	cc.Saturation = 0.15
-	cc.Contrast = 0.08
-	cc.TintColor = Color3.fromRGB(255, 244, 230)
+	cc.Saturation = 0.22
+	cc.Contrast = 0.1
+	cc.TintColor = Color3.fromRGB(255, 240, 222)
 	cc.Parent = Lighting
 	local sky = Instance.new("Sky")
 	sky.StarCount = 4000
@@ -108,8 +109,8 @@ end
 -- Parcelas
 ---------------------------------------------------------------------
 local PLOT_TIERS = {
-	{ upTo = 2, color = Color3.fromRGB(120, 120, 125), mat = Enum.Material.Slate, trim = Color3.fromRGB(90, 90, 95), columns = 2 },
-	{ upTo = 4, color = Color3.fromRGB(200, 190, 170), mat = Enum.Material.Limestone, trim = Color3.fromRGB(170, 160, 140), columns = 4 },
+	{ upTo = 2, color = Color3.fromRGB(176, 118, 68), mat = Enum.Material.WoodPlanks, trim = Color3.fromRGB(120, 75, 40), columns = 4, planks = true },
+	{ upTo = 4, color = Color3.fromRGB(225, 195, 150), mat = Enum.Material.Sandstone, trim = Color3.fromRGB(190, 140, 80), columns = 4 },
 	{ upTo = 9, color = Color3.fromRGB(235, 235, 240), mat = Enum.Material.Marble, trim = Color3.fromRGB(210, 210, 215), columns = 6 },
 	{ upTo = 14, color = Color3.fromRGB(240, 240, 245), mat = Enum.Material.Marble, trim = Color3.fromRGB(230, 190, 70), columns = 8 },
 	{ upTo = 19, color = Color3.fromRGB(250, 220, 120), mat = Enum.Material.Foil, trim = Color3.fromRGB(255, 240, 180), columns = 8 },
@@ -220,6 +221,18 @@ function World.styleplot(plot, level)
 	local t = tierFor(level)
 	plot.base.Color = t.color
 	plot.base.Material = t.mat
+	local tex = plot.base:FindFirstChild("Planks")
+	if t.planks and not tex then
+		tex = Instance.new("Texture")
+		tex.Name = "Planks"
+		tex.Texture = G.Config.VFX.planks
+		tex.Face = Enum.NormalId.Top
+		tex.StudsPerTileU = 8
+		tex.StudsPerTileV = 8
+		tex.Parent = plot.base
+	elseif not t.planks and tex then
+		tex:Destroy()
+	end
 	for _, d in ipairs(plot.decor) do
 		d:Destroy()
 	end
@@ -289,16 +302,17 @@ function World.setStatue(plot, i, entry)
 	m:SetAttribute("Rarity", god.r)
 	m:SetAttribute("Kg", kg)
 	m:SetAttribute("Slot", i)
-	local scale = 0.7 * G.Config.kgScale(kg)
+	local scale = (m:GetAttribute("Avatar") and 0.85 or 0.7) * G.Config.kgScale(kg)
 	m:ScaleTo(scale)
 	local o = pedestalOffset(i)
 	local lift = god.r >= 8 and 1.2 * scale or 0
-	m:PivotTo(plot.cf * CFrame.new(o.X * 0.9, 1 + lift, o.Z * 0.9) * CFrame.Angles(0, math.rad(180), 0))
-	local torso = m:FindFirstChild("Torso")
-	if torso then
+	local pivotH = (m:GetAttribute("PivotH") or 0) * scale
+	m:PivotTo(plot.cf * CFrame.new(o.X * 0.9, 1 + pivotH + lift, o.Z * 0.9) * CFrame.Angles(0, math.rad(180), 0))
+	local head = m:FindFirstChild("Head") or m:FindFirstChild("Torso")
+	if head then
 		local color = rarity.id == 10 and Color3.fromRGB(210, 140, 255) or rarity.color
-		local tag = billboard(torso, string.format("<b>%s</b>\n<font size=\"14\" color=\"#FFE9A8\">%d kg</font>", god.name, kg), color, UDim2.fromOffset(140, 44), Vector3.new(0, 3.2 * scale + 1, 0))
-		tag.MaxDistance = 55
+		local tag = billboard(head, string.format("<b>%s</b> <font size=\"13\" color=\"#FFE9A8\">%d kg</font>\n<font color=\"#6CFF7A\">$%s/s</font>", god.name, kg, G.Format.num(rarity.income * G.Config.kgMult(kg))), color, UDim2.fromOffset(170, 56), Vector3.new(0, 2.2 * scale + 1.2, 0))
+		tag.MaxDistance = 60
 	end
 	m.Parent = plot.folder
 	ped.statue = m
@@ -349,8 +363,9 @@ local function decorZone(i, z0, zone)
 	local function side(fn)
 		for k = 0, 5 do
 			local z = z0 + 20 + k * 34
-			fn(-50 - (k % 2) * 8, z)
-			fn(50 + (k % 2) * 8, z)
+			local Wd = G.Config.CORRIDOR_HALF_WIDTH
+			fn(-(Wd + 20) - (k % 2) * 10, z)
+			fn(Wd + 20 + (k % 2) * 10, z)
 		end
 	end
 	if i == 1 then -- columnas griegas
@@ -364,14 +379,14 @@ local function decorZone(i, z0, zone)
 			part({ Shape = Enum.PartType.Ball, Size = Vector3.new(16, 16, 16), Position = Vector3.new(x, 24, z), Color = Color3.fromRGB(40, 100, 50), Material = Enum.Material.Grass })
 		end)
 	elseif i == 3 then -- pirámides
-		for _, x in ipairs({ -120, 120 }) do
+		for _, x in ipairs({ -(G.Config.CORRIDOR_HALF_WIDTH + 75), G.Config.CORRIDOR_HALF_WIDTH + 75 }) do
 			for s = 0, 6 do
 				local w = 90 - s * 13
 				part({ Size = Vector3.new(w, 8, w), Position = Vector3.new(x, 4 + s * 8, z0 + L / 2), Color = zone.accent, Material = Enum.Material.Sand })
 			end
 		end
 	elseif i == 4 then -- templo azteca escalonado + selva
-		for _, x in ipairs({ -110, 110 }) do
+		for _, x in ipairs({ -(G.Config.CORRIDOR_HALF_WIDTH + 65), G.Config.CORRIDOR_HALF_WIDTH + 65 }) do
 			for s = 0, 5 do
 				local w = 70 - s * 11
 				part({ Size = Vector3.new(w, 7, w), Position = Vector3.new(x, 3.5 + s * 7, z0 + L / 2), Color = zone.accent, Material = Enum.Material.Cobblestone })
@@ -383,7 +398,7 @@ local function decorZone(i, z0, zone)
 	elseif i == 5 then -- zigurat y muros azules de Babilonia
 		for s = 0, 4 do
 			local w = 100 - s * 18
-			part({ Size = Vector3.new(w, 10, w), Position = Vector3.new(-130, 5 + s * 10, z0 + L / 2), Color = zone.ground, Material = Enum.Material.Brick })
+			part({ Size = Vector3.new(w, 10, w), Position = Vector3.new(-(G.Config.CORRIDOR_HALF_WIDTH + 80), 5 + s * 10, z0 + L / 2), Color = zone.ground, Material = Enum.Material.Brick })
 		end
 		side(function(x, z)
 			part({ Size = Vector3.new(6, 26, 30), Position = Vector3.new(x, 13, z), Color = zone.accent, Material = Enum.Material.Glass })
@@ -445,6 +460,30 @@ end
 function World.makeGuardian(i)
 	local zone = G.Config.ZONES[i]
 	local gd = zone.guardian
+	local GMYTH = { minotaur = "greek", dullahan = "celtic", sphinx = "egyptian", jaguar = "aztec", lamassu = "babylonian", fenrir = "norse" }
+	local av = G.Avatars and G.Avatars.make({ id = "g_" .. gd.kind, myth = GMYTH[gd.kind] or "greek", r = 0, name = gd.en })
+	if av then
+		local m = av:Clone()
+		m.Name = "Guardian" .. i
+		local k = 4.4 + i * 0.3
+		m:ScaleTo(k)
+		local h = (m:GetAttribute("PivotH") or 3) * k
+		local rp = m.PrimaryPart
+		local ring = part({ Name = "Scorch", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 12 * k / 4, 12 * k / 4), CFrame = rp.CFrame * CFrame.new(0, -h + 0.08, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(255, 50, 30), Material = Enum.Material.Neon, Transparency = 0.6, CanCollide = false, Parent = m })
+		local dec = Instance.new("Decal")
+		dec.Face = Enum.NormalId.Right
+		dec.Texture = G.Config.VFX.runes
+		dec.Color3 = Color3.fromRGB(255, 80, 40)
+		dec.Parent = ring
+		ring.Anchored = false
+		local w = Instance.new("WeldConstraint")
+		w.Part0 = rp
+		w.Part1 = ring
+		w.Parent = ring
+		guardianFX(m, m:FindFirstChild("UpperTorso") or rp, k / 3, gd, i)
+		m.Parent = root
+		return m, h
+	end
 	local tmpl = G.GodModel.template(gd.kind)
 	if tmpl then
 		local m = tmpl:Clone()
@@ -572,29 +611,42 @@ local function buildCorridor()
 	for i, zone in ipairs(C.ZONES) do
 		local z0 = World.zoneStart(i)
 		local zp = {}
-		zp.floor = part({ Name = "Zone" .. i, Size = Vector3.new(W * 2 + 200, 4, L), Position = Vector3.new(0, -2, z0 + L / 2), Color = zone.ground, Material = (i == 3) and Enum.Material.Sand or (i == 6 and Enum.Material.Snow or Enum.Material.Grass) })
-		-- muros invisibles a los lados del pasillo y bordes visibles
+		zp.floor = part({ Name = "Zone" .. i, Size = Vector3.new(W * 2 + 260, 4, L), Position = Vector3.new(0, -2, z0 + L / 2), Color = zone.ground, Material = Enum.Material.SmoothPlastic })
+		local tex = Instance.new("Texture")
+		tex.Texture = C.VFX.studs
+		tex.Face = Enum.NormalId.Top
+		tex.StudsPerTileU = 4
+		tex.StudsPerTileV = 4
+		tex.Transparency = 0.15
+		tex.Parent = zp.floor
+		-- pista central más clara
+		part({ Name = "Runway", Size = Vector3.new(W * 2, 0.2, L), Position = Vector3.new(0, 0.1, z0 + L / 2), Color = zone.ground:Lerp(Color3.new(1, 1, 1), 0.18), Material = Enum.Material.SmoothPlastic })
+		-- muros: bajos y de color, con franja de neón; colisión invisible alta
 		for _, k in ipairs({ -1, 1 }) do
-			part({ Name = "Wall", Size = Vector3.new(2, 60, L), Position = Vector3.new(k * (W + 1), 30, z0 + L / 2), Transparency = 1 })
-			part({ Name = "Edge", Size = Vector3.new(2, 2, L), Position = Vector3.new(k * (W + 1), 1, z0 + L / 2), Color = zone.accent, Material = Enum.Material.SmoothPlastic })
+			part({ Name = "Wall", Size = Vector3.new(2, 80, L), Position = Vector3.new(k * (W + 3), 40, z0 + L / 2), Transparency = 1 })
+			part({ Name = "WallVisible", Size = Vector3.new(4, 9, L), Position = Vector3.new(k * (W + 3), 4.5, z0 + L / 2), Color = zone.accent, Material = Enum.Material.SmoothPlastic })
+			part({ Name = "WallNeon", Size = Vector3.new(4.4, 0.8, L), Position = Vector3.new(k * (W + 3), 9.2, z0 + L / 2), Color = zone.ground:Lerp(Color3.new(1, 1, 1), 0.35), Material = Enum.Material.Neon })
 		end
-		-- arco de entrada con el requisito de velocidad
-		local archColor = zone.accent
-		part({ Name = "ArchL", Size = Vector3.new(4, 30, 4), Position = Vector3.new(-W, 15, z0), Color = archColor, Material = Enum.Material.Marble })
-		part({ Name = "ArchR", Size = Vector3.new(4, 30, 4), Position = Vector3.new(W, 15, z0), Color = archColor, Material = Enum.Material.Marble })
-		local top = part({ Name = "ArchTop", Size = Vector3.new(W * 2 + 4, 5, 5), Position = Vector3.new(0, 32, z0), Color = archColor, Material = Enum.Material.Marble })
+		-- arco de neón en la entrada de la zona
+		local archColor = zone.ground:Lerp(Color3.new(1, 1, 1), 0.3)
+		for _, k in ipairs({ -1, 1 }) do
+			part({ Name = "ArchPillar", Size = Vector3.new(6, 42, 6), Position = Vector3.new(k * (W + 3), 21, z0), Color = zone.accent, Material = Enum.Material.Marble })
+			part({ Name = "ArchNeon", Size = Vector3.new(1.2, 42, 6.6), Position = Vector3.new(k * (W + 3) - k * 3.2, 21, z0), Color = archColor, Material = Enum.Material.Neon })
+		end
+		part({ Name = "ArchNeonTop", Size = Vector3.new(W * 2 + 12, 1.2, 6.6), Position = Vector3.new(0, 41, z0), Color = archColor, Material = Enum.Material.Neon })
+		local top = part({ Name = "ArchTop", Size = Vector3.new(W * 2 + 12, 6, 6), Position = Vector3.new(0, 44.5, z0), Color = zone.accent, Material = Enum.Material.Marble })
 		zp.sign = billboard(top, "", Color3.new(1, 1, 1), UDim2.fromOffset(520, 110), Vector3.new(0, 8, 0))
 		zp.sign.MaxDistance = 140
 		zp.sign:SetAttribute("Zone", i)
 		CollectionService:AddTag(zp.sign, "Loc")
 		if i > 1 then
-			zp.curtain = part({ Name = "Curtain", Size = Vector3.new(W * 2, 30, 0.6), Position = Vector3.new(0, 15, z0), Color = Color3.fromRGB(255, 80, 80), Material = Enum.Material.ForceField, Transparency = 0.4, CanCollide = false })
+			zp.curtain = part({ Name = "Curtain", Size = Vector3.new(W * 2, 40, 0.6), Position = Vector3.new(0, 20, z0), Color = archColor, Material = Enum.Material.ForceField, Transparency = 0.55, CanCollide = false })
 		end
 		-- puntos donde aparecen los sobres
 		zp.spots = {}
 		for row = 0, 1 do
 			for col = -1, 1 do
-				table.insert(zp.spots, Vector3.new(col * 22, 2.5, z0 + 65 + row * 70))
+				table.insert(zp.spots, Vector3.new(col * 42, 2.5, z0 + 65 + row * 70))
 			end
 		end
 		zp.guardianHome = Vector3.new(0, 0, z0 + L - 25)
@@ -624,6 +676,57 @@ function World.init(g)
 	for k = -3, 3 do
 		part({ Name = "PlazaLine", Size = Vector3.new(76, 0.45, 1), Position = Vector3.new(0, 0.22, k * 28), Color = Color3.fromRGB(230, 190, 80), Material = Enum.Material.SmoothPlastic })
 	end
+	-- Fuente central con agua brillante
+	local F = Vector3.new(0, 0, 68)
+	part({ Name = "FountainBase", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 26, 26), CFrame = CFrame.new(F + Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(235, 225, 205), Material = Enum.Material.Marble })
+	part({ Name = "FountainWater", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 23, 23), CFrame = CFrame.new(F + Vector3.new(0, 2.05, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(90, 200, 255), Material = Enum.Material.Glass, Transparency = 0.25 })
+	part({ Name = "FountainPillar", Shape = Enum.PartType.Cylinder, Size = Vector3.new(8, 3, 3), CFrame = CFrame.new(F + Vector3.new(0, 5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(235, 225, 205), Material = Enum.Material.Marble })
+	local bowl = part({ Name = "FountainBowl", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 10, 10), CFrame = CFrame.new(F + Vector3.new(0, 9, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(240, 200, 90), Material = Enum.Material.Foil })
+	local spray = Instance.new("ParticleEmitter")
+	spray.Texture = G.Config.VFX.sparkle
+	spray.Rate = 60
+	spray.Lifetime = NumberRange.new(1, 1.6)
+	spray.Speed = NumberRange.new(10, 14)
+	spray.SpreadAngle = Vector2.new(18, 18)
+	spray.Acceleration = Vector3.new(0, -22, 0)
+	spray.EmissionDirection = Enum.NormalId.Right
+	spray.LightEmission = 0.8
+	spray.Color = ColorSequence.new(Color3.fromRGB(150, 230, 255), Color3.new(1, 1, 1))
+	spray.Size = NumberSequence.new(0.6, 0.1)
+	spray.Parent = bowl
+	local fl = Instance.new("PointLight")
+	fl.Color = Color3.fromRGB(120, 210, 255)
+	fl.Range = 20
+	fl.Parent = bowl
+	-- Farolillos cálidos a los lados de la plaza
+	for z = -96, 96, 32 do
+		for _, x in ipairs({ -36, 36 }) do
+			part({ Name = "LampPost", Size = Vector3.new(0.8, 10, 0.8), Position = Vector3.new(x, 5, z), Color = Color3.fromRGB(90, 60, 35), Material = Enum.Material.Wood })
+			local lamp = part({ Name = "Lamp", Shape = Enum.PartType.Ball, Size = Vector3.new(2, 2, 2), Position = Vector3.new(x, 10.6, z), Color = Color3.fromRGB(255, 190, 90), Material = Enum.Material.Neon })
+			local pl = Instance.new("PointLight")
+			pl.Color = Color3.fromRGB(255, 170, 80)
+			pl.Range = 22
+			pl.Brightness = 2
+			pl.Shadows = false
+			pl.Parent = lamp
+		end
+	end
+	-- Parterres de flores y árboles alrededor
+	local flowerColors = { Color3.fromRGB(255, 120, 170), Color3.fromRGB(255, 220, 90), Color3.fromRGB(180, 120, 255), Color3.fromRGB(255, 255, 255) }
+	for k = 0, 9 do
+		local a = k / 10 * math.pi * 2
+		local p0 = F + Vector3.new(math.cos(a) * 17, 0.6, math.sin(a) * 17)
+		part({ Name = "Bush", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 2.2, 3), Position = p0, Color = Color3.fromRGB(70, 160, 70), Material = Enum.Material.Grass })
+		part({ Name = "Flower", Shape = Enum.PartType.Ball, Size = Vector3.new(0.9, 0.9, 0.9), Position = p0 + Vector3.new(0, 1.2, 0), Color = flowerColors[k % 4 + 1], Material = Enum.Material.Neon })
+	end
+	for _, x in ipairs({ -118, 118 }) do
+		for z = -120, 100, 36 do
+			part({ Name = "Trunk", Size = Vector3.new(2.5, 14, 2.5), Position = Vector3.new(x, 7, z), Color = Color3.fromRGB(110, 75, 45), Material = Enum.Material.Wood })
+			part({ Name = "Leaves", Shape = Enum.PartType.Ball, Size = Vector3.new(14, 12, 14), Position = Vector3.new(x, 17, z), Color = Color3.fromRGB(90, 175, 80), Material = Enum.Material.Grass })
+			part({ Name = "Leaves2", Shape = Enum.PartType.Ball, Size = Vector3.new(9, 8, 9), Position = Vector3.new(x + 3, 22, z - 2), Color = Color3.fromRGB(120, 195, 90), Material = Enum.Material.Grass })
+		end
+	end
+
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(12, 1, 12)

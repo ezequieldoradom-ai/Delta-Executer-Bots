@@ -179,42 +179,42 @@ Config.INDEX_REWARDS = {
 ---------------------------------------------------------------------
 Config.ZONE_LENGTH = 200
 Config.CORRIDOR_START = 110 -- Z donde empieza el pasillo
-Config.CORRIDOR_HALF_WIDTH = 36
+Config.CORRIDOR_HALF_WIDTH = 70
 Config.PACKS_PER_ZONE = 6
 Config.ZONES = {
 	{
 		es = "Arcadia griega", en = "Greek Arcadia", req = 0,
-		ground = Color3.fromRGB(110, 170, 80), accent = Color3.fromRGB(240, 235, 220),
+		ground = Color3.fromRGB(110, 205, 85), accent = Color3.fromRGB(250, 244, 228), tint = Color3.fromRGB(255, 238, 210), atmo = Color3.fromRGB(255, 220, 170),
 		guardian = { es = "Minotauro", en = "Minotaur", kind = "minotaur", color = Color3.fromRGB(120, 70, 40), speed = 30 },
 		weights = { [1] = 70, [2] = 25, [3] = 4.5, [4] = 0.5 },
 	},
 	{
 		es = "Bosque celta", en = "Celtic Forest", req = 1e3,
-		ground = Color3.fromRGB(50, 110, 60), accent = Color3.fromRGB(90, 70, 50),
+		ground = Color3.fromRGB(40, 175, 115), accent = Color3.fromRGB(130, 95, 60), tint = Color3.fromRGB(215, 255, 225), atmo = Color3.fromRGB(150, 230, 180),
 		guardian = { es = "Dullahan", en = "Dullahan", kind = "dullahan", color = Color3.fromRGB(30, 35, 45), speed = 2e4 },
 		weights = { [1] = 30, [2] = 45, [3] = 20, [4] = 4.5, [5] = 0.5 },
 	},
 	{
 		es = "Desierto de Egipto", en = "Egyptian Desert", req = 5e4,
-		ground = Color3.fromRGB(220, 185, 120), accent = Color3.fromRGB(200, 160, 60),
+		ground = Color3.fromRGB(250, 205, 95), accent = Color3.fromRGB(235, 170, 60), tint = Color3.fromRGB(255, 225, 180), atmo = Color3.fromRGB(255, 190, 120),
 		guardian = { es = "Esfinge", en = "Sphinx", kind = "sphinx", color = Color3.fromRGB(205, 165, 95), speed = 1.5e5 },
 		weights = { [2] = 30, [3] = 45, [4] = 20, [5] = 4.5, [6] = 0.5 },
 	},
 	{
 		es = "Selva azteca", en = "Aztec Jungle", req = 2e6,
-		ground = Color3.fromRGB(40, 120, 70), accent = Color3.fromRGB(120, 120, 110),
+		ground = Color3.fromRGB(245, 140, 60), accent = Color3.fromRGB(60, 175, 145), tint = Color3.fromRGB(255, 220, 200), atmo = Color3.fromRGB(255, 160, 110),
 		guardian = { es = "Jaguar guerrero", en = "Jaguar Warrior", kind = "jaguar", color = Color3.fromRGB(230, 160, 40), speed = 6e6 },
 		weights = { [3] = 30, [4] = 45, [5] = 20, [6] = 4.5, [7] = 0.5 },
 	},
 	{
 		es = "Babilonia", en = "Babylon", req = 1e8,
-		ground = Color3.fromRGB(190, 150, 100), accent = Color3.fromRGB(40, 80, 170),
+		ground = Color3.fromRGB(60, 115, 230), accent = Color3.fromRGB(245, 205, 80), tint = Color3.fromRGB(210, 220, 255), atmo = Color3.fromRGB(150, 170, 255),
 		guardian = { es = "Lamassu", en = "Lamassu", kind = "lamassu", color = Color3.fromRGB(180, 170, 150), speed = 3e8 },
 		weights = { [4] = 30, [5] = 45, [6] = 20, [7] = 4.5, [8] = 0.5 },
 	},
 	{
 		es = "Fiordos nórdicos", en = "Norse Fjords", req = 5e9,
-		ground = Color3.fromRGB(200, 215, 230), accent = Color3.fromRGB(80, 100, 130),
+		ground = Color3.fromRGB(45, 35, 120), accent = Color3.fromRGB(150, 220, 255), tint = Color3.fromRGB(200, 190, 255), atmo = Color3.fromRGB(120, 90, 220), cosmic = true,
 		guardian = { es = "Fenrir", en = "Fenrir", kind = "fenrir", color = Color3.fromRGB(70, 75, 90), speed = 1.5e10 },
 		weights = { [5] = 30, [6] = 45, [7] = 20, [8] = 4.4, [9] = 0.6 },
 	},
@@ -370,6 +370,8 @@ Config.VFX = {
 	smoke = "rbxassetid://72641413375480",
 	sparkle = "rbxassetid://109708405214367",
 	streak = "rbxassetid://95678528492429",
+	studs = "rbxassetid://131282324801126",
+	planks = "rbxassetid://132280466948067",
 }
 
 return Config

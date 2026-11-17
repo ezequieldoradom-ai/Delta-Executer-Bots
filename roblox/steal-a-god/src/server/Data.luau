@@ -35,6 +35,7 @@ local function defaults()
 		auras = {}, -- [auraId] = true
 		aura = nil,
 		weapon = "bat",
+		settings = { sfx = true, particles = true, shake = true, othersAuras = true, ui = 2 },
 		savedAt = os.time(),
 	}
 end

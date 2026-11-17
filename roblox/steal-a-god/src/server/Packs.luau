@@ -566,6 +566,7 @@ function Packs.openAltar(player, i)
 	table.remove(d.altarPacks, i)
 	local god = rollGod(p.r, p.dawn)
 	local kg = p.kg or 100
+	G.Avatars.make(god)
 	local isNew = G.Core.addGod(player, god, kg)
 	-- estallido de luz y partículas en el altar
 	local s = G.Core.sessions[player]
@@ -665,13 +666,20 @@ local function guardianStep(guard, dt)
 	end
 	local flat = Vector3.new(goal.X - pos.X, 0, goal.Z - pos.Z)
 	local dist = flat.Magnitude
+	local isAvatar = model:GetAttribute("Avatar")
 	if dist < 0.5 then
+		if isAvatar then
+			G.Avatars.play(model, "idle")
+		end
 		return
+	end
+	if isAvatar then
+		G.Avatars.play(model, target and "run" or "walk", target and 1.4 or 1)
 	end
 	local step = math.min(dist, speed * dt)
 	local newPos = Vector3.new(pos.X, guard.height, pos.Z) + flat.Unit * step
 	local bob = target and math.abs(math.sin(os.clock() * 10)) * 0.8 or 0
-	if model:GetAttribute("Animated") then
+	if model:GetAttribute("Animated") or isAvatar then
 		bob = 0
 	end
 	model:PivotTo(CFrame.lookAt(newPos + Vector3.new(0, bob, 0), newPos + flat.Unit + Vector3.new(0, bob, 0)))

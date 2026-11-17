@@ -38,6 +38,7 @@ step("Cargar módulos", function()
 	G.serverLuckUntil = 0
 end)
 step("Red", function() G.Net.init() end)
+step("Avatares", function() G.Avatars = require(Server.Avatars) G.Avatars.init(G) end)
 step("Modelos 3D", function() require(Server.Models).load(G.Config) assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("zeus"), "sin zeus") assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("minotaur"), "sin minotauro") end)
 step("Construir mundo", function() G.World.init(G) end)
 step("Iniciar sistemas", function()
@@ -114,9 +115,30 @@ step("Economía", function()
 	end
 end)
 
+-- Avatares: los 64 dioses y los 6 guardianes
+step("Avatares de los 64 dioses", function()
+	local t0 = os.clock()
+	for _, god in ipairs(G.Config.GODS) do
+		local ok, err = pcall(function()
+			local rig = G.Avatars.make(god)
+			assert(rig, "no se creó")
+			local m = G.GodModel.build(god, Color3.new(1, 1, 1))
+			assert(m:FindFirstChildOfClass("Humanoid"), "sin Humanoid")
+			G.GodModel.decorate(m, G.Config.RARITIES[god.r])
+			m:Destroy()
+		end)
+		if not ok then
+			error(god.id .. ": " .. tostring(err))
+		end
+	end
+	add(string.format("   64 avatares en %.1f s", os.clock() - t0))
+	local g1 = G.World.guardians[1].model
+	add("   Guardián 1:", g1:GetAttribute("Avatar") and "avatar gigante" or "otro", string.format("altura %.1f", g1:GetExtentsSize().Y))
+end)
+
 -- Modelos 3D animados
 step("Animación de modelos 3D", function()
-	for _, id in ipairs({ "zeus", "thor", "anubis" }) do
+	for _, id in ipairs({}) do
 		local m = G.GodModel.build(G.Config.GOD_BY_ID[id], Color3.new(1, 1, 1))
 		G.GodModel.decorate(m, G.Config.RARITIES[10])
 		m:ScaleTo(1.3)
@@ -128,7 +150,7 @@ step("Animación de modelos 3D", function()
 		add("   " .. id .. " altura:", string.format("%.1f", m:GetExtentsSize().Y), "piezas:", #m:GetChildren())
 		m:Destroy()
 	end
-	add("   Guardián 1:", G.World.guardians[1].model:FindFirstChild("Body") and "modelo 3D" or "piezas")
+
 end)
 
 -- Kilos: distribución

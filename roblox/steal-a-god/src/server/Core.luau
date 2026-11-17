@@ -390,6 +390,19 @@ function actions.claimOffline(player)
 	end
 end
 
+function actions.settings(player, tbl)
+	local d = G.Data.profiles[player]
+	if type(tbl) ~= "table" then
+		return
+	end
+	local s = {}
+	for _, k in ipairs({ "sfx", "particles", "shake", "othersAuras" }) do
+		s[k] = tbl[k] ~= false
+	end
+	s.ui = math.clamp(tonumber(tbl.ui) or 2, 1, 3)
+	d.settings = s
+end
+
 function actions.afk(player, on)
 	Core.setAfk(player, on == true)
 end
@@ -571,6 +584,14 @@ local function onJoin(player)
 		plot.folder:SetAttribute("Owner", player.UserId)
 	end
 	setupLeaderstats(player)
+	task.spawn(function()
+		for id in pairs(d.gods) do
+			local g = C.GOD_BY_ID[id]
+			if g then
+				G.Avatars.make(g)
+			end
+		end
+	end)
 	Core.refreshPlot(player)
 	-- dinero ganado mientras no estabas (50 %, máximo 8 h)
 	local away = G.Data.elapsed[player] or 0
@@ -650,6 +671,7 @@ function Core.sendState(player)
 	end
 	G.Net.State:FireClient(player, {
 		chase = chase,
+		settings = d.settings,
 		offline = s.offline,
 		money = d.money,
 		speed = d.speed,

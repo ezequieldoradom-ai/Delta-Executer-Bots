@@ -21,13 +21,13 @@ end
 local function tweenLight(toNight)
 	local info = TweenInfo.new(2.5, Enum.EasingStyle.Sine)
 	TweenService:Create(Lighting, info, {
-		ClockTime = toNight and 0.5 or 14,
-		Brightness = toNight and 0.6 or 2.5,
-		OutdoorAmbient = toNight and Color3.fromRGB(40, 40, 90) or Color3.fromRGB(140, 130, 150),
+		ClockTime = toNight and 0.5 or 16.3,
+		Brightness = toNight and 0.7 or 3,
+		OutdoorAmbient = toNight and Color3.fromRGB(50, 45, 100) or Color3.fromRGB(175, 145, 125),
 	}):Play()
 	local grade = Lighting:FindFirstChild("Grade")
 	if grade then
-		TweenService:Create(grade, info, { TintColor = toNight and Color3.fromRGB(170, 170, 255) or Color3.fromRGB(255, 244, 230) }):Play()
+		TweenService:Create(grade, info, { TintColor = toNight and Color3.fromRGB(170, 170, 255) or Color3.fromRGB(255, 240, 222) }):Play()
 	end
 	local gate = G.World.nightGate
 	if gate then

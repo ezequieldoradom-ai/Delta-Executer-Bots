@@ -127,7 +127,21 @@ local SFX = {
 	whoosh = sound("rbxasset://sounds/swordslash.wav", 0.5, 0.8),
 	reward = sound("rbxasset://sounds/electronicpingshort.wav", 0.6, 0.8),
 }
+local function opt(key)
+	local st = state.settings
+	if not st then
+		return key ~= "ui" and true or 2
+	end
+	if key == "ui" then
+		return st.ui or 2
+	end
+	return st[key] ~= false
+end
+
 local function play(name, pitch)
+	if not opt("sfx") then
+		return
+	end
 	local s = SFX[name]
 	if s then
 		s.PlaybackSpeed = pitch or s.PlaybackSpeed
@@ -245,7 +259,7 @@ local function godViewport(parent, god, size, pos, z)
 	model.Parent = vp
 	local cam = new("Camera", { FieldOfView = 32, Parent = vp })
 	vp.CurrentCamera = cam
-	local h = 7 * ((god.id == "ymir") and 1.25 or 1)
+	local h = math.max(4, model:GetExtentsSize().Y + 0.5)
 	cam.CFrame = CFrame.lookAt(Vector3.new(0, h * 0.55, -h * 2.2), Vector3.new(0, h * 0.5, 0))
 	return vp, model
 end
@@ -258,7 +272,8 @@ local uiScale = new("UIScale", { Parent = gui })
 local function updateScale()
 	local cam = workspace.CurrentCamera
 	local h = cam and cam.ViewportSize.Y or 720
-	uiScale.Scale = math.clamp(h / 760, 0.5, 1)
+	local mult = ({ 0.82, 1, 1.18 })[(state and state.settings and state.settings.ui) or 2]
+	uiScale.Scale = math.clamp(h / 760, 0.5, 1) * mult
 end
 updateScale()
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
@@ -435,7 +450,7 @@ local function openPanel(name, title, list, color)
 		return
 	end
 	currentPanel = name
-	currentTab = list and list[1].id or nil
+	currentTab = list and list[1] and list[1].id or nil
 	panelTitle.Text = title
 	panelStroke.Color = color or GOLD
 	setTabs(list or {})
@@ -742,12 +757,128 @@ end)
 sideButton(1, "🛒", t("shop"), Color3.fromRGB(255, 80, 60), function()
 	openPanel("shop", "🛒 " .. t("shop"), { { id = "up", text = t("upgrades") }, { id = "coach", text = t("coaches") }, { id = "aura", text = t("auras") } }, CYAN)
 end)
+signatures.settings = function()
+	local st = state.settings or {}
+	return string.format("%s%s%s%s%s", tostring(st.sfx), tostring(st.particles), tostring(st.shake), tostring(st.othersAuras), tostring(st.ui))
+end
+renderers.settings = function()
+	listLayout()
+	local st = state.settings or { sfx = true, particles = true, shake = true, othersAuras = true, ui = 2 }
+	local function send(key, value)
+		local copy = {}
+		for k, v in pairs(st) do
+			copy[k] = v
+		end
+		copy[key] = value
+		state.settings = copy
+		Action:FireServer("settings", copy)
+		updateScale()
+		render(true)
+	end
+	local rows = {
+		{ "🔊", "sfx", t("sfx") },
+		{ "✨", "particles", t("particlesOpt") },
+		{ "📳", "shake", t("shakeOpt") },
+		{ "🌀", "othersAuras", t("othersAuras") },
+	}
+	for i, r in ipairs(rows) do
+		local on = st[r[2]] ~= false
+		row(i, r[1], r[3], "", on and t("on") or t("off"), on and GREEN or Color3.fromRGB(255, 80, 100), true, function()
+			send(r[2], not on)
+		end, on and GREEN or Color3.fromRGB(255, 80, 100))
+	end
+	local sizes = { t("small"), t("normal"), t("big") }
+	local ui = st.ui or 2
+	row(10, "🔠", t("uiSize"), sizes[ui], sizes[ui % 3 + 1] .. " →", CYAN, true, function()
+		send("ui", ui % 3 + 1)
+	end, CYAN)
+	local pad = UserInputService.GamepadEnabled
+	sectionTitle(20, "🎮 " .. t("controls"), GOLD)
+	local lines = pad and {
+		"R2 / X · " .. t("tap"), "L2 · " .. t("dropPack"), "Y · " .. t("shop"), "↑ · " .. t("index"), "← · " .. t("afk"), "→ · " .. t("settings"), "B · " .. t("close"),
+	} or {
+		"E · " .. t("tap"), "Q · " .. t("dropPack"), "B · " .. t("shop"), "I · " .. t("index"), "F · " .. t("afk"), "G · " .. t("settings"), "X · " .. t("close"),
+	}
+	for i, l in ipairs(lines) do
+		label({ Parent = content, LayoutOrder = 20 + i, Size = UDim2.new(1, -14, 0, 26), Font = BTN, TextXAlignment = Enum.TextXAlignment.Left, Text = "   " .. l, ZIndex = 11 })
+	end
+end
+
 sideButton(3, "💎", t("robux"), GREEN, function()
 	openPanel("robux", "💎 Robux", { { id = "passes", text = t("passes") }, { id = "products", text = t("products") } }, GREEN)
 end)
 local afkButton = sideButton(4, "💤", t("afk"), PURPLE, function()
 	Action:FireServer("afk", not state.afk)
 end)
+local function openSettings()
+	openPanel("settings", "⚙️ " .. t("settings"), nil, Color3.fromRGB(200, 200, 220))
+end
+sideButton(5, "⚙️", t("settings"), Color3.fromRGB(150, 150, 175), openSettings)
+
+---------------------------------------------------------------------
+-- Controles de PC (teclado) y consola (mando de PS5/Xbox)
+---------------------------------------------------------------------
+local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
+local actionsMap = {}
+local function bind(name, fn, ...)
+	actionsMap[name] = fn
+	ContextActionService:BindAction(name, function(_, inputState)
+		if inputState == Enum.UserInputState.Begin then
+			fn()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, ...)
+end
+local function openShop()
+	openPanel("shop", "🛒 " .. t("shop"), { { id = "up", text = t("upgrades") }, { id = "coach", text = t("coaches") }, { id = "aura", text = t("auras") } }, CYAN)
+end
+local function openIndex()
+	openPanel("index", "📖 " .. t("indexTitle"), { { id = "gods", text = t("index") }, { id = "rewards", text = "🎁" }, { id = "odds", text = "🎲 " .. t("odds") } }, GOLD)
+end
+local function focusPanel()
+	if UserInputService.GamepadEnabled and panel.Visible then
+		task.defer(function()
+			for _, c in ipairs(content:GetDescendants()) do
+				if c:IsA("GuiButton") and c.Visible then
+					GuiService.SelectedObject = c
+					return
+				end
+			end
+		end)
+	end
+end
+bind("SAG_Tap", function()
+	if tread.Visible then
+		doTap()
+	end
+end, Enum.KeyCode.E, Enum.KeyCode.ButtonR2, Enum.KeyCode.ButtonX)
+bind("SAG_Drop", function()
+	if state.carrying then
+		Action:FireServer("dropPack")
+	end
+end, Enum.KeyCode.Q, Enum.KeyCode.ButtonL2)
+bind("SAG_Shop", function()
+	openShop()
+	focusPanel()
+end, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
+bind("SAG_Index", function()
+	openIndex()
+	focusPanel()
+end, Enum.KeyCode.I, Enum.KeyCode.DPadUp)
+bind("SAG_AFK", function()
+	Action:FireServer("afk", not state.afk)
+end, Enum.KeyCode.F, Enum.KeyCode.DPadLeft)
+bind("SAG_Settings", function()
+	openSettings()
+	focusPanel()
+end, Enum.KeyCode.G, Enum.KeyCode.DPadRight)
+bind("SAG_Close", function()
+	if panel.Visible then
+		closePanel()
+		GuiService.SelectedObject = nil
+	end
+end, Enum.KeyCode.X, Enum.KeyCode.ButtonB)
 
 ---------------------------------------------------------------------
 -- Minijuego de la cinta (combo)
@@ -762,7 +893,7 @@ local bar = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -40, 0,
 local target = new("Frame", { BackgroundColor3 = GREEN, Size = UDim2.new(0.18, 0, 1, 0), Parent = bar }, { corner(14), stroke(WHITE, 2, 0.4) })
 local marker = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(0, 10, 1, 12), Position = UDim2.new(0, 0, 0, -6), Parent = bar }, { corner(5), stroke(DARK, 2) })
 local targetCenter, targetWidth = 0.5, 0.18
-local tapButton = button({ Parent = tread, Text = t("tap"), Size = UDim2.new(1, -40, 0, 60), Position = UDim2.fromOffset(20, 84), Color = CYAN })
+local tapButton = button({ Parent = tread, Text = t("tap") .. (UserInputService.KeyboardEnabled and not UserInputService.TouchEnabled and "  [E]" or (UserInputService.GamepadEnabled and "  (R2)" or "")), Size = UDim2.new(1, -40, 0, 60), Position = UDim2.fromOffset(20, 84), Color = CYAN })
 tapButton.Font = TITLE
 local Combo = Remotes:WaitForChild("Combo")
 local function markerPos()
@@ -779,7 +910,7 @@ local function floatText(text, color, parent, pos)
 		l:Destroy()
 	end)
 end
-tapButton.Activated:Connect(function()
+local function doTap()
 	local m = markerPos()
 	if math.abs(m - targetCenter) <= targetWidth / 2 + 0.02 then
 		Combo:FireServer()
@@ -795,7 +926,8 @@ tapButton.Activated:Connect(function()
 		bump(tread, 0.95)
 		floatText("MISS", Color3.fromRGB(255, 90, 100), tread, UDim2.new(0.5, -100, 0, -10))
 	end
-end)
+end
+tapButton.Activated:Connect(doTap)
 
 ---------------------------------------------------------------------
 -- Apertura de sobres: rayos, temblor, destello, explosión y carta 3D
@@ -840,6 +972,9 @@ local spinModel = nil
 local queueReveal = {}
 
 local function shake(power, duration)
+	if not opt("shake") then
+		return
+	end
 	local cam = workspace.CurrentCamera
 	local t0 = os.clock()
 	local conn
@@ -1172,7 +1307,7 @@ RunService.RenderStepped:Connect(function(dt)
 		g.Rotation = 90 + math.sin(now * 0.8 + i) * 25
 	end
 	if spinModel and spinModel.Parent then
-		spinModel:PivotTo(CFrame.Angles(0, now * 1.2, 0))
+		spinModel:PivotTo(CFrame.new(0, spinModel:GetAttribute("PivotH") or 0, 0) * CFrame.Angles(0, now * 1.2, 0))
 	end
 	if reveal.Visible then
 		rays.Rotation += dt * 25
@@ -1229,8 +1364,19 @@ end
 local zoneTitle = heavy({ Parent = gui, Size = UDim2.fromOffset(800, 80), Position = UDim2.fromScale(0.5, 0.3), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 14, StrokeThickness = 5 })
 local zoneSub = heavy({ Parent = zoneTitle, Size = UDim2.new(1, 0, 0, 30), Position = UDim2.new(0, 0, 1, 0), TextColor3 = CYAN, ZIndex = 14 })
 local zoneToken = 0
+local zoneGrade = new("ColorCorrectionEffect", { Name = "ZoneGrade", Parent = game:GetService("Lighting") })
+local function zoneMood(zi)
+	local zone = Config.ZONES[zi]
+	local atm = game:GetService("Lighting"):FindFirstChildOfClass("Atmosphere")
+	local info = TweenInfo.new(1.5, Enum.EasingStyle.Sine)
+	TweenService:Create(zoneGrade, info, { TintColor = zone and zone.tint or WHITE, Saturation = zone and 0.12 or 0 }):Play()
+	if atm then
+		TweenService:Create(atm, info, { Color = zone and zone.atmo or Color3.fromRGB(255, 215, 170), Density = zone and (zone.cosmic and 0.45 or 0.32) or 0.28 }):Play()
+	end
+end
 local function showZone(zi)
 	local zone = Config.ZONES[zi]
+	zoneMood(zi)
 	zoneToken += 1
 	local my = zoneToken
 	zoneTitle.Text = string.upper(Locale.name(zone))
@@ -1291,6 +1437,43 @@ end)
 -- Los dioses pasean libremente por cada parcela (solo visual, en tu pantalla)
 ---------------------------------------------------------------------
 local walkers = {}
+local ANIM = { idle = "rbxassetid://507766666", walk = "rbxassetid://507777826" }
+local animSets = setmetatable({}, { __mode = "k" })
+local function playAnim(model, name, speed)
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	local animator = hum and hum:FindFirstChildOfClass("Animator")
+	if not animator then
+		return
+	end
+	local set = animSets[model]
+	if not set then
+		set = {}
+		animSets[model] = set
+	end
+	if set.current == name then
+		return
+	end
+	if set.current and set[set.current] then
+		set[set.current]:Stop(0.25)
+	end
+	if not set[name] then
+		local a = Instance.new("Animation")
+		a.AnimationId = ANIM[name]
+		local ok, track = pcall(function()
+			return animator:LoadAnimation(a)
+		end)
+		if not ok then
+			return
+		end
+		track.Looped = true
+		set[name] = track
+	end
+	set[name]:Play(0.25)
+	if speed then
+		set[name]:AdjustSpeed(speed)
+	end
+	set.current = name
+end
 local function plotFolders()
 	local w = workspace:FindFirstChild("World")
 	local list = {}
@@ -1352,6 +1535,10 @@ RunService.Heartbeat:Connect(function(dt)
 					local bob = moving and math.abs(math.sin(now * 9 + st.phase)) * 0.35 or math.sin(now * 2 + st.phase) * 0.08
 					local tilt = moving and math.sin(now * 9 + st.phase) * 0.08 or 0
 					local animated = m:GetAttribute("Animated")
+					if m:GetAttribute("Avatar") then
+						bob, tilt = 0, 0
+						playAnim(m, moving and "walk" or "idle", moving and st.speed / 5 or 1)
+					end
 					if animated then
 						bob, tilt = moving and math.abs(math.sin(now * 9 + st.phase)) * 0.12 or 0, 0
 					end
@@ -1361,7 +1548,8 @@ RunService.Heartbeat:Connect(function(dt)
 					end
 					local runes = m:FindFirstChild("Runes")
 					if runes then
-						runes.CFrame = m:GetPivot() * CFrame.new(0, 0.04 - bob, 0) * CFrame.Angles(0, now * 0.8, 0)
+						st.runeY = st.runeY or (m:GetPivot():ToObjectSpace(runes.CFrame).Y - bob)
+						runes.CFrame = m:GetPivot() * CFrame.new(0, st.runeY - bob, 0) * CFrame.Angles(0, now * 0.8, 0)
 					end
 				end
 			end
@@ -1429,6 +1617,36 @@ player.CharacterAdded:Connect(function()
 end)
 
 ---------------------------------------------------------------------
+-- Ajuste de partículas (gráficos bajos) y auras de otros jugadores
+---------------------------------------------------------------------
+local hidden = setmetatable({}, { __mode = "k" })
+task.spawn(function()
+	while true do
+		task.wait(2)
+		local partsOn = opt("particles")
+		local aurasOn = opt("othersAuras")
+		for _, e in ipairs(workspace:GetDescendants()) do
+			if e:IsA("ParticleEmitter") or e:IsA("Fire") then
+				local isOtherAura = false
+				local att = e.Parent
+				if att and att.Name == "AuraFX" then
+					local char = att:FindFirstAncestorOfClass("Model")
+					isOtherAura = char ~= nil and char ~= player.Character and Players:GetPlayerFromCharacter(char) ~= nil
+				end
+				local want = partsOn and (aurasOn or not isOtherAura)
+				if not want and e.Enabled then
+					hidden[e] = true
+					e.Enabled = false
+				elseif want and hidden[e] then
+					hidden[e] = nil
+					e.Enabled = true
+				end
+			end
+		end
+	end
+end)
+
+---------------------------------------------------------------------
 -- Actualización de la interfaz (10 veces por segundo)
 ---------------------------------------------------------------------
 task.spawn(function()
@@ -1455,6 +1673,8 @@ task.spawn(function()
 		if z ~= lastZone then
 			if z > 0 then
 				showZone(z)
+			else
+				zoneMood(0)
 			end
 			lastZone = z
 		end

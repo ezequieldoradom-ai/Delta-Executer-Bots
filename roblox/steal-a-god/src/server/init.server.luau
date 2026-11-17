@@ -21,6 +21,8 @@ local G = {
 
 G.Net.init()
 require(script.Models).load(G.Config)
+G.Avatars = require(script.Avatars)
+G.Avatars.init(G)
 G.World.init(G)
 G.DayNight.init(G)
 G.Combat.init(G)

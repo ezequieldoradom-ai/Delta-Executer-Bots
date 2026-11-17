@@ -80,6 +80,13 @@ local LOOKS = {
 	ometeotl = { wings = rgb(255, 255, 255), glowColor = rgb(255, 255, 255), hat = "feathers" },
 	ouroboros = { head = "serpent", item = "ring", glowColor = rgb(140, 100, 255), stars = true },
 	unknown = { silhouette = true },
+	-- Guardianes (avatares gigantes)
+	g_minotaur = { head = "bull", skin = rgb(115, 64, 38), chest = rgb(115, 64, 38), legs = rgb(115, 64, 38), robe = rgb(130, 40, 35), trim = rgb(220, 170, 60), item = "axe", hat = "none", bulk = 1.4, eyes = rgb(255, 60, 40) },
+	g_dullahan = { head = "none", skin = rgb(40, 45, 55), chest = rgb(70, 75, 90), legs = rgb(35, 38, 48), robe = rgb(25, 25, 32), trim = rgb(90, 255, 140), item = "scythe", hat = "none", glowColor = rgb(110, 255, 140), wings = rgb(20, 20, 28) },
+	g_sphinx = { head = "lion", skin = rgb(215, 170, 95), chest = rgb(215, 170, 95), legs = rgb(215, 170, 95), robe = rgb(40, 80, 190), trim = rgb(245, 195, 50), hair = rgb(150, 95, 40), hat = "nemes", item = "staff", eyes = rgb(80, 220, 255) },
+	g_jaguar = { head = "cat", skin = rgb(235, 165, 45), chest = rgb(235, 165, 45), legs = rgb(235, 165, 45), robe = rgb(30, 150, 130), trim = rgb(210, 50, 40), hat = "feathers", item = "sword", eyes = rgb(120, 255, 120) },
+	g_lamassu = { skin = rgb(195, 145, 105), chest = rgb(40, 70, 165), legs = rgb(40, 70, 165), robe = rgb(40, 70, 165), trim = rgb(245, 195, 70), hat = "tallcrown", beard = true, hair = rgb(30, 22, 18), wings = rgb(240, 210, 140), item = "spear" },
+	g_fenrir = { head = "wolf", skin = rgb(95, 100, 115), chest = rgb(95, 100, 115), legs = rgb(95, 100, 115), robe = rgb(60, 62, 75), trim = rgb(180, 185, 200), hat = "none", eyes = rgb(120, 220, 255), glowColor = rgb(120, 220, 255) },
 }
 
 local function mk(model, name, size, cf, color, material, shape)
@@ -103,6 +110,9 @@ local function mk(model, name, size, cf, color, material, shape)
 end
 
 local function lookFor(god)
+	return GodModel._lookFor(god)
+end
+function GodModel._lookFor(god)
 	local base = MYTH_STYLE[god.myth] or MYTH_STYLE.greek
 	local look = {}
 	for k, v in pairs(base) do
@@ -150,14 +160,29 @@ function GodModel.animate(model, phase, amp)
 	end
 end
 
--- Devuelve un Model con la base en (0,0,0) mirando hacia -Z
+GodModel.look = function(god)
+	return lookFor(god)
+end
+GodModel.avatarBuilder = nil -- lo pone el servidor (Avatars.luau)
+
+-- Devuelve el modelo del dios: avatar de Roblox si existe, si no, figura de piezas
 function GodModel.build(god, rarityColor)
-	local t = template(god.id)
+	local RS = game:GetService("ReplicatedStorage")
+	local folder = RS:FindFirstChild("AvatarTemplates")
+	local t = folder and folder:FindFirstChild(god.id)
+	if not t and GodModel.avatarBuilder then
+		t = GodModel.avatarBuilder(god)
+	end
 	if t then
 		local m = t:Clone()
 		m.Name = god.id
 		return m
 	end
+	return GodModel.buildParts(god, rarityColor)
+end
+
+-- Figura hecha con piezas (fuente de los accesorios de los avatares)
+function GodModel.buildParts(god, rarityColor)
 	local L = lookFor(god)
 	local S = L.scale or 1
 	local m = Instance.new("Model")
@@ -219,9 +244,38 @@ function GodModel.build(god, rarityColor)
 	else
 		-- cabezas de animal
 		local hc = col(L.skin)
-		mk(m, "Head", v(1.3, 1.3, 1.3), at(0, headY, 0), hc)
-		mk(m, "EyeL", v(0.2, 0.2, 0.1), at(-0.32, headY + 0.15, -0.66), rgb(255, 230, 90), Enum.Material.Neon)
-		mk(m, "EyeR", v(0.2, 0.2, 0.1), at(0.32, headY + 0.15, -0.66), rgb(255, 230, 90), Enum.Material.Neon)
+		if L.head == "none" then
+			local f = mk(m, "FlameHead", v(1.2, 1.2, 1.2), at(0, headY, 0), L.glowColor or rgb(120, 255, 140), Enum.Material.Neon, Enum.PartType.Ball)
+			local fire = Instance.new("Fire")
+			fire.Color = L.glowColor or rgb(120, 255, 140)
+			fire.SecondaryColor = rgb(20, 80, 30)
+			fire.Size = 4
+			fire.Parent = f
+		else
+			mk(m, "Head", v(1.3, 1.3, 1.3), at(0, headY, 0), hc)
+			mk(m, "EyeL", v(0.2, 0.2, 0.1), at(-0.32, headY + 0.15, -0.66), L.eyes or rgb(255, 230, 90), Enum.Material.Neon)
+			mk(m, "EyeR", v(0.2, 0.2, 0.1), at(0.32, headY + 0.15, -0.66), L.eyes or rgb(255, 230, 90), Enum.Material.Neon)
+		end
+		if L.head == "bull" then
+			mk(m, "Snout", v(0.95, 0.65, 0.6), at(0, headY - 0.3, -0.8), rgb(160, 110, 90))
+			mk(m, "NoseRing", v(0.5, 0.08, 0.5), at(0, headY - 0.55, -1.05), rgb(240, 200, 70), Enum.Material.Neon)
+			mk(m, "HornL", v(1.1, 0.25, 0.25), at(-0.95, headY + 0.6, 0) * CFrame.Angles(0, 0, math.rad(-35)), rgb(240, 230, 210))
+			mk(m, "HornR", v(1.1, 0.25, 0.25), at(0.95, headY + 0.6, 0) * CFrame.Angles(0, 0, math.rad(35)), rgb(240, 230, 210))
+			mk(m, "HornTipL", v(0.2, 0.6, 0.2), at(-1.4, headY + 1.05, 0), rgb(240, 230, 210))
+			mk(m, "HornTipR", v(0.2, 0.6, 0.2), at(1.4, headY + 1.05, 0), rgb(240, 230, 210))
+		elseif L.head == "wolf" then
+			mk(m, "Snout", v(0.6, 0.5, 1.2), at(0, headY - 0.25, -1.0), hc)
+			mk(m, "Nose", v(0.25, 0.2, 0.15), at(0, headY - 0.1, -1.6), rgb(20, 20, 20))
+			mk(m, "EarL", v(0.35, 0.8, 0.2), at(-0.42, headY + 0.85, 0.1) * CFrame.Angles(0, 0, math.rad(12)), hc)
+			mk(m, "EarR", v(0.35, 0.8, 0.2), at(0.42, headY + 0.85, 0.1) * CFrame.Angles(0, 0, math.rad(-12)), hc)
+			mk(m, "Fangs", v(0.5, 0.15, 0.2), at(0, headY - 0.55, -1.3), rgb(250, 250, 240))
+		elseif L.head == "lion" then
+			mk(m, "Snout", v(0.7, 0.45, 0.4), at(0, headY - 0.25, -0.75), rgb(235, 200, 140))
+			for k = 0, 9 do
+				local a = k / 10 * math.pi * 2
+				mk(m, "Mane", v(0.6, 0.6, 0.6), at(math.cos(a) * 0.85, headY + math.sin(a) * 0.85, 0.25), L.hair or rgb(150, 90, 40), Enum.Material.Fabric, Enum.PartType.Ball)
+			end
+		end
 		if L.head == "cat" then
 			mk(m, "Snout", v(0.6, 0.4, 0.35), at(0, headY - 0.25, -0.75), hc)
 			mk(m, "EarL", v(0.35, 0.6, 0.2), at(-0.42, headY + 0.85, 0), hc)
@@ -367,6 +421,10 @@ function GodModel.build(god, rarityColor)
 		local off = item == "globe" and CFrame.new(-1.2, 3.2, 0.3) or CFrame.new(0, 0.6, -0.2)
 		local c = item == "globe" and rgb(60, 140, 210) or (item == "cloud" and rgb(240, 245, 255) or (L.glowColor or rgb(170, 120, 255)))
 		itemPart("Orb", Vector3.new(size, size, size), off, c, item == "globe" and Enum.Material.SmoothPlastic or Enum.Material.Neon, Enum.PartType.Ball)
+	elseif item == "axe" then
+		itemPart("Shaft", Vector3.new(0.25, 4.6, 0.25), CFrame.new(0, 1.2, 0), rgb(90, 60, 40), Enum.Material.Wood)
+		itemPart("AxeBlade", Vector3.new(2.2, 1.5, 0.2), CFrame.new(0, 3.2, 0), rgb(185, 190, 200), Enum.Material.Metal)
+		itemPart("AxeEdge", Vector3.new(2.4, 0.2, 0.25), CFrame.new(0, 3.95, 0), rgb(235, 240, 250), Enum.Material.Metal)
 	elseif item == "scythe" then
 		itemPart("Shaft", Vector3.new(0.18, 4.4, 0.18), CFrame.new(0, 1.2, 0), rgb(90, 70, 50), Enum.Material.Wood)
 		itemPart("Blade", Vector3.new(1.8, 0.25, 0.1), CFrame.new(-0.8, 3.3, 0) * CFrame.Angles(0, 0, math.rad(-15)), rgb(200, 205, 215), Enum.Material.Metal)
@@ -410,7 +468,8 @@ end
 function GodModel.decorate(model, rarity)
 	local color = rarity.id == 10 and Color3.fromRGB(200, 120, 255) or rarity.color
 	local root = model.PrimaryPart
-	local torso = model:FindFirstChild("Torso") or model:FindFirstChild("Body")
+	local torso = model:FindFirstChild("Torso") or model:FindFirstChild("Body") or model:FindFirstChild("UpperTorso")
+	local feet = root and root.CFrame * CFrame.new(0, -(model:GetAttribute("PivotH") or 0), 0) or nil
 	local VFX = require(script.Parent.Config).VFX
 	if rarity.id >= 2 then
 		local h = Instance.new("Highlight")
@@ -430,7 +489,7 @@ function GodModel.decorate(model, rarity)
 		disc.CanQuery = false
 		disc.Transparency = 1
 		disc.Size = Vector3.new(6, 0.1, 6)
-		disc.CFrame = root.CFrame * CFrame.new(0, 0.02, 0)
+		disc.CFrame = feet * CFrame.new(0, 0.02, 0)
 		local dec = Instance.new("Decal")
 		dec.Face = Enum.NormalId.Top
 		dec.Texture = VFX.runes
@@ -451,7 +510,7 @@ function GodModel.decorate(model, rarity)
 		ring.Color = color
 		ring.Transparency = rarity.id >= 5 and 0.35 or 0.6
 		ring.Size = Vector3.new(0.12, 3.4, 3.4)
-		ring.CFrame = root.CFrame * CFrame.new(0, -0.05, 0) * CFrame.Angles(0, 0, math.rad(90))
+		ring.CFrame = feet * CFrame.new(0, 0.03, 0) * CFrame.Angles(0, 0, math.rad(90))
 		ring.Parent = model
 	end
 	if torso then

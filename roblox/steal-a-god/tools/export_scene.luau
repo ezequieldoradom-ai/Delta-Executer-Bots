@@ -10,6 +10,8 @@ local G = {
 }
 G.Net.init()
 require(Server.Models).load(G.Config)
+G.Avatars = require(Server.Avatars)
+G.Avatars.init(G)
 G.World.init(G)
 G.DayNight.init(G); G.Combat.init(G); G.Packs.init(G); G.Shop.init(G); G.Boards.init(G); G.Core.init(G)
 G.Packs.refreshAll()
