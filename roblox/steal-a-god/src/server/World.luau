@@ -705,6 +705,94 @@ local function buildWall(i, z0, zone, k)
 	return t
 end
 
+-- Muralla recta entre dos puntos (para rodear la zona segura). n = hacia dentro.
+local function wallSegment(A, B, n, t, H)
+	local mid = (A + B) / 2
+	local len = (B - A).Magnitude
+	local out = -n
+	local cf = CFrame.fromMatrix(Vector3.new(mid.X, 0, mid.Z), out, Vector3.yAxis)
+	local function at(x, y, z)
+		return cf * CFrame.new(x, y, z)
+	end
+	local inner = { Enum.NormalId.Left }
+	local body = part({ Name = "RampartBody", Size = Vector3.new(8, H, len), CFrame = at(4, H / 2, 0), Color = t.body, Material = t.bodyMat })
+	skin(body, "ashlar", 14, t.body:Lerp(Color3.new(1, 1, 1), 0.2), 0, { Enum.NormalId.Left, Enum.NormalId.Right })
+	skin(body, "grime", 46, Color3.new(1, 1, 1), 0.3, inner)
+	local plinth = part({ Name = "RampartPlinth", Size = Vector3.new(3, 7, len), CFrame = at(-1.4, 3.5, 0), Color = t.pillar, Material = t.pillarMat })
+	skin(plinth, "ashlar", 7, t.pillar, 0, inner)
+	for _, y in ipairs({ 21.5, H - 10 }) do
+		local band = part({ Name = "RampartBand", Size = Vector3.new(1.4, 1.6, len), CFrame = at(-0.6, y, 0), Color = t.trim, Material = t.trimMat })
+		skin(band, "meander", 1.6, Color3.new(1, 1, 1), 0.1, inner)
+	end
+	part({ Name = "RampartCornice", Size = Vector3.new(11, 2.4, len), CFrame = at(3.5, H + 1.2, 0), Color = t.pillar, Material = t.pillarMat })
+	part({ Name = "RampartNeon", Size = Vector3.new(0.6, 0.8, len), CFrame = at(-2.2, H + 0.4, 0), Color = t.glow, Material = Enum.Material.Neon })
+	for m = 0, math.floor(len / 10) - 1 do
+		part({ Name = "Merlon", Size = Vector3.new(4, 5, 5), CFrame = at(1.5, H + 4.9, -len / 2 + 5 + m * 10), Color = t.body, Material = t.bodyMat })
+	end
+	local count = math.max(1, math.floor(len / 25 + 0.5))
+	local step = len / count
+	for p = 0, count do
+		local z = -len / 2 + p * step
+		local pil = part({ Name = "Pilaster", Size = Vector3.new(3, H - 4, 5), CFrame = at(-1.5, (H - 4) / 2 + 2, z), Color = t.pillar, Material = t.pillarMat })
+		skin(pil, "grime", 20, Color3.new(1, 1, 1), 0.35, inner)
+		part({ Name = "PilasterCap", Size = Vector3.new(4.2, 2.4, 7), CFrame = at(-2, H - 1.5, z), Color = t.trim, Material = t.trimMat })
+		part({ Name = "PilasterBase", Size = Vector3.new(4.2, 3, 7), CFrame = at(-2, 1.5, z), Color = t.trim, Material = t.trimMat })
+		if p < count then
+			local zm = z + step / 2
+			local panel = part({ Name = "RampartPanel", Size = Vector3.new(0.4, 22, step - 9), CFrame = at(-0.1, 33, zm), Color = t.panel, Material = t.bodyMat })
+			skin(panel, "carved", step - 9, t.trim, 0, inner, 22)
+			part({ Name = "RampartEmblem", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 6, 6), CFrame = at(-0.4, 38, zm), Color = t.glow, Material = Enum.Material.Neon, CanCollide = false })
+			part({ Name = "EmblemRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 8, 8), CFrame = at(-0.25, 38, zm), Color = t.trim, Material = t.trimMat, CanCollide = false })
+			if p % 2 == 0 then
+				part({ Name = "Banner", Size = Vector3.new(0.3, 16, 9), CFrame = at(-0.8, 11.5, zm), Color = t.banner, Material = Enum.Material.Fabric, CanCollide = false })
+				part({ Name = "BannerTrim", Size = Vector3.new(0.35, 1.2, 9.6), CFrame = at(-0.85, 19.2, zm), Color = GOLD, Material = Enum.Material.Foil, CanCollide = false })
+				part({ Name = "BannerTip", Size = Vector3.new(0.35, 1.2, 9.6), CFrame = at(-0.85, 4, zm), Color = GOLD, Material = Enum.Material.Foil, CanCollide = false })
+			else
+				torch(at(-2.6, 14, zm).Position, 0, t.glow)
+			end
+		end
+	end
+	-- colisión alta invisible para que nadie salga del mapa
+	part({ Name = "RampartBlock", Size = Vector3.new(4, 120, len), CFrame = at(4, 60, 0), Transparency = 1 })
+end
+
+local function tower(pos, t, H)
+	local base = part({ Name = "Tower", Size = Vector3.new(16, H, 16), Position = pos + Vector3.new(0, H / 2, 0), Color = t.body, Material = t.bodyMat })
+	skin(base, "ashlar", 12, t.body:Lerp(Color3.new(1, 1, 1), 0.2), 0, FACES_SIDES)
+	skin(base, "grime", 30, Color3.new(1, 1, 1), 0.3, FACES_SIDES)
+	for _, y in ipairs({ 6, H * 0.55 }) do
+		local band = part({ Name = "TowerBand", Size = Vector3.new(16.8, 1.8, 16.8), Position = pos + Vector3.new(0, y, 0), Color = t.trim, Material = t.trimMat })
+		skin(band, "meander", 1.8, Color3.new(1, 1, 1), 0.1, FACES_SIDES)
+	end
+	part({ Name = "TowerCrown", Size = Vector3.new(19, 2.4, 19), Position = pos + Vector3.new(0, H + 1.2, 0), Color = t.pillar, Material = t.pillarMat })
+	for _, o in ipairs({ { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 }, { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } }) do
+		part({ Name = "Merlon", Size = Vector3.new(4, 5, 4), Position = pos + Vector3.new(o[1] * 7.5, H + 4.9, o[2] * 7.5), Color = t.body, Material = t.bodyMat })
+	end
+	local glowWin = part({ Name = "TowerWindow", Size = Vector3.new(16.4, 6, 2.4), Position = pos + Vector3.new(0, H * 0.75, 0), Color = t.glow, Material = Enum.Material.Neon })
+	glowWin.Size = Vector3.new(16.2, 5, 2.4)
+	part({ Name = "TowerWindow", Size = Vector3.new(2.4, 5, 16.2), Position = pos + Vector3.new(0, H * 0.75, 0), Color = t.glow, Material = Enum.Material.Neon })
+	brazier(pos + Vector3.new(0, H + 2.4, 0), nil, nil, 1.4)
+end
+
+-- Muralla que rodea la zona segura y se une a la del pasillo
+local function buildRamparts()
+	local t = WALL_THEMES[1]
+	local H = WALL_H
+	local X, ZB, ZF = 128, -138, G.Config.CORRIDOR_START
+	local CW = G.Config.CORRIDOR_HALF_WIDTH + 9
+	wallSegment(Vector3.new(-X, 0, ZB), Vector3.new(X, 0, ZB), Vector3.new(0, 0, 1), t, H) -- fondo
+	wallSegment(Vector3.new(-X, 0, ZB), Vector3.new(-X, 0, ZF), Vector3.new(1, 0, 0), t, H) -- izquierda
+	wallSegment(Vector3.new(X, 0, ZB), Vector3.new(X, 0, ZF), Vector3.new(-1, 0, 0), t, H) -- derecha
+	wallSegment(Vector3.new(-X, 0, ZF), Vector3.new(-CW, 0, ZF), Vector3.new(0, 0, -1), t, H) -- frente izquierda
+	wallSegment(Vector3.new(CW, 0, ZF), Vector3.new(X, 0, ZF), Vector3.new(0, 0, -1), t, H) -- frente derecha
+	for _, c in ipairs({ { -X, ZB }, { X, ZB }, { -X, ZF }, { X, ZF } }) do
+		tower(Vector3.new(c[1], 0, c[2]), t, H + 16)
+	end
+	-- torres que flanquean la entrada al pasillo
+	tower(Vector3.new(-CW - 4, 0, ZF + 4), t, H + 22)
+	tower(Vector3.new(CW + 4, 0, ZF + 4), t, H + 22)
+end
+
 local function decorZone(i, z0, zone)
 	local L = G.Config.ZONE_LENGTH
 	local function side(fn)
@@ -1128,6 +1216,7 @@ function World.init(g)
 	World.boards.money = buildBoard("MONEY", 0, Color3.fromRGB(255, 210, 60))
 	World.boards.time = buildBoard("TIME", 28, Color3.fromRGB(180, 140, 255))
 	buildCorridor()
+	buildRamparts()
 	for i = 1, #G.Config.ZONES do
 		local model, height = World.makeGuardian(i)
 		local home = World.zoneParts[i].guardianHome
