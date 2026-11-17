@@ -458,6 +458,31 @@ function Packs.openAltar(player, i)
 	table.remove(d.altarPacks, i)
 	local god = rollGod(p.r, p.dawn)
 	local isNew = G.Core.addGod(player, god)
+	-- estallido de luz y partículas en el altar
+	local s = G.Core.sessions[player]
+	local altar = s and s.plot and s.plot.altars[i]
+	if altar then
+		local rarity = C.RARITIES[god.r]
+		local color = rarity.id == 10 and Color3.fromRGB(200, 120, 255) or rarity.color
+		local att = Instance.new("Attachment")
+		att.Parent = altar.glow
+		local pe = Instance.new("ParticleEmitter")
+		pe.Rate = 0
+		pe.Lifetime = NumberRange.new(0.8, 1.6)
+		pe.Speed = NumberRange.new(15, 35)
+		pe.SpreadAngle = Vector2.new(180, 180)
+		pe.LightEmission = 1
+		pe.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0) })
+		pe.Parent = att
+		pe:Emit(40 + god.r * 10)
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Range = 30
+		light.Brightness = 6
+		light.Parent = att
+		game:GetService("Debris"):AddItem(att, 2)
+	end
 	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew })
 	if god.r >= C.ANNOUNCE_CHAT_FROM then
 		local color = G.Format.hex(C.RARITIES[god.r].color)

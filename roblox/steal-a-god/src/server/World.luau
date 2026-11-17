@@ -263,30 +263,20 @@ function World.setStatue(plot, i, god)
 		return
 	end
 	local rarity = G.Config.RARITIES[god.r]
-	local m = Instance.new("Model")
-	m.Name = god.id
-	local bp = ped.part.Position + Vector3.new(0, 0.7, 0)
-	local glowing = god.r >= 7
-	local mat = glowing and Enum.Material.Neon or (god.r >= 5 and Enum.Material.Foil or Enum.Material.Marble)
-	local body = part({ Name = "Body", Size = Vector3.new(2.2, 3.2, 1.4), Position = bp + Vector3.new(0, 2, 0), Color = rarity.color, Material = mat, CanCollide = false, Parent = m })
-	part({ Name = "Head", Shape = Enum.PartType.Ball, Size = Vector3.new(1.8, 1.8, 1.8), Position = bp + Vector3.new(0, 4.4, 0), Color = rarity.color, Material = mat, CanCollide = false, Parent = m })
-	if god.r >= 5 then
-		part({ Name = "Crown", Size = Vector3.new(2, 0.4, 2), Position = bp + Vector3.new(0, 5.5, 0), Color = Color3.fromRGB(255, 210, 60), Material = Enum.Material.Neon, CanCollide = false, Parent = m })
+	local m = G.GodModel.build(god, rarity.color)
+	G.GodModel.decorate(m, rarity)
+	local lift = god.r >= 8 and 1.5 or 0
+	local base = ped.part.Position + Vector3.new(0, 0.7 + lift, 0)
+	m:PivotTo(CFrame.new(base) * CFrame.Angles(0, math.rad(180), 0))
+	local torso = m:FindFirstChild("Torso")
+	if torso then
+		local tag = billboard(torso, string.format("<b>%s</b>", god.name), rarity.id == 10 and Color3.fromRGB(210, 140, 255) or rarity.color, UDim2.fromOffset(150, 34), Vector3.new(0, 4.2, 0))
+		tag.MaxDistance = 60
 	end
-	if rarity.sparkle or rarity.rainbow then
-		local att = Instance.new("Attachment")
-		att.Parent = body
-		local pe = Instance.new("ParticleEmitter")
-		pe.Rate = 12
-		pe.Lifetime = NumberRange.new(1, 2)
-		pe.Speed = NumberRange.new(1, 3)
-		pe.LightEmission = 1
-		pe.Color = ColorSequence.new(rarity.color, Color3.new(1, 1, 1))
-		pe.Size = NumberSequence.new(0.4, 0)
-		pe.Parent = att
+	if lift > 0 then
+		local beam = part({ Name = "Levitate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 4, 4), CFrame = CFrame.new(ped.part.Position + Vector3.new(0, 0.9, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = rarity.color, Material = Enum.Material.Neon, Transparency = 0.3, CanCollide = false, Parent = m })
+		beam.Name = "Levitate"
 	end
-	billboard(body, string.format("<b>%s</b>", god.name), rarity.color, UDim2.fromOffset(160, 36), Vector3.new(0, 4.6, 0))
-	m.PrimaryPart = body
 	m.Parent = plot.folder
 	ped.statue = m
 end
@@ -443,6 +433,26 @@ function World.makeGuardian(i)
 	end
 	add("Tail", Vector3.new(1, 1, 6), Vector3.new(0, 2, 9))
 	m.PrimaryPart = rootPart
+	-- contorno amenazante y materiales
+	for _, p in ipairs(m:GetDescendants()) do
+		if p:IsA("BasePart") and p.Material == Enum.Material.SmoothPlastic then
+			p.Material = (gd.kind == "fenrir" or gd.kind == "jaguar") and Enum.Material.Fabric or Enum.Material.Slate
+		end
+	end
+	local hl = Instance.new("Highlight")
+	hl.OutlineColor = Color3.fromRGB(255, 60, 50)
+	hl.FillColor = Color3.fromRGB(255, 40, 40)
+	hl.FillTransparency = 0.9
+	hl.DepthMode = Enum.HighlightDepthMode.Occluded
+	hl.Parent = m
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Rate = 6
+	smoke.Lifetime = NumberRange.new(1.5, 2.5)
+	smoke.Speed = NumberRange.new(1, 3)
+	smoke.Color = ColorSequence.new(Color3.fromRGB(80, 20, 20))
+	smoke.Transparency = NumberSequence.new(0.6, 1)
+	smoke.Size = NumberSequence.new(2, 5)
+	smoke.Parent = rootPart
 	local light = Instance.new("PointLight")
 	light.Color = Color3.fromRGB(255, 80, 60)
 	light.Range = 18

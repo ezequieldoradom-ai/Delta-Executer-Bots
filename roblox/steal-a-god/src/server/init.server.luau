@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local G = {
 	Config = require(Shared.Config),
 	Format = require(Shared.Format),
+	GodModel = require(Shared.GodModel),
 	Net = require(script.Net),
 	Data = require(script.Data),
 	World = require(script.World),
