@@ -87,6 +87,9 @@ local LOOKS = {
 	g_jaguar = { head = "cat", skin = rgb(235, 165, 45), chest = rgb(235, 165, 45), legs = rgb(235, 165, 45), robe = rgb(30, 150, 130), trim = rgb(210, 50, 40), hat = "feathers", item = "sword", eyes = rgb(120, 255, 120) },
 	g_lamassu = { skin = rgb(195, 145, 105), chest = rgb(40, 70, 165), legs = rgb(40, 70, 165), robe = rgb(40, 70, 165), trim = rgb(245, 195, 70), hat = "tallcrown", beard = true, hair = rgb(30, 22, 18), wings = rgb(240, 210, 140), item = "spear" },
 	g_fenrir = { head = "wolf", skin = rgb(95, 100, 115), chest = rgb(95, 100, 115), legs = rgb(95, 100, 115), robe = rgb(60, 62, 75), trim = rgb(180, 185, 200), hat = "none", eyes = rgb(120, 220, 255), glowColor = rgb(120, 220, 255) },
+	-- Vendedores (dioses místicos junto a la entrada del pasillo)
+	v_hecate = { skin = rgb(228, 216, 238), robe = rgb(92, 46, 158), legs = rgb(60, 32, 110), trim = rgb(208, 210, 236), trim2 = rgb(176, 112, 255), hair = rgb(20, 14, 30), hat = "lunar", item = "moonstaff", glowColor = rgb(196, 120, 255), stars = true },
+	v_quiron = { skin = rgb(198, 142, 98), robe = rgb(44, 112, 64), legs = rgb(124, 82, 48), trim = rgb(218, 168, 72), hair = rgb(96, 60, 34), beard = true, hat = "laurel", item = "longbow", shield = true },
 }
 
 local function mk(model, name, size, cf, color, material, shape)
@@ -359,6 +362,16 @@ function GodModel.buildParts(god, rarityColor)
 		mk(m, "Cap", v(1.2, 0.7, 1.2), at(0, hy + 0.25, 0), rgb(60, 60, 70), fabric)
 	elseif hat == "halo" then
 		mk(m, "Halo", v(0.15, 1.8, 1.8), at(0, hy + 0.4, 0.5), L.glowColor or rgb(255, 230, 140), Enum.Material.Neon, Enum.PartType.Cylinder).CFrame = at(0, hy + 0.4, 0.5) * CFrame.Angles(0, math.rad(90), 0)
+	elseif hat == "lunar" then
+		-- diadema lunar (Hécate): aro oscuro, media luna con los cuernos hacia arriba y velo por la espalda
+		mk(m, "Crown", v(1.42, 0.28, 1.42), at(0, hy - 0.12, 0), rgb(48, 36, 84), Enum.Material.Metal)
+		local moon = rgb(232, 224, 255)
+		for k = -2, 2 do
+			local a = math.rad(k * 45)
+			local thick = 0.36 - math.abs(k) * 0.1
+			mk(m, "Crescent", v(0.52, thick, 0.18), at(math.sin(a) * 0.62, hy + 0.8 - math.cos(a) * 0.62, 0.1) * CFrame.Angles(0, 0, a), moon, Enum.Material.Neon)
+		end
+		mk(m, "Veil", v(1.5, 2.3, 0.18), at(0, headY - 0.75, 0.74), col(L.robe), fabric)
 	end
 	-- alas
 	if L.wings then
@@ -440,6 +453,25 @@ function GodModel.buildParts(god, rarityColor)
 		end
 	elseif item == "ring" then
 		itemPart("Ring", Vector3.new(0.25, 1.6, 1.6), CFrame.new(0, 1, -0.3), L.glowColor or rgb(140, 100, 255), Enum.Material.Neon, Enum.PartType.Cylinder)
+	elseif item == "moonstaff" then
+		-- báculo de Hécate, vertical y apoyado en el suelo: asta oscura, orbe brillante y media luna que lo abraza
+		local grip = CFrame.Angles(math.rad(-35), 0, 0) * CFrame.new(0, 0, -0.62) -- deshace la inclinación del brazo; delante del puño
+		local moon = rgb(232, 224, 255)
+		itemPart("Shaft", Vector3.new(0.2, 6.4, 0.2), grip * CFrame.new(0, 0.5, 0), rgb(74, 62, 108), Enum.Material.Metal)
+		itemPart("Gem", Vector3.new(0.6, 0.6, 0.6), grip * CFrame.new(0, 4.3, 0), L.glowColor or rgb(196, 120, 255), Enum.Material.Neon, Enum.PartType.Ball)
+		itemPart("Prong", Vector3.new(0.8, 0.18, 0.18), grip * CFrame.new(0, 3.82, 0), moon, Enum.Material.Neon)
+		for _, sx in ipairs({ -1, 1 }) do
+			itemPart("Prong", Vector3.new(0.18, 0.75, 0.18), grip * CFrame.new(sx * 0.5, 4.2, 0) * CFrame.Angles(0, 0, math.rad(sx * 18)), moon, Enum.Material.Neon)
+		end
+	elseif item == "longbow" then
+		-- arco largo de Quirón, vertical delante del puño: empuñadura dorada, dos palas curvadas y la cuerda
+		local grip = CFrame.Angles(math.rad(-35), 0, 0) * CFrame.new(0, 0, -0.62)
+		local a = math.rad(16)
+		itemPart("Bow", Vector3.new(0.24, 1, 0.24), grip, rgb(218, 168, 72), gold)
+		for _, sy in ipairs({ -1, 1 }) do
+			itemPart("Bow", Vector3.new(0.17, 1.9, 0.17), grip * CFrame.new(0.95 * math.sin(a), sy * (0.5 + 0.95 * math.cos(a)), 0) * CFrame.Angles(0, 0, -sy * a), rgb(140, 92, 48), Enum.Material.Wood)
+		end
+		itemPart("String", Vector3.new(0.05, 2 * (0.5 + 1.9 * math.cos(a)), 0.05), grip * CFrame.new(1.9 * math.sin(a), 0, 0), rgb(255, 255, 255))
 	end
 	-- brillo propio
 	if L.glow or L.glowColor then
