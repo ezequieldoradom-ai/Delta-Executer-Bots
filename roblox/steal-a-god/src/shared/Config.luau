@@ -299,25 +299,25 @@ end
 -- Mientras valgan 0, el botón sale como "Próximamente".
 ---------------------------------------------------------------------
 Config.PASSES = {
-	speed2x = { id = 0, price = 199, es = "Velocidad x2", en = "2x Speed" },
-	money2x = { id = 0, price = 149, es = "Dinero x2", en = "2x Money" },
-	autoTreadmill = { id = 0, price = 249, es = "Cinta automática", en = "Auto Treadmill" },
-	luck2x = { id = 0, price = 299, es = "Suerte x2", en = "2x Luck" },
-	moreSlots = { id = 0, price = 99, es = "+5 pedestales y +2 altares", en = "+5 pedestals & +2 altars" },
-	vip = { id = 0, price = 349, es = "VIP (+10% de todo)", en = "VIP (+10% everything)" },
+	speed2x = { id = 2092574951, price = 199, es = "Velocidad x2", en = "2x Speed" },
+	money2x = { id = 2092863003, price = 149, es = "Dinero x2", en = "2x Money" },
+	autoTreadmill = { id = 2093738959, price = 249, es = "Cinta automática", en = "Auto Treadmill" },
+	luck2x = { id = 2093762893, price = 299, es = "Suerte x2", en = "2x Luck" },
+	moreSlots = { id = 2093564933, price = 99, es = "+5 pedestales y +2 altares", en = "+5 pedestals & +2 altars" },
+	vip = { id = 2094332929, price = 349, es = "VIP (+10% de todo)", en = "VIP (+10% everything)" },
 }
 Config.PRODUCTS = {
-	savePack = { id = 0, price = 25, es = "Salvar el sobre", en = "Save the pack" },
-	speedBoost = { id = 0, price = 49, es = "Velocidad x3 (15 min)", en = "3x Speed (15 min)" },
-	serverNight = { id = 0, price = 99, es = "Noche para el servidor", en = "Night for the server" },
-	serverLuck = { id = 0, price = 149, es = "Suerte x3 para el servidor (10 min)", en = "3x Luck for the server (10 min)" },
-	moneySmall = { id = 0, price = 49, es = "Dinero: 10 min de ingresos", en = "Money: 10 min of income" },
-	moneyBig = { id = 0, price = 199, es = "Dinero: 2 h de ingresos", en = "Money: 2 h of income" },
-	openNowLow = { id = 0, price = 19, es = "Abrir ya (Común–Épica)", en = "Open now (Common–Epic)" },
-	openNowMid = { id = 0, price = 79, es = "Abrir ya (Legendaria–Celestial)", en = "Open now (Legendary–Celestial)" },
-	openNowHigh = { id = 0, price = 299, es = "Abrir ya (Primordial o más)", en = "Open now (Primordial+)" },
-	instantUpgrade = { id = 0, price = 79, es = "Mejora de parcela instantánea", en = "Instant plot upgrade" },
-	divineShield = { id = 0, price = 29, es = "Escudo divino (3 min)", en = "Divine Shield (3 min)" },
+	savePack = { id = 3732903293, price = 25, es = "Salvar el sobre", en = "Save the pack" },
+	speedBoost = { id = 3732903313, price = 49, es = "Velocidad x3 (15 min)", en = "3x Speed (15 min)" },
+	serverNight = { id = 3732903322, price = 99, es = "Noche para el servidor", en = "Night for the server" },
+	serverLuck = { id = 3732903331, price = 149, es = "Suerte x3 para el servidor (10 min)", en = "3x Luck for the server (10 min)" },
+	moneySmall = { id = 3732903343, price = 49, es = "Dinero: 10 min de ingresos", en = "Money: 10 min of income" },
+	moneyBig = { id = 3732903353, price = 199, es = "Dinero: 2 h de ingresos", en = "Money: 2 h of income" },
+	openNowLow = { id = 3732903365, price = 19, es = "Abrir ya (Común–Épica)", en = "Open now (Common–Epic)" },
+	openNowMid = { id = 3732903375, price = 79, es = "Abrir ya (Legendaria–Celestial)", en = "Open now (Legendary–Celestial)" },
+	openNowHigh = { id = 3732903384, price = 299, es = "Abrir ya (Primordial o más)", en = "Open now (Primordial+)" },
+	instantUpgrade = { id = 3732903393, price = 79, es = "Mejora de parcela instantánea", en = "Instant plot upgrade" },
+	divineShield = { id = 3732903400, price = 29, es = "Escudo divino (3 min)", en = "Divine Shield (3 min)" },
 }
 
 ---------------------------------------------------------------------
