@@ -444,6 +444,8 @@ function Core.applyAura(player)
 	pe.Color = ColorSequence.new(a.color)
 	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.8), NumberSequenceKeypoint.new(1, 0) })
 	pe.Transparency = NumberSequence.new(0.2, 1)
+	pe.Texture = C.VFX.sparkle
+	pe.RotSpeed = NumberRange.new(-120, 120)
 	pe.Parent = att
 	local light = Instance.new("PointLight")
 	light.Color = a.color

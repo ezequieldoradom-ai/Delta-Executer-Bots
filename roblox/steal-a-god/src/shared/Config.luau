@@ -351,4 +351,25 @@ function Config.kgScale(kg)
 	return math.clamp(0.75 + (kg or 100) / 400, 0.75, 2.6)
 end
 
+
+---------------------------------------------------------------------
+-- MODELOS 3D (hechos en Blender y subidos a la cuenta del juego)
+---------------------------------------------------------------------
+Config.MODELS = {
+	zeus = { asset = 92086522191115, joints = { LegL = Vector3.new(0.420, 2.300, 0.000), LegR = Vector3.new(-0.420, 2.300, 0.000), ArmL = Vector3.new(1.155, 4.250, 0.000), ArmR = Vector3.new(-1.155, 4.250, 0.000) } },
+	thor = { asset = 114769630459171, joints = { LegL = Vector3.new(0.420, 2.300, 0.000), LegR = Vector3.new(-0.420, 2.300, 0.000), ArmL = Vector3.new(1.208, 4.250, 0.000), ArmR = Vector3.new(-1.208, 4.250, 0.000) } },
+	anubis = { asset = 109549248325197, joints = { LegL = Vector3.new(0.420, 2.300, 0.000), LegR = Vector3.new(-0.420, 2.300, 0.000), ArmL = Vector3.new(1.050, 4.250, 0.000), ArmR = Vector3.new(-1.050, 4.250, 0.000) } },
+	minotaur = { asset = 71616274173148, joints = { LegL = Vector3.new(0.750, 3.300, 0.000), LegR = Vector3.new(-0.750, 3.300, 0.000), ArmL = Vector3.new(1.550, 5.100, 0.000), ArmR = Vector3.new(-1.550, 5.100, 0.000) } },
+}
+-- Texturas de efectos (brillos, destellos, anillos, runas, humo, chispas, llamas)
+Config.VFX = {
+	flame = "rbxassetid://70450162736270",
+	glow = "rbxassetid://80704845655271",
+	ring = "rbxassetid://80633486636219",
+	runes = "rbxassetid://75646621572336",
+	smoke = "rbxassetid://72641413375480",
+	sparkle = "rbxassetid://109708405214367",
+	streak = "rbxassetid://95678528492429",
+}
+
 return Config

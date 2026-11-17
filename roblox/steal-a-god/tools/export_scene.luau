@@ -9,6 +9,7 @@ local G = {
 	Boards = require(Server.Boards), Shop = require(Server.Shop), serverLuckUntil = 0,
 }
 G.Net.init()
+require(Server.Models).load(G.Config)
 G.World.init(G)
 G.DayNight.init(G); G.Combat.init(G); G.Packs.init(G); G.Shop.init(G); G.Boards.init(G); G.Core.init(G)
 G.Packs.refreshAll()

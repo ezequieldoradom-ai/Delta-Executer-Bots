@@ -114,8 +114,50 @@ local function lookFor(god)
 	return look
 end
 
+local templates = nil
+local function template(id)
+	if templates == nil then
+		templates = game:GetService("ReplicatedStorage"):FindFirstChild("GodTemplates") or false
+	end
+	return templates and templates:FindFirstChild(id) or nil
+end
+GodModel.template = template
+
+-- Animación de caminar/correr: balancea brazos y piernas alrededor de sus articulaciones
+local rest = setmetatable({}, { __mode = "k" })
+function GodModel.animate(model, phase, amp)
+	if not model:GetAttribute("Animated") then
+		return
+	end
+	local pivot = model:GetPivot()
+	local cache = rest[model]
+	if not cache then
+		cache = {}
+		local scale = model:GetScale()
+		for _, name in ipairs({ "LegL", "LegR", "ArmL", "ArmR" }) do
+			local p = model:FindFirstChild(name)
+			if p and p:GetAttribute("Joint") then
+				cache[name] = { part = p, rest = pivot:ToObjectSpace(p.CFrame), joint = p:GetAttribute("Joint") * scale }
+			end
+		end
+		rest[model] = cache
+	end
+	local s = math.sin(phase) * amp
+	local angles = { LegL = s, LegR = -s, ArmL = -s * 0.8, ArmR = s * 0.5 }
+	for name, c in pairs(cache) do
+		local j = CFrame.new(c.joint)
+		c.part.CFrame = pivot * j * CFrame.Angles(angles[name], 0, 0) * j:Inverse() * c.rest
+	end
+end
+
 -- Devuelve un Model con la base en (0,0,0) mirando hacia -Z
 function GodModel.build(god, rarityColor)
+	local t = template(god.id)
+	if t then
+		local m = t:Clone()
+		m.Name = god.id
+		return m
+	end
 	local L = lookFor(god)
 	local S = L.scale or 1
 	local m = Instance.new("Model")
@@ -368,7 +410,8 @@ end
 function GodModel.decorate(model, rarity)
 	local color = rarity.id == 10 and Color3.fromRGB(200, 120, 255) or rarity.color
 	local root = model.PrimaryPart
-	local torso = model:FindFirstChild("Torso")
+	local torso = model:FindFirstChild("Torso") or model:FindFirstChild("Body")
+	local VFX = require(script.Parent.Config).VFX
 	if rarity.id >= 2 then
 		local h = Instance.new("Highlight")
 		h.FillColor = color
@@ -377,6 +420,24 @@ function GodModel.decorate(model, rarity)
 		h.OutlineTransparency = rarity.id >= 4 and 0 or 0.45
 		h.DepthMode = Enum.HighlightDepthMode.Occluded
 		h.Parent = model
+	end
+	-- círculo rúnico místico bajo los pies (Mítica o más)
+	if root and rarity.id >= 6 then
+		local disc = Instance.new("Part")
+		disc.Name = "Runes"
+		disc.Anchored = true
+		disc.CanCollide = false
+		disc.CanQuery = false
+		disc.Transparency = 1
+		disc.Size = Vector3.new(6, 0.1, 6)
+		disc.CFrame = root.CFrame * CFrame.new(0, 0.02, 0)
+		local dec = Instance.new("Decal")
+		dec.Face = Enum.NormalId.Top
+		dec.Texture = VFX.runes
+		dec.Color3 = color
+		dec.Transparency = 0.15
+		dec.Parent = disc
+		disc.Parent = model
 	end
 	-- anillo de luz en los pies
 	if root then
@@ -406,7 +467,9 @@ function GodModel.decorate(model, rarity)
 		pe.SpreadAngle = Vector2.new(180, 180)
 		pe.LightEmission = 1
 		pe.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25 + rarity.id * 0.03), NumberSequenceKeypoint.new(1, 0) })
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.45 + rarity.id * 0.05), NumberSequenceKeypoint.new(1, 0) })
+		pe.Texture = VFX.sparkle
+		pe.RotSpeed = NumberRange.new(-90, 90)
 		pe.Parent = att
 		-- aura envolvente para las rarezas altas
 		if rarity.id >= 5 then
@@ -417,7 +480,8 @@ function GodModel.decorate(model, rarity)
 			aura.LightEmission = 0.8
 			aura.LockedToPart = true
 			aura.Color = ColorSequence.new(color)
-			aura.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2.6), NumberSequenceKeypoint.new(1, 3.6) })
+			aura.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 3.2), NumberSequenceKeypoint.new(1, 4.4) })
+			aura.Texture = VFX.glow
 			aura.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.75), NumberSequenceKeypoint.new(1, 1) })
 			aura.Parent = att
 			local light = Instance.new("PointLight")
@@ -436,7 +500,8 @@ function GodModel.decorate(model, rarity)
 			orbs.SpreadAngle = Vector2.new(10, 180)
 			orbs.LightEmission = 1
 			orbs.Color = ColorSequence.new(Color3.new(1, 1, 1), color)
-			orbs.Size = NumberSequence.new(0.35, 0)
+			orbs.Size = NumberSequence.new(0.6, 0)
+			orbs.Texture = VFX.sparkle
 			orbs.Parent = att
 		end
 	end

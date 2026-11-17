@@ -400,9 +400,68 @@ local function decorZone(i, z0, zone)
 end
 
 -- Guardianes construidos con piezas
+local function guardianFX(m, body, s, gd, i)
+	local VFX = G.Config.VFX
+	local hl = Instance.new("Highlight")
+	hl.OutlineColor = Color3.fromRGB(255, 60, 50)
+	hl.FillColor = Color3.fromRGB(255, 40, 40)
+	hl.FillTransparency = 0.88
+	hl.DepthMode = Enum.HighlightDepthMode.Occluded
+	hl.Parent = m
+	local att = Instance.new("Attachment")
+	att.Parent = body
+	local flames = Instance.new("ParticleEmitter")
+	flames.Texture = VFX.flame
+	flames.Rate = 40
+	flames.Lifetime = NumberRange.new(0.5, 0.9)
+	flames.Speed = NumberRange.new(2, 5)
+	flames.Acceleration = Vector3.new(0, 12, 0)
+	flames.SpreadAngle = Vector2.new(70, 70)
+	flames.LightEmission = 1
+	flames.Color = ColorSequence.new(Color3.fromRGB(255, 150, 50), Color3.fromRGB(200, 20, 20))
+	flames.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 3 * s), NumberSequenceKeypoint.new(1, 0.5) })
+	flames.Transparency = NumberSequence.new(0.1, 1)
+	flames.Parent = att
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Texture = VFX.smoke
+	smoke.Rate = 8
+	smoke.Lifetime = NumberRange.new(1.5, 2.5)
+	smoke.Speed = NumberRange.new(1, 3)
+	smoke.RotSpeed = NumberRange.new(-40, 40)
+	smoke.Color = ColorSequence.new(Color3.fromRGB(60, 15, 15))
+	smoke.Transparency = NumberSequence.new(0.5, 1)
+	smoke.Size = NumberSequence.new(3 * s, 7 * s)
+	smoke.Parent = att
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 70, 50)
+	light.Range = 26
+	light.Brightness = 3
+	light.Parent = att
+	local gbb = billboard(body, "", Color3.fromRGB(255, 90, 80), UDim2.fromOffset(260, 60), Vector3.new(0, 6 * s, 0))
+	gbb:SetAttribute("Guardian", i)
+	CollectionService:AddTag(gbb, "Loc")
+end
+
 function World.makeGuardian(i)
 	local zone = G.Config.ZONES[i]
 	local gd = zone.guardian
+	local tmpl = G.GodModel.template(gd.kind)
+	if tmpl then
+		local m = tmpl:Clone()
+		m.Name = "Guardian" .. i
+		local k = (13 + i * 1.5) / 7.8
+		m:ScaleTo(k)
+		local rp = m.PrimaryPart
+		local ring = part({ Name = "Scorch", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.15, 9 * k, 9 * k), CFrame = rp.CFrame * CFrame.new(0, 0.05, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(255, 50, 30), Material = Enum.Material.Neon, Transparency = 0.55, CanCollide = false, Parent = m })
+		local dec = Instance.new("Decal")
+		dec.Face = Enum.NormalId.Right
+		dec.Texture = G.Config.VFX.runes
+		dec.Color3 = Color3.fromRGB(255, 80, 40)
+		dec.Parent = ring
+		guardianFX(m, m:FindFirstChild("Body") or rp, k * 0.6, gd, i)
+		m.Parent = root
+		return m, 0
+	end
 	local s = 1.4 + (i - 1) * 0.15
 	local m = Instance.new("Model")
 	m.Name = "Guardian" .. i

@@ -1140,7 +1140,7 @@ local function setupTrail(char)
 	end
 	local a0 = new("Attachment", { Position = Vector3.new(0, 1.6, 0), Parent = hrp })
 	local a1 = new("Attachment", { Position = Vector3.new(0, -2.2, 0), Parent = hrp })
-	trail = new("Trail", { Attachment0 = a0, Attachment1 = a1, Lifetime = 0.45, LightEmission = 1, Color = ColorSequence.new(WHITE, CYAN), Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) }), Enabled = false, Parent = hrp })
+	trail = new("Trail", { Texture = Config.VFX.streak, TextureMode = Enum.TextureMode.Stretch, Lifetime = 0.45, Attachment0 = a0, Attachment1 = a1, LightEmission = 1, Color = ColorSequence.new(WHITE, CYAN), Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) }), Enabled = false, Parent = hrp })
 end
 player.CharacterAdded:Connect(setupTrail)
 if player.Character then
@@ -1351,7 +1351,18 @@ RunService.Heartbeat:Connect(function(dt)
 					end
 					local bob = moving and math.abs(math.sin(now * 9 + st.phase)) * 0.35 or math.sin(now * 2 + st.phase) * 0.08
 					local tilt = moving and math.sin(now * 9 + st.phase) * 0.08 or 0
+					local animated = m:GetAttribute("Animated")
+					if animated then
+						bob, tilt = moving and math.abs(math.sin(now * 9 + st.phase)) * 0.12 or 0, 0
+					end
 					m:PivotTo(cf * CFrame.new(st.pos.X, st.y + bob, st.pos.Z) * CFrame.Angles(0, st.yaw, tilt))
+					if animated then
+						GodModel.animate(m, now * 9 + st.phase, moving and 0.55 or 0)
+					end
+					local runes = m:FindFirstChild("Runes")
+					if runes then
+						runes.CFrame = m:GetPivot() * CFrame.new(0, 0.04 - bob, 0) * CFrame.Angles(0, now * 0.8, 0)
+					end
 				end
 			end
 		end

@@ -87,7 +87,9 @@ function Packs.burst(pos, color, amount)
 	pe.LightEmission = 1
 	pe.Drag = 3
 	pe.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
-	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.1), NumberSequenceKeypoint.new(1, 0) })
+	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.6), NumberSequenceKeypoint.new(1, 0) })
+	pe.Texture = C.VFX.sparkle
+	pe.RotSpeed = NumberRange.new(-180, 180)
 	pe.Parent = holder
 	local ring = Instance.new("ParticleEmitter")
 	ring.Rate = 0
@@ -97,6 +99,7 @@ function Packs.burst(pos, color, amount)
 	ring.Color = ColorSequence.new(color)
 	ring.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 14) })
 	ring.Transparency = NumberSequence.new(0.2, 1)
+	ring.Texture = C.VFX.ring
 	ring.Parent = holder
 	local light = Instance.new("PointLight")
 	light.Color = color
@@ -342,7 +345,9 @@ function Packs.grab(player, pack)
 		pe.SpreadAngle = Vector2.new(180, 180)
 		pe.LightEmission = 1
 		pe.Color = ColorSequence.new(C.RARITIES[pack.rarity].color, Color3.new(1, 1, 1))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 0) })
+		pe.Texture = C.VFX.sparkle
+		pe.RotSpeed = NumberRange.new(-120, 120)
 		pe.Parent = att
 	end
 	if pack.beam then
@@ -666,14 +671,20 @@ local function guardianStep(guard, dt)
 	local step = math.min(dist, speed * dt)
 	local newPos = Vector3.new(pos.X, guard.height, pos.Z) + flat.Unit * step
 	local bob = target and math.abs(math.sin(os.clock() * 10)) * 0.8 or 0
+	if model:GetAttribute("Animated") then
+		bob = 0
+	end
 	model:PivotTo(CFrame.lookAt(newPos + Vector3.new(0, bob, 0), newPos + flat.Unit + Vector3.new(0, bob, 0)))
+	guard.phase = (guard.phase or 0) + dt * (target and 11 or 6)
+	G.GodModel.animate(model, guard.phase, target and 0.9 or 0.45)
 end
 
 function Packs.start()
 	RunService.Heartbeat:Connect(function(dt)
 		for _, guard in ipairs(G.World.guardians) do
 			guardianStep(guard, dt)
-			local bb = guard.model.PrimaryPart:FindFirstChildOfClass("BillboardGui")
+			guard.bb = guard.bb or guard.model:FindFirstChildWhichIsA("BillboardGui", true)
+			local bb = guard.bb
 			if bb then
 				bb:SetAttribute("Chasing", guard.target ~= nil)
 			end

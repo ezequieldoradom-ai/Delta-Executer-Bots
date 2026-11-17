@@ -38,6 +38,7 @@ step("Cargar módulos", function()
 	G.serverLuckUntil = 0
 end)
 step("Red", function() G.Net.init() end)
+step("Modelos 3D", function() require(Server.Models).load(G.Config) assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("zeus"), "sin zeus") assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("minotaur"), "sin minotauro") end)
 step("Construir mundo", function() G.World.init(G) end)
 step("Iniciar sistemas", function()
 	G.DayNight.init(G)
@@ -113,6 +114,23 @@ step("Economía", function()
 	end
 end)
 
+-- Modelos 3D animados
+step("Animación de modelos 3D", function()
+	for _, id in ipairs({ "zeus", "thor", "anubis" }) do
+		local m = G.GodModel.build(G.Config.GOD_BY_ID[id], Color3.new(1, 1, 1))
+		G.GodModel.decorate(m, G.Config.RARITIES[10])
+		m:ScaleTo(1.3)
+		m.Parent = workspace
+		local legBefore = m.LegL.CFrame
+		G.GodModel.animate(m, 1.2, 0.6)
+		assert((m.LegL.CFrame.Position - legBefore.Position).Magnitude > 0.01 or m.LegL.CFrame ~= legBefore, id .. ": la pierna no se mueve")
+		G.GodModel.animate(m, 0, 0)
+		add("   " .. id .. " altura:", string.format("%.1f", m:GetExtentsSize().Y), "piezas:", #m:GetChildren())
+		m:Destroy()
+	end
+	add("   Guardián 1:", G.World.guardians[1].model:FindFirstChild("Body") and "modelo 3D" or "piezas")
+end)
+
 -- Kilos: distribución
 step("Kilos", function()
 	local n, heavy, giant, maxKg = 100000, 0, 0, 0
@@ -140,6 +158,9 @@ end)
 step("Guardianes (simulación)", function()
 	for _, guard in ipairs(G.World.guardians) do
 		guard.model:PivotTo(CFrame.new(guard.home))
+		for ph = 0, 6, 0.5 do
+			G.GodModel.animate(guard.model, ph, 0.9)
+		end
 	end
 end)
 
