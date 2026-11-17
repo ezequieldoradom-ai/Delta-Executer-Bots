@@ -170,22 +170,21 @@ function Core.altarCount(player)
 	return d.altars + ((s and s.passes.moreSlots) and 2 or 0)
 end
 
+-- Los mejores dioses (por ingresos, contando los kilos) que caben en la parcela
 function Core.placedGods(player)
 	local d = G.Data.profiles[player]
 	local all = {}
-	for id, count in pairs(d.gods) do
-		local g = C.GOD_BY_ID[id]
+	for _, e in ipairs(d.godList or {}) do
+		local g = C.GOD_BY_ID[e.id]
 		if g then
-			for _ = 1, count do
-				table.insert(all, g)
-			end
+			table.insert(all, { god = g, kg = e.kg or 100, value = C.RARITIES[g.r].income * C.kgMult(e.kg) })
 		end
 	end
-	table.sort(all, function(a, b)
-		if a.r ~= b.r then
-			return a.r > b.r
+	table.sort(all, function(x, y)
+		if x.value ~= y.value then
+			return x.value > y.value
 		end
-		return a.index < b.index
+		return x.god.index < y.god.index
 	end)
 	local n = Core.pedestalCount(player)
 	local placed = {}
@@ -198,8 +197,8 @@ end
 function Core.income(player)
 	local _, moneyMult = Core.mults(player)
 	local sum = 0
-	for _, g in ipairs(Core.placedGods(player)) do
-		sum += C.RARITIES[g.r].income
+	for _, e in ipairs(Core.placedGods(player)) do
+		sum += e.value
 	end
 	return sum * moneyMult
 end
@@ -261,10 +260,11 @@ function Core.bestWeapon(d)
 	return best
 end
 
-function Core.addGod(player, god)
+function Core.addGod(player, god, kg)
 	local d = G.Data.profiles[player]
 	local isNew = (d.gods[god.id] or 0) == 0
 	d.gods[god.id] = (d.gods[god.id] or 0) + 1
+	table.insert(d.godList, { id = god.id, kg = kg or 100 })
 	if isNew then
 		local w = Core.bestWeapon(d)
 		if w ~= d.weapon then

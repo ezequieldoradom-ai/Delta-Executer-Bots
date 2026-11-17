@@ -29,7 +29,8 @@ local function defaults()
 		altars = 3,
 		altarPacks = {}, -- { {r=, rem=, dawn=}, ... }
 		queue = {}, -- sobres esperando altar
-		gods = {}, -- [godId] = cantidad
+		gods = {}, -- [godId] = cantidad (para el índice)
+		godList = nil, -- { {id=, kg=}, ... } cada dios con su peso
 		coaches = {}, -- ["heracles:1"] = cantidad
 		auras = {}, -- [auraId] = true
 		aura = nil,
@@ -65,6 +66,15 @@ function Data.load(player)
 		end
 	end
 	local d = merge(raw)
+	-- versiones antiguas: convertir los dioses a la lista con kilos
+	if type(d.godList) ~= "table" then
+		d.godList = {}
+		for id, count in pairs(d.gods) do
+			for _ = 1, count do
+				table.insert(d.godList, { id = id, kg = 100 })
+			end
+		end
+	end
 	-- Progreso mientras estabas fuera: los sobres siguen abriéndose
 	local elapsed = math.max(0, os.time() - (d.savedAt or os.time()))
 	Data.elapsed[player] = raw and elapsed or 0

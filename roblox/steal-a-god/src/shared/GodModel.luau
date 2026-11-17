@@ -364,29 +364,81 @@ function GodModel.build(god, rarityColor)
 	return m
 end
 
--- Efectos de rareza: contorno, luz, partículas
+-- Efectos de rareza: contorno, anillo en los pies, aura, partículas y luz
 function GodModel.decorate(model, rarity)
-	if rarity.id >= 3 then
+	local color = rarity.id == 10 and Color3.fromRGB(200, 120, 255) or rarity.color
+	local root = model.PrimaryPart
+	local torso = model:FindFirstChild("Torso")
+	if rarity.id >= 2 then
 		local h = Instance.new("Highlight")
-		h.FillTransparency = 1
-		h.OutlineColor = rarity.id == 10 and Color3.fromRGB(200, 120, 255) or rarity.color
-		h.OutlineTransparency = rarity.id >= 5 and 0 or 0.4
+		h.FillColor = color
+		h.FillTransparency = rarity.id >= 7 and 0.75 or 0.92
+		h.OutlineColor = color
+		h.OutlineTransparency = rarity.id >= 4 and 0 or 0.45
 		h.DepthMode = Enum.HighlightDepthMode.Occluded
 		h.Parent = model
 	end
-	local torso = model:FindFirstChild("Torso")
-	if torso and rarity.id >= 5 then
+	-- anillo de luz en los pies
+	if root then
+		local ring = Instance.new("Part")
+		ring.Name = "AuraRing"
+		ring.Anchored = true
+		ring.CanCollide = false
+		ring.CanQuery = false
+		ring.Shape = Enum.PartType.Cylinder
+		ring.Material = Enum.Material.Neon
+		ring.Color = color
+		ring.Transparency = rarity.id >= 5 and 0.35 or 0.6
+		ring.Size = Vector3.new(0.12, 3.4, 3.4)
+		ring.CFrame = root.CFrame * CFrame.new(0, -0.05, 0) * CFrame.Angles(0, 0, math.rad(90))
+		ring.Parent = model
+	end
+	if torso then
 		local att = Instance.new("Attachment")
+		att.Name = "AuraFX"
 		att.Parent = torso
+		-- chispas que suben
 		local pe = Instance.new("ParticleEmitter")
-		pe.Rate = 4 + rarity.id * 2
+		pe.Rate = 2 + rarity.id * 3
 		pe.Lifetime = NumberRange.new(1, 2)
 		pe.Speed = NumberRange.new(1, 3)
+		pe.Acceleration = Vector3.new(0, 3, 0)
 		pe.SpreadAngle = Vector2.new(180, 180)
 		pe.LightEmission = 1
-		pe.Color = ColorSequence.new(rarity.id == 10 and Color3.fromRGB(200, 120, 255) or rarity.color, Color3.new(1, 1, 1))
-		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 0) })
+		pe.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25 + rarity.id * 0.03), NumberSequenceKeypoint.new(1, 0) })
 		pe.Parent = att
+		-- aura envolvente para las rarezas altas
+		if rarity.id >= 5 then
+			local aura = Instance.new("ParticleEmitter")
+			aura.Rate = 6 + rarity.id
+			aura.Lifetime = NumberRange.new(0.8, 1.2)
+			aura.Speed = NumberRange.new(0.2, 0.6)
+			aura.LightEmission = 0.8
+			aura.LockedToPart = true
+			aura.Color = ColorSequence.new(color)
+			aura.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2.6), NumberSequenceKeypoint.new(1, 3.6) })
+			aura.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.75), NumberSequenceKeypoint.new(1, 1) })
+			aura.Parent = att
+			local light = Instance.new("PointLight")
+			light.Color = color
+			light.Range = 8 + rarity.id
+			light.Brightness = 1.5
+			light.Parent = att
+		end
+		-- orbes que giran alrededor (Celestial o más)
+		if rarity.id >= 8 then
+			local orbs = Instance.new("ParticleEmitter")
+			orbs.Rate = 10
+			orbs.Lifetime = NumberRange.new(1.5)
+			orbs.Speed = NumberRange.new(4)
+			orbs.RotSpeed = NumberRange.new(200)
+			orbs.SpreadAngle = Vector2.new(10, 180)
+			orbs.LightEmission = 1
+			orbs.Color = ColorSequence.new(Color3.new(1, 1, 1), color)
+			orbs.Size = NumberSequence.new(0.35, 0)
+			orbs.Parent = att
+		end
 	end
 end
 

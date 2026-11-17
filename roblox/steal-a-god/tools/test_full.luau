@@ -71,7 +71,7 @@ end)
 step("Estatuas en parcela", function()
 	local plot = G.World.plots[1]
 	for i = 1, 36 do
-		G.World.setStatue(plot, i, G.Config.GODS[((i - 1) % #G.Config.GODS) + 1])
+		G.World.setStatue(plot, i, { god = G.Config.GODS[((i - 1) % #G.Config.GODS) + 1], kg = G.Config.rollKg() })
 	end
 	for lvl = 1, 25, 6 do
 		G.World.styleplot(plot, lvl)
@@ -111,6 +111,18 @@ step("Economía", function()
 		end
 		add(string.format("   Zona %d: guardián %s ⚡ → cinta nivel %d (cuesta %s)", z, G.Format.num(need), lvl, G.Format.num(C.treadmillCost(lvl))))
 	end
+end)
+
+-- Kilos: distribución
+step("Kilos", function()
+	local n, heavy, giant, maxKg = 100000, 0, 0, 0
+	for _ = 1, n do
+		local kg = G.Config.rollKg()
+		if kg >= 200 then heavy += 1 end
+		if kg >= 500 then giant += 1 end
+		maxKg = math.max(maxKg, kg)
+	end
+	add(string.format("   ≥200 kg: %.1f%%  ≥500 kg: %.2f%%  máx: %d kg", heavy / n * 100, giant / n * 100, maxKg))
 end)
 
 -- Formato de números

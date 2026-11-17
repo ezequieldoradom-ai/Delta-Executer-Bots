@@ -70,14 +70,54 @@ function Packs.odds(zoneIndex)
 	return out
 end
 
+-- Estallido de partículas y luz en un punto del mundo
+function Packs.burst(pos, color, amount)
+	local holder = Instance.new("Part")
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.Transparency = 1
+	holder.Size = Vector3.new(1, 1, 1)
+	holder.Position = pos
+	local pe = Instance.new("ParticleEmitter")
+	pe.Rate = 0
+	pe.Lifetime = NumberRange.new(0.6, 1.4)
+	pe.Speed = NumberRange.new(12, 32)
+	pe.SpreadAngle = Vector2.new(180, 180)
+	pe.LightEmission = 1
+	pe.Drag = 3
+	pe.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
+	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.1), NumberSequenceKeypoint.new(1, 0) })
+	pe.Parent = holder
+	local ring = Instance.new("ParticleEmitter")
+	ring.Rate = 0
+	ring.Lifetime = NumberRange.new(0.4)
+	ring.Speed = NumberRange.new(0)
+	ring.LightEmission = 1
+	ring.Color = ColorSequence.new(color)
+	ring.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 14) })
+	ring.Transparency = NumberSequence.new(0.2, 1)
+	ring.Parent = holder
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = 26
+	light.Brightness = 5
+	light.Parent = holder
+	holder.Parent = workspace
+	pe:Emit(amount or 60)
+	ring:Emit(3)
+	game:GetService("Debris"):AddItem(holder, 2)
+end
+
 ---------------------------------------------------------------------
 -- Objeto físico del sobre
 ---------------------------------------------------------------------
 local function makePackPart(pack)
 	local rarity = C.RARITIES[pack.rarity]
+	local k = 1.5 * (0.75 + (C.kgScale(pack.kg) - 0.75) * 0.6)
 	local p = Instance.new("Part")
 	p.Name = "Pack"
-	p.Size = Vector3.new(3, 4, 0.5)
+	p.Size = Vector3.new(3, 4, 0.5) * k
 	p.Anchored = true
 	p.CanCollide = false
 	p.Color = rarity.color
@@ -102,8 +142,48 @@ local function makePackPart(pack)
 		pe.Size = NumberSequence.new(0.5, 0)
 		pe.Parent = p
 	end
-	local gui = G.World.billboard(p, "", rarity.color, UDim2.fromOffset(240, 60), Vector3.new(0, 3.5, 0))
+	-- cara de la carta: degradado de la rareza, "?" y el peso
+	for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
+		local sg = Instance.new("SurfaceGui")
+		sg.Face = face
+		sg.CanvasSize = Vector2.new(300, 400)
+		sg.LightInfluence = 0
+		sg.Brightness = 1.5
+		local bg = Instance.new("Frame")
+		bg.Size = UDim2.fromScale(1, 1)
+		bg.BackgroundColor3 = Color3.new(1, 1, 1)
+		local grad = Instance.new("UIGradient")
+		grad.Color = ColorSequence.new(rarity.color, Color3.new(rarity.color.R * 0.35, rarity.color.G * 0.35, rarity.color.B * 0.35))
+		grad.Rotation = 90
+		grad.Parent = bg
+		local st = Instance.new("UIStroke")
+		st.Color = Color3.fromRGB(255, 225, 130)
+		st.Thickness = 14
+		st.Parent = bg
+		bg.Parent = sg
+		local q = Instance.new("TextLabel")
+		q.BackgroundTransparency = 1
+		q.Size = UDim2.new(1, 0, 0.55, 0)
+		q.Position = UDim2.fromScale(0, 0.12)
+		q.Font = Enum.Font.LuckiestGuy
+		q.TextScaled = true
+		q.Text = "?"
+		q.TextColor3 = Color3.new(1, 1, 1)
+		q.Parent = bg
+		local w = Instance.new("TextLabel")
+		w.BackgroundTransparency = 1
+		w.Size = UDim2.new(1, 0, 0.16, 0)
+		w.Position = UDim2.fromScale(0, 0.74)
+		w.Font = Enum.Font.LuckiestGuy
+		w.TextScaled = true
+		w.Text = pack.kg .. " KG"
+		w.TextColor3 = Color3.fromRGB(255, 230, 140)
+		w.Parent = bg
+		sg.Parent = p
+	end
+	local gui = G.World.billboard(p, "", rarity.color, UDim2.fromOffset(240, 60), Vector3.new(0, 3.5 * k, 0))
 	gui:SetAttribute("Rarity", pack.rarity)
+	gui:SetAttribute("Kg", pack.kg)
 	gui:SetAttribute("Dawn", pack.dawn == true)
 	gui.Label.Text = "" -- el cliente pone el nombre en su idioma
 	CollectionService:AddTag(gui, "Loc")
@@ -139,7 +219,8 @@ local function makePackPart(pack)
 end
 
 local function placeOnGround(pack, pos)
-	pack.part.CFrame = CFrame.new(pos) * CFrame.Angles(0, math.rad(os.clock() * 50 % 360), 0)
+	local y = pack.part.Size.Y / 2 + 1.4 + math.sin(os.clock() * 2 + pack.id) * 0.35
+	pack.part.CFrame = CFrame.new(pos.X, y, pos.Z) * CFrame.Angles(0, math.rad(os.clock() * 50 % 360), 0)
 	if pack.beam then
 		pack.beam.CFrame = CFrame.new(pos + Vector3.new(0, 150, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	end
@@ -167,6 +248,7 @@ local function spawnPack(zoneIndex, spotIndex, dawn)
 		zone = zoneIndex,
 		spot = spotIndex,
 		rarity = rollRarity(zoneIndex, luck),
+		kg = C.rollKg(),
 		dawn = dawn,
 		state = "ground",
 		carrier = nil,
@@ -247,6 +329,22 @@ function Packs.grab(player, pack)
 	pack.carrier = player
 	s.carrying = pack
 	pack.prompt.Enabled = false
+	Packs.burst(pack.part.Position, C.RARITIES[pack.rarity].color, 40 + pack.rarity * 8)
+	-- aura mientras lo llevas
+	if not pack.part:FindFirstChild("CarryFX") then
+		local att = Instance.new("Attachment")
+		att.Name = "CarryFX"
+		att.Parent = pack.part
+		local pe = Instance.new("ParticleEmitter")
+		pe.Rate = 35
+		pe.Lifetime = NumberRange.new(0.5, 1)
+		pe.Speed = NumberRange.new(2, 6)
+		pe.SpreadAngle = Vector2.new(180, 180)
+		pe.LightEmission = 1
+		pe.Color = ColorSequence.new(C.RARITIES[pack.rarity].color, Color3.new(1, 1, 1))
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
+		pe.Parent = att
+	end
 	if pack.beam then
 		pack.beam.Transparency = 0.7
 	end
@@ -279,6 +377,10 @@ function Packs.dropCarried(player, loose, at)
 	end
 	pack.state = loose and "loose" or "ground"
 	pack.prompt.Enabled = true
+	local fx = pack.part:FindFirstChild("CarryFX")
+	if fx then
+		fx:Destroy()
+	end
 	if pack.beam then
 		pack.beam.Transparency = 0.4
 	end
@@ -291,7 +393,7 @@ end
 local function deliver(player, pack)
 	local d = G.Data.profiles[player]
 	local s = G.Core.sessions[player]
-	local item = { r = pack.rarity, rem = C.RARITIES[pack.rarity].open, dawn = pack.dawn == true }
+	local item = { r = pack.rarity, rem = C.RARITIES[pack.rarity].open, dawn = pack.dawn == true, kg = pack.kg }
 	if #d.altarPacks < G.Core.altarCount(player) then
 		table.insert(d.altarPacks, item)
 	elseif #d.queue < C.PACK_QUEUE_MAX then
@@ -371,7 +473,7 @@ function Packs.savePurchased(player)
 		rarity = p.pack.rarity
 		local dawn = p.pack.dawn
 		destroyPack(p.pack)
-		local item = { r = rarity, rem = C.RARITIES[rarity].open, dawn = dawn == true }
+		local item = { r = rarity, rem = C.RARITIES[rarity].open, dawn = dawn == true, kg = p.pack.kg }
 		if #d.altarPacks < G.Core.altarCount(player) then
 			table.insert(d.altarPacks, item)
 		else
@@ -386,7 +488,7 @@ function Packs.savePurchased(player)
 			end
 		end
 		rarity = rollRarity(z, 1)
-		table.insert(d.queue, { r = rarity, rem = C.RARITIES[rarity].open, dawn = false })
+		table.insert(d.queue, { r = rarity, rem = C.RARITIES[rarity].open, dawn = false, kg = C.rollKg() })
 	end
 	G.Net.toast(player, "bought")
 	return true
@@ -426,6 +528,7 @@ function Packs.tickAltars(player, mult)
 			a.gui.Label.TextColor3 = rarity.color
 			a.gui:SetAttribute("Rarity", p.r)
 			a.gui:SetAttribute("Rem", p.rem)
+			a.gui:SetAttribute("Kg", p.kg or 100)
 			a.prompt.Enabled = p.rem <= 0
 		else
 			a.glow.Transparency = 1
@@ -457,7 +560,8 @@ function Packs.openAltar(player, i)
 	end
 	table.remove(d.altarPacks, i)
 	local god = rollGod(p.r, p.dawn)
-	local isNew = G.Core.addGod(player, god)
+	local kg = p.kg or 100
+	local isNew = G.Core.addGod(player, god, kg)
 	-- estallido de luz y partículas en el altar
 	local s = G.Core.sessions[player]
 	local altar = s and s.plot and s.plot.altars[i]
@@ -483,7 +587,7 @@ function Packs.openAltar(player, i)
 		light.Parent = att
 		game:GetService("Debris"):AddItem(att, 2)
 	end
-	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew })
+	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew, kg = kg })
 	if god.r >= C.ANNOUNCE_CHAT_FROM then
 		local color = G.Format.hex(C.RARITIES[god.r].color)
 		G.Net.announce("all", "gotGod", { player.DisplayName, { god = god.id }, { rarity = god.r } }, { color = color, big = god.r >= C.ANNOUNCE_BIG_FROM })

@@ -918,6 +918,15 @@ local function doReveal(data)
 	flash.BackgroundTransparency = 0
 	TweenService:Create(flash, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()
 	burst(rc, 26 + g.r * 4)
+	for k = 0, 2 do
+		local ring = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(40, 40), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 38, Parent = reveal }, { corner(999), stroke(k == 1 and WHITE or rc, 8 - k * 2) })
+		local st = ring:FindFirstChildOfClass("UIStroke")
+		TweenService:Create(ring, TweenInfo.new(0.7 + k * 0.2, Enum.EasingStyle.Quart), { Size = UDim2.fromOffset(900 + k * 200, 900 + k * 200) }):Play()
+		TweenService:Create(st, TweenInfo.new(0.7 + k * 0.2), { Transparency = 1 }):Play()
+		task.delay(1.2, function()
+			ring:Destroy()
+		end)
+	end
 	play("whoosh", 1.2)
 	if g.r >= Config.ANNOUNCE_BIG_FROM then
 		shake(1.4, 1.4)
@@ -937,7 +946,8 @@ local function doReveal(data)
 	ribbon.BackgroundColor3 = rc
 	ribbonLabel.Text = string.upper(Locale.name(rarity))
 	ribbonLabel.TextColor3 = (g.r == 7 or g.r == 12) and DARK or WHITE
-	godIncome.Text = string.format("💰 +%s/s", Format.num(rarity.income * (state.moneyMult or 1)))
+	local kg = data.kg or 100
+	godIncome.Text = string.format("⚖️ %d kg   💰 +%s/s", kg, Format.num(rarity.income * (kg / 100) * (state.moneyMult or 1)))
 	godFact.Text = Locale.lang() == "es" and g.factEs or g.factEn
 	godNew.Text = data.isNew and t("gotNew") or ""
 	godCard.Visible = true
@@ -1089,7 +1099,7 @@ local function locLabel(bb)
 		if r > 0 then
 			local rem = bb:GetAttribute("Rem") or 0
 			l.TextColor3 = rcolor(r)
-			l.Text = string.format("%s\n%s", Locale.name(Config.RARITIES[r]), rem <= 0 and ("✨ " .. t("ready")) or ("⏳ " .. Format.time(rem)))
+			l.Text = string.format("%s · %d kg\n%s", Locale.name(Config.RARITIES[r]), bb:GetAttribute("Kg") or 100, rem <= 0 and ("✨ " .. t("ready")) or ("⏳ " .. Format.time(rem)))
 		else
 			l.Text = ""
 		end
@@ -1107,7 +1117,7 @@ local function locLabel(bb)
 	elseif bb:GetAttribute("Rarity") then
 		local r = bb:GetAttribute("Rarity")
 		l.TextColor3 = rcolor(r)
-		l.Text = string.format("%s%s", string.upper(Locale.name(Config.RARITIES[r])), bb:GetAttribute("Dawn") and " 🌅" or "")
+		l.Text = string.format("%s%s\n<font size=\"16\" color=\"#FFE9A8\">⚖️ %d kg</font>", string.upper(Locale.name(Config.RARITIES[r])), bb:GetAttribute("Dawn") and " 🌅" or "", bb:GetAttribute("Kg") or 100)
 	end
 end
 
@@ -1191,6 +1201,13 @@ local function updateChase()
 	if carrying and not runBadge.Visible then
 		bump(runBadge, 1.5)
 		play("whoosh", 1.4)
+		play("reward", 1.5)
+		shake(0.8, 0.35)
+		local fl = new("Frame", { BackgroundColor3 = rcolor(state.carrying), BackgroundTransparency = 0.3, Size = UDim2.fromScale(1, 1), ZIndex = 13, Parent = gui })
+		TweenService:Create(fl, TweenInfo.new(0.45), { BackgroundTransparency = 1 }):Play()
+		task.delay(0.5, function()
+			fl:Destroy()
+		end)
 	end
 	runBadge.Visible = carrying
 	dropBtn.Visible = carrying
@@ -1268,6 +1285,136 @@ task.spawn(function()
 			end
 		end
 	end
+end)
+
+---------------------------------------------------------------------
+-- Los dioses pasean libremente por cada parcela (solo visual, en tu pantalla)
+---------------------------------------------------------------------
+local walkers = {}
+local function plotFolders()
+	local w = workspace:FindFirstChild("World")
+	local list = {}
+	if w then
+		for _, f in ipairs(w:GetChildren()) do
+			if f:IsA("Folder") and f:GetAttribute("PlotCF") then
+				table.insert(list, f)
+			end
+		end
+	end
+	return list
+end
+local function newTarget()
+	return Vector3.new(-19 + math.random() * 38, 0, -17 + math.random() * 30)
+end
+local walkAcc = 0
+RunService.Heartbeat:Connect(function(dt)
+	walkAcc += dt
+	if walkAcc < 1 / 30 then
+		return
+	end
+	dt = walkAcc
+	walkAcc = 0
+	local cam = workspace.CurrentCamera
+	local now = os.clock()
+	for _, folder in ipairs(plotFolders()) do
+		local cf = folder:GetAttribute("PlotCF")
+		if cam and (cam.CFrame.Position - cf.Position).Magnitude < 220 then
+			for _, m in ipairs(folder:GetChildren()) do
+				if m:IsA("Model") and m:GetAttribute("Income") and m.PrimaryPart then
+					local st = walkers[m]
+					if not st then
+						local rel = cf:ToObjectSpace(m:GetPivot())
+						st = { pos = Vector3.new(rel.X, 0, rel.Z), y = rel.Y, target = newTarget(), wait = math.random() * 2, yaw = math.pi, speed = 3 + math.random() * 2.5, phase = math.random() * 6 }
+						walkers[m] = st
+						m.AncestryChanged:Connect(function()
+							if not m.Parent then
+								walkers[m] = nil
+							end
+						end)
+					end
+					local moving = false
+					if st.wait > 0 then
+						st.wait -= dt
+					else
+						local delta = st.target - st.pos
+						local dist = delta.Magnitude
+						if dist < 0.5 then
+							st.target = newTarget()
+							st.wait = 1 + math.random() * 3
+						else
+							moving = true
+							st.pos += delta.Unit * math.min(dist, st.speed * dt)
+							local goalYaw = math.atan2(-delta.X, -delta.Z)
+							local diff = (goalYaw - st.yaw + math.pi) % (2 * math.pi) - math.pi
+							st.yaw += diff * math.min(1, dt * 6)
+						end
+					end
+					local bob = moving and math.abs(math.sin(now * 9 + st.phase)) * 0.35 or math.sin(now * 2 + st.phase) * 0.08
+					local tilt = moving and math.sin(now * 9 + st.phase) * 0.08 or 0
+					m:PivotTo(cf * CFrame.new(st.pos.X, st.y + bob, st.pos.Z) * CFrame.Angles(0, st.yaw, tilt))
+				end
+			end
+		end
+	end
+end)
+
+-- Cinta: animación de correr y banda en movimiento
+local runTrack = nil
+local belts = {}
+local function myTreadmill()
+	local plot = myPlot()
+	return plot and plot:FindFirstChild("Treadmill")
+end
+local function ensureBelt(tm)
+	if #belts > 0 and belts[1].Parent and belts.tm == tm then
+		return
+	end
+	for _, b in ipairs(belts) do
+		b:Destroy()
+	end
+	belts = { tm = tm }
+	for k = 1, 8 do
+		local stripe = new("Part", { Anchored = true, CanCollide = false, CanQuery = false, Size = Vector3.new(tm.Size.X - 0.4, 0.05, 0.35), Color = Color3.fromRGB(90, 230, 255), Material = Enum.Material.Neon, Transparency = 0.35, Parent = workspace })
+		table.insert(belts, stripe)
+	end
+end
+local beltOffset = 0
+RunService.RenderStepped:Connect(function(dt)
+	local tm = myTreadmill()
+	local running = state.onTreadmill == true or state.afk == true
+	if tm then
+		ensureBelt(tm)
+		beltOffset = (beltOffset + dt * (running and (10 + (state.combo or 1) * 4) or 1.5)) % tm.Size.Z
+		for k, stripe in ipairs(belts) do
+			local z = ((k - 1) * tm.Size.Z / 8 + beltOffset) % tm.Size.Z - tm.Size.Z / 2
+			stripe.CFrame = tm.CFrame * CFrame.new(0, tm.Size.Y / 2 + 0.03, -z)
+		end
+	end
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	local animator = hum and hum:FindFirstChildOfClass("Animator")
+	if running and animator then
+		if not runTrack then
+			local animate = char:FindFirstChild("Animate")
+			local runFolder = animate and animate:FindFirstChild("run")
+			local anim = runFolder and runFolder:FindFirstChildOfClass("Animation")
+			if anim then
+				runTrack = animator:LoadAnimation(anim)
+				runTrack.Looped = true
+				runTrack.Priority = Enum.AnimationPriority.Action
+				runTrack:Play(0.2)
+			end
+		end
+		if runTrack then
+			runTrack:AdjustSpeed(1.2 + (state.combo or 1) * 0.35)
+		end
+	elseif runTrack then
+		runTrack:Stop(0.2)
+		runTrack = nil
+	end
+end)
+player.CharacterAdded:Connect(function()
+	runTrack = nil
 end)
 
 ---------------------------------------------------------------------

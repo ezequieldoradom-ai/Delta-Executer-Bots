@@ -202,6 +202,8 @@ local function buildPlot(index)
 		plot.altars[i] = { part = a, prompt = prompt, gui = gui, glow = glow }
 	end
 
+	folder:SetAttribute("PlotCF", cf)
+	folder:SetAttribute("PlotSize", World.PLOT_SIZE)
 	World.plots[index] = plot
 	World.styleplot(plot, 1)
 	return plot
@@ -250,9 +252,7 @@ function World.styleplot(plot, level)
 end
 
 function World.pedestalVisible(plot, count)
-	for i, ped in ipairs(plot.pedestals) do
-		ped.part.Transparency = i <= count and 0 or 1
-	end
+	plot.folder:SetAttribute("Capacity", count)
 end
 
 function World.altarVisible(plot, count)
@@ -263,39 +263,42 @@ function World.altarVisible(plot, count)
 	end
 end
 
--- Estatua del dios sobre su pedestal, mirando a la plaza
-function World.setStatue(plot, i, god)
+-- El dios aparece en su sitio de la parcela; el cliente lo hace pasear libremente
+function World.setStatue(plot, i, entry)
 	local ped = plot.pedestals[i]
 	if not ped then
 		return
 	end
-	if ped.godId == (god and god.id) then
+	local key = entry and (entry.god.id .. ":" .. entry.kg) or nil
+	if ped.key == key then
 		return
 	end
 	if ped.statue then
 		ped.statue:Destroy()
 		ped.statue = nil
 	end
-	ped.godId = god and god.id or nil
-	if not god then
+	ped.key = key
+	if not entry then
 		return
 	end
+	local god, kg = entry.god, entry.kg
 	local rarity = G.Config.RARITIES[god.r]
 	local m = G.GodModel.build(god, rarity.color)
 	G.GodModel.decorate(m, rarity)
-	m:SetAttribute("Income", rarity.income)
+	m:SetAttribute("Income", rarity.income * G.Config.kgMult(kg))
 	m:SetAttribute("Rarity", god.r)
-	local lift = god.r >= 8 and 1.2 or 0
-	local top = ped.part.CFrame * CFrame.new(0, 0.6 + lift, 0)
-	m:ScaleTo(0.8)
-	m:PivotTo(top * CFrame.Angles(0, math.rad(180), 0))
+	m:SetAttribute("Kg", kg)
+	m:SetAttribute("Slot", i)
+	local scale = 0.7 * G.Config.kgScale(kg)
+	m:ScaleTo(scale)
+	local o = pedestalOffset(i)
+	local lift = god.r >= 8 and 1.2 * scale or 0
+	m:PivotTo(plot.cf * CFrame.new(o.X * 0.9, 1 + lift, o.Z * 0.9) * CFrame.Angles(0, math.rad(180), 0))
 	local torso = m:FindFirstChild("Torso")
 	if torso then
-		local tag = billboard(torso, string.format("<b>%s</b>", god.name), rarity.id == 10 and Color3.fromRGB(210, 140, 255) or rarity.color, UDim2.fromOffset(130, 30), Vector3.new(0, 3.6, 0))
-		tag.MaxDistance = 50
-	end
-	if lift > 0 then
-		part({ Name = "Levitate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 3.4, 3.4), CFrame = ped.part.CFrame * CFrame.new(0, 0.75, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rarity.color, Material = Enum.Material.Neon, Transparency = 0.3, CanCollide = false, Parent = m })
+		local color = rarity.id == 10 and Color3.fromRGB(210, 140, 255) or rarity.color
+		local tag = billboard(torso, string.format("<b>%s</b>\n<font size=\"14\" color=\"#FFE9A8\">%d kg</font>", god.name, kg), color, UDim2.fromOffset(140, 44), Vector3.new(0, 3.2 * scale + 1, 0))
+		tag.MaxDistance = 55
 	end
 	m.Parent = plot.folder
 	ped.statue = m
@@ -400,7 +403,7 @@ end
 function World.makeGuardian(i)
 	local zone = G.Config.ZONES[i]
 	local gd = zone.guardian
-	local s = 1 + (i - 1) * 0.12
+	local s = 1.4 + (i - 1) * 0.15
 	local m = Instance.new("Model")
 	m.Name = "Guardian" .. i
 	local rootPart = part({ Name = "Root", Size = Vector3.new(8 * s, 8 * s, 12 * s), Position = Vector3.new(0, 9 * s, 0), Color = gd.color, Material = Enum.Material.SmoothPlastic, CanCollide = false, Parent = m })
@@ -465,6 +468,24 @@ function World.makeGuardian(i)
 	hl.FillTransparency = 0.9
 	hl.DepthMode = Enum.HighlightDepthMode.Occluded
 	hl.Parent = m
+	local flames = Instance.new("ParticleEmitter")
+	flames.Rate = 45
+	flames.Lifetime = NumberRange.new(0.5, 1)
+	flames.Speed = NumberRange.new(2, 6)
+	flames.Acceleration = Vector3.new(0, 10, 0)
+	flames.SpreadAngle = Vector2.new(60, 60)
+	flames.LightEmission = 1
+	flames.Color = ColorSequence.new(Color3.fromRGB(255, 120, 40), Color3.fromRGB(180, 20, 20))
+	flames.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2.5 * s), NumberSequenceKeypoint.new(1, 0) })
+	flames.Transparency = NumberSequence.new(0.2, 1)
+	flames.Parent = rootPart
+	local scorch = part({ Name = "Scorch", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 16 * s, 16 * s), Color = Color3.fromRGB(255, 40, 30), Material = Enum.Material.Neon, Transparency = 0.6, CanCollide = false, Parent = m })
+	scorch.CFrame = rootPart.CFrame * CFrame.new(0, -8.9 * s, 0) * CFrame.Angles(0, 0, math.rad(90))
+	local sw = Instance.new("WeldConstraint")
+	sw.Part0 = rootPart
+	sw.Part1 = scorch
+	sw.Parent = scorch
+	scorch.Anchored = false
 	local smoke = Instance.new("ParticleEmitter")
 	smoke.Rate = 6
 	smoke.Lifetime = NumberRange.new(1.5, 2.5)

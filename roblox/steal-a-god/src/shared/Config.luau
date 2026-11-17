@@ -191,7 +191,7 @@ Config.ZONES = {
 	{
 		es = "Bosque celta", en = "Celtic Forest", req = 1e3,
 		ground = Color3.fromRGB(50, 110, 60), accent = Color3.fromRGB(90, 70, 50),
-		guardian = { es = "Dullahan", en = "Dullahan", kind = "dullahan", color = Color3.fromRGB(30, 35, 45), speed = 3e3 },
+		guardian = { es = "Dullahan", en = "Dullahan", kind = "dullahan", color = Color3.fromRGB(30, 35, 45), speed = 2e4 },
 		weights = { [1] = 30, [2] = 45, [3] = 20, [4] = 4.5, [5] = 0.5 },
 	},
 	{
@@ -327,5 +327,28 @@ Config.PRODUCTS = {
 Config.AFK_REJOIN_AFTER = 17 * 60
 
 Config.MAX_PLAYERS_PLOTS = 6
+
+---------------------------------------------------------------------
+-- KILOS: cada sobre (y su dios) pesa algo distinto.
+-- Más kilos = más grande y más dinero (100 kg = x1)
+---------------------------------------------------------------------
+function Config.rollKg()
+	local base = 40 + math.random() * 120
+	local x = math.random()
+	if x < 0.001 then
+		base *= 6 + math.random() * 4 -- titánico
+	elseif x < 0.01 then
+		base *= 3 + math.random() * 3 -- gigante
+	elseif x < 0.1 then
+		base *= 1.5 + math.random() * 1.5 -- pesado
+	end
+	return math.floor(base)
+end
+function Config.kgMult(kg)
+	return (kg or 100) / 100
+end
+function Config.kgScale(kg)
+	return math.clamp(0.75 + (kg or 100) / 400, 0.75, 2.6)
+end
 
 return Config
