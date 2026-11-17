@@ -45,8 +45,8 @@ step("Cargar módulos", function()
 	G.Vendors = optional("Vendors")
 end)
 step("Red", function() G.Net.init() end)
-step("Avatares", function() G.Avatars = require(Server.Avatars) G.Avatars.init(G) end)
-step("Modelos 3D", function() require(Server.Models).load(G.Config) assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("zeus"), "sin zeus") assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("minotaur"), "sin minotauro") end)
+step("Avatares", function() G.Avatars = require(Server.Avatars); G.Avatars.init(G) end)
+step("Modelos 3D", function() require(Server.Models).load(G.Config); assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("zeus"), "sin zeus"); assert(game.ReplicatedStorage.GodTemplates:FindFirstChild("minotaur"), "sin minotauro") end)
 step("Construir mundo", function()
 	if G.AuraFx and G.AuraFx.init then G.AuraFx.init(G) end
 	if G.PackStyle and G.PackStyle.init then G.PackStyle.init(G) end
@@ -62,7 +62,7 @@ step("Iniciar sistemas", function()
 	G.Core.init(G)
 end)
 step("Amanecer (sobres)", function() G.Packs.refreshAll() end)
-add("   Sobres creados:", (function() local n = 0 for _ in pairs(G.Packs.list) do n += 1 end return n end)())
+add("   Sobres creados:", (function() local n = 0; for _ in pairs(G.Packs.list) do n += 1 end; return n end)())
 add("   Parcelas:", #G.World.plots, "Guardianes:", #G.World.guardians, "Zonas:", #G.World.zoneParts)
 
 -- Todos los dioses se construyen bien
@@ -340,7 +340,7 @@ step("Límite de peticiones: un tramposo no puede spamear acciones", function()
 end)
 
 step("Combo: el servidor decide el acierto", function()
-	local fp, d, s = fakePlayer(-106)
+	local fp, _, s = fakePlayer(-106)
 	s.onTreadmill = true
 	s.comboTarget = 0.5
 	-- marcador en el extremo (1.0): fallo aunque el cliente diga que acertó
@@ -382,6 +382,366 @@ step("Rendimiento: multiplicadores e ingresos en caché", function()
 	local dt = os.clock() - t0
 	add(string.format("   20.000 consultas de ingresos en %.3f s", dt))
 	assert(dt < 1, "demasiado lento")
+end)
+
+---------------------------------------------------------------------
+-- SOBRES: nidos por zona, tamaño por kilos, 14 diseños y sobres quietos
+---------------------------------------------------------------------
+local CollectionService = game:GetService("CollectionService")
+local PS = G.PackStyle
+local FX_TAGS = { "FxSpin", "FxBob", "FxOrbit", "FxRainbow", "FxGlitch" }
+
+-- punto más bajo, punto más alto y radio horizontal máximo (respecto a `centre`) de una pieza
+local function extents(p, centre)
+	local c = p.CFrame
+	local pos = c.Position
+	local flat = centre and Vector3.new(pos.X - centre.X, 0, pos.Z - centre.Z).Magnitude or 0
+	if p:IsA("Part") and p.Shape == Enum.PartType.Ball then
+		local r = math.min(p.Size.X, p.Size.Y, p.Size.Z) / 2
+		return pos.Y - r, pos.Y + r, flat + r
+	elseif p:IsA("Part") and p.Shape == Enum.PartType.Cylinder then
+		-- cilindro: eje = X local
+		local axis = c.RightVector
+		local r = math.min(p.Size.Y, p.Size.Z) / 2
+		local half = p.Size.X / 2
+		local v = r * math.sqrt(math.max(0, 1 - axis.Y * axis.Y)) + half * math.abs(axis.Y)
+		local rad = 0
+		if centre then
+			-- el extremo más alejado del centro, más el radio del cilindro
+			for _, side in ipairs({ -1, 1 }) do
+				local tip = pos + axis * (half * side)
+				rad = math.max(rad, Vector3.new(tip.X - centre.X, 0, tip.Z - centre.Z).Magnitude + r)
+			end
+		end
+		return pos.Y - v, pos.Y + v, rad
+	end
+	local h = p.Size / 2
+	local lo, hi, rad = math.huge, -math.huge, 0
+	for _, sx in ipairs({ -1, 1 }) do
+		for _, sy in ipairs({ -1, 1 }) do
+			for _, sz in ipairs({ -1, 1 }) do
+				local w = c * Vector3.new(sx * h.X, sy * h.Y, sz * h.Z)
+				lo, hi = math.min(lo, w.Y), math.max(hi, w.Y)
+				if centre then
+					rad = math.max(rad, Vector3.new(w.X - centre.X, 0, w.Z - centre.Z).Magnitude)
+				end
+			end
+		end
+	end
+	return lo, hi, rad
+end
+
+step("Nidos: seis huecos juntos por zona y nido decorado sin colisión", function()
+	assert(PS, "falta el módulo PackStyle")
+	local floorY = PS.FLOOR_Y
+	local info = {}
+	for i = 1, #C.ZONES do
+		local centre = Vector3.new(0, 0, G.World.zoneStart(i) + C.NEST_OFFSET)
+		local spots = G.World.zoneParts[i].spots
+		assert(#spots == C.PACKS_PER_ZONE, "zona " .. i .. ": huecos " .. #spots)
+		for a = 1, #spots do
+			assert((spots[a] - centre).Magnitude <= C.NEST_RADIUS + 0.5, "zona " .. i .. ": hueco " .. a .. " fuera del nido")
+			for b = a + 1, #spots do
+				assert((spots[a] - spots[b]).Magnitude >= 4, "zona " .. i .. ": huecos " .. a .. " y " .. b .. " demasiado juntos")
+			end
+		end
+		local nest = G.World.getRoot():FindFirstChild("Nest" .. i)
+		assert(nest and nest:IsA("Folder"), "zona " .. i .. ": sin nido")
+		local parts, lights, emitters, spin, maxR, maxY = 0, 0, 0, 0, 0, 0
+		for _, d in ipairs(nest:GetDescendants()) do
+			if d:IsA("BasePart") then
+				parts += 1
+				assert(d.Anchored and not d.CanCollide and not d.CanQuery and not d.CanTouch, "zona " .. i .. ": " .. d.Name .. " estorba el paso")
+				local _, hi, rad = extents(d, centre)
+				maxR, maxY = math.max(maxR, rad), math.max(maxY, hi)
+				if CollectionService:HasTag(d, "FxSpin") then
+					spin += 1
+					assert(d:GetAttribute("SpinAxis") == "X" and d.Shape == Enum.PartType.Cylinder, "disco de runas")
+					assert(d:FindFirstChildOfClass("Decal"), "disco sin runas")
+				end
+			elseif d:IsA("PointLight") then
+				lights += 1
+				assert(not d.Shadows, "luz con sombras")
+			elseif d:IsA("ParticleEmitter") then
+				emitters += 1
+				assert(d.Rate <= 10, "demasiadas chispas")
+			end
+		end
+		assert(parts <= 70, "zona " .. i .. ": " .. parts .. " piezas")
+		assert(parts >= 40, "zona " .. i .. ": nido pobre (" .. parts .. " piezas)")
+		assert(lights == 1 and emitters == 1 and spin == 1, string.format("zona %d: luces %d emisores %d discos %d", i, lights, emitters, spin))
+		assert(maxR <= PS.NEST_OUTER, string.format("zona %d: radio %.2f", i, maxR))
+		assert(maxY - floorY <= PS.NEST_RIM, string.format("zona %d: borde de %.2f de alto", i, maxY - floorY))
+		table.insert(info, string.format("%d piezas r=%.1f h=%.1f", parts, maxR, maxY - floorY))
+	end
+	add("   Nidos: " .. table.concat(info, " · "))
+end)
+
+step("Tamaño del sobre según sus kilos", function()
+	local last = 0
+	for _, kg in ipairs({ 1, 40, 60, 100, 160, 300, 600, 1500, 5000 }) do
+		local k = C.packScale(kg)
+		assert(k >= last, "packScale no crece en " .. kg .. " kg")
+		last = k
+	end
+	assert(C.packScale(160) > C.packScale(100) * 1.2 and C.packScale(300) > C.packScale(100) * 1.7, "la diferencia de tamaño no se nota")
+	assert(C.packScale(1) >= 0.85 and C.packScale(1e6) <= 3.6, "límites")
+	local sizes = {}
+	for _, kg in ipairs({ 40, 100, 300, 5000 }) do
+		local pack = G.Packs.debugSpawn(1, 2, 3, kg, false)
+		local k = C.packScale(kg)
+		assert(pack.kg == kg and pack.k == k, "peso")
+		assert((pack.part.Size - Vector3.new(3, 4, 0.5) * k).Magnitude < 0.01, "el cuerpo no mide 3×4×0.5×k")
+		table.insert(sizes, string.format("%d kg → %.1f de alto", kg, pack.part.Size.Y))
+	end
+	add("   " .. table.concat(sizes, " · "))
+end)
+
+step("Diseños de las 14 rarezas: presupuesto, contrato, ocultar, mostrar y destruir", function()
+	local prev, lastScore, lastRange = nil, -1, -1
+	local summary = {}
+	for r = 1, 14 do
+		for _, dawn in ipairs({ false, true }) do
+			-- el más raro, además, gigante: nada puede quedar bajo el suelo
+			local pack = G.Packs.debugSpawn(2, 3, r, (r == 14 or r == 7) and 5000 or 120, dawn)
+			if prev then
+				assert(prev.state == "gone" and prev.part.Parent == nil and G.Packs.list[prev.id] == nil, "el sobre anterior no se destruyó")
+			end
+			prev = pack
+			local part = pack.part
+			local what = string.format("rareza %d%s", r, dawn and " (amanecer)" or "")
+			assert(part and part.Parent == workspace and part.Anchored and not part.CanCollide, what .. ": cuerpo")
+			local maxE, maxP = PS.budget(r)
+			local emitters, extra, lights, range = 0, 0, 0, 0
+			local before, toggles = {}, {}
+			before[part] = part.Transparency
+			for _, d in ipairs(part:GetDescendants()) do
+				if d:IsA("BasePart") then
+					extra += 1
+					assert(not d.CanCollide and not d.CanQuery and not d.CanTouch, what .. ": " .. d.Name .. " choca")
+					if d.Anchored then
+						assert(d.Parent == part and (d.Name == "Beam" or CollectionService:HasTag(d, "FxOrbit")), what .. ": pieza anclada sin motivo: " .. d.Name)
+					else
+						assert(d.Massless and d:FindFirstChildOfClass("WeldConstraint"), what .. ": " .. d.Name .. " sin soldar")
+					end
+					local lo = extents(d)
+					assert(lo >= PS.FLOOR_Y - 0.05, string.format("%s: %s bajo el suelo (%.2f)", what, d.Name, lo))
+				elseif d:IsA("ParticleEmitter") then
+					emitters += 1
+				elseif d:IsA("PointLight") then
+					lights += 1
+					range = PS.STYLES[r].light.range -- alcance base (el real crece un poco con el tamaño)
+					assert(d.Range >= range and d.Range <= 32, what .. ": alcance de la luz")
+					assert(not d.Shadows, what .. ": luz con sombras")
+				end
+				if d:IsA("BasePart") or d:IsA("Decal") then
+					before[d] = d.Transparency
+				elseif d:IsA("ParticleEmitter") or d:IsA("PointLight") or d:IsA("SurfaceGui") or d:IsA("BillboardGui") or d:IsA("Beam") or d:IsA("Trail") then
+					table.insert(toggles, d)
+				end
+				-- contrato de efectos: las piezas etiquetadas van ancladas y lo que orbita cuelga del sobre
+				if d:IsA("BasePart") then
+					for _, tagName in ipairs(FX_TAGS) do
+						if CollectionService:HasTag(d, tagName) then
+							assert(d.Anchored, what .. ": " .. d.Name .. " lleva " .. tagName .. " sin estar anclada")
+						end
+					end
+					if CollectionService:HasTag(d, "FxOrbit") then
+						assert(type(d:GetAttribute("OrbitRadius")) == "number" and type(d:GetAttribute("OrbitSpeed")) == "number", what .. ": órbita sin datos")
+					end
+				end
+			end
+			assert(emitters <= maxE, string.format("%s: %d emisores (máx %d)", what, emitters, maxE))
+			assert(extra <= maxP, string.format("%s: %d piezas extra (máx %d)", what, extra, maxP))
+			assert(lights <= 1, what .. ": más de una luz")
+			local sgs = 0
+			for _, ch in ipairs(part:GetChildren()) do
+				if ch:IsA("SurfaceGui") then
+					sgs += 1
+					assert(ch:FindFirstChild("Kg", true).Text == pack.kg .. " KG", what .. ": peso de la carta")
+				end
+			end
+			assert(sgs == 2, what .. ": caras de la carta")
+			if r >= C.ANNOUNCE_BIG_FROM then
+				assert(pack.beam and pack.beam.Size.X >= 200, what .. ": sin haz de luz")
+				assert(math.abs(pack.beam.CFrame.RightVector.Y) > 0.999, what .. ": haz torcido")
+			end
+			local gui = part:FindFirstChildOfClass("BillboardGui")
+			assert(gui and CollectionService:HasTag(gui, "Loc") and gui:FindFirstChild("Label"), what .. ": cartel")
+			assert(gui:GetAttribute("Rarity") == r and gui:GetAttribute("Kg") == pack.kg and gui:GetAttribute("Dawn") == dawn, what .. ": datos del cartel")
+			assert(gui.StudsOffsetWorldSpace.Y > part.Size.Y / 2, what .. ": cartel dentro del sobre")
+			assert(pack.prompt:GetAttribute("Kind") == "steal" and CollectionService:HasTag(pack.prompt, "LocPrompt"), what .. ": aviso de robo")
+			assert(pack.prompt.MaxActivationDistance >= 8 and pack.prompt.MaxActivationDistance <= 13, what .. ": distancia del aviso")
+			-- ocultar (dos veces: no debe perder la transparencia original) y volver a mostrar
+			G.Packs.setPackVisible(pack, false)
+			G.Packs.setPackVisible(pack, false)
+			for d in pairs(before) do
+				assert(d.Transparency == 1, what .. ": " .. d.Name .. " sigue visible")
+			end
+			for _, d in ipairs(toggles) do
+				assert(d.Enabled == false, what .. ": " .. d.ClassName .. " sigue encendido")
+			end
+			local box = part:FindFirstChildOfClass("SelectionBox")
+			assert(not box or box.Visible == false, what .. ": borde visible")
+			assert(not CollectionService:HasTag(part, "FxGlitch"), what .. ": parpadea estando oculto")
+			G.Packs.setPackVisible(pack, true)
+			for d, t in pairs(before) do
+				assert(math.abs(d.Transparency - t) < 1e-4, string.format("%s: %s no recuperó su transparencia (%.2f → %.2f)", what, d.Name, t, d.Transparency))
+			end
+			for _, d in ipairs(toggles) do
+				assert(d.Enabled == true, what .. ": " .. d.ClassName .. " no volvió")
+			end
+			assert(not box or box.Visible == true, what .. ": borde")
+			assert(CollectionService:HasTag(part, "FxGlitch") == (r == 14), what .. ": etiqueta de parpadeo")
+			if not dawn then
+				-- cada rareza, al menos tan recargada y luminosa como la anterior
+				local score = emitters + extra
+				assert(score >= lastScore and range >= lastRange, string.format("%s es menos épica que la anterior (%d < %d o luz %.0f < %.0f)", what, score, lastScore, range, lastRange))
+				lastScore, lastRange = score, range
+				table.insert(summary, string.format("%d:%de/%dp", r, emitters, extra))
+			else
+				assert(part:FindFirstChild("DawnArc") and part:FindFirstChild("Dawn", true), what .. ": sin brillo de amanecer")
+			end
+		end
+	end
+	G.Packs.debugSpawn(2, 3, 2, 100, false)
+	assert(prev.state == "gone" and prev.part.Parent == nil, "el último no se destruyó")
+	add("   emisores/piezas por rareza: " .. table.concat(summary, " "))
+end)
+
+step("Sobres quietos en el nido: de pie, algo inclinados y mirando hacia fuera", function()
+	G.Packs.refreshAll()
+	local n = 0
+	local snap = {}
+	G.Packs.stepPacks()
+	for id, pack in pairs(G.Packs.list) do
+		snap[id] = pack.part.CFrame
+		n += 1
+	end
+	assert(n == #C.ZONES * C.PACKS_PER_ZONE, "sobres " .. n)
+	task.wait(0.1)
+	G.Packs.stepPacks()
+	task.wait()
+	G.Packs.stepPacks()
+	local bed = PS.FLOOR_Y + PS.NEST_BED
+	for id, pack in pairs(G.Packs.list) do
+		local cf = pack.part.CFrame
+		assert(cf == snap[id], "el sobre " .. id .. " se movió estando en el suelo")
+		local centre = Vector3.new(0, 0, G.World.zoneStart(pack.zone) + C.NEST_OFFSET)
+		assert(pack.home == G.World.zoneParts[pack.zone].spots[pack.spot], "hueco")
+		assert(Vector3.new(cf.X - pack.home.X, 0, cf.Z - pack.home.Z).Magnitude < 0.01, "fuera de su hueco")
+		local lean = math.deg(math.acos(math.clamp(cf.UpVector.Y, -1, 1)))
+		assert(lean >= 4.9 and lean <= 12.1, string.format("inclinación %.1f°", lean))
+		local out = Vector3.new(pack.home.X - centre.X, 0, pack.home.Z - centre.Z)
+		if out.Magnitude > 0.5 then
+			assert(cf.LookVector:Dot(out.Unit) > 0.9, "la cara no mira hacia fuera del nido")
+			assert(cf.UpVector:Dot(out.Unit) < 0, "no se apoya hacia el centro")
+		else
+			assert(cf.LookVector.Z < -0.9, "el del centro no mira a la entrada")
+		end
+		-- un poco hundido en el lecho, nunca bajo el suelo
+		local lo = math.huge
+		for _, d in ipairs(pack.part:GetChildren()) do
+			if d:IsA("BasePart") and d.Name == "Crimp" then
+				lo = math.min(lo, (extents(d)))
+			end
+		end
+		assert(lo <= bed and lo >= bed - 0.3, string.format("apoyo a %.2f del lecho", lo - bed))
+	end
+end)
+
+step("Robar, llevar, soltar y entregar un sobre del nido", function()
+	local fp, d, s = fakePlayer(-201)
+	local char = Instance.new("Model")
+	local hrp = Instance.new("Part")
+	hrp.Name = "HumanoidRootPart"
+	hrp.Anchored = true
+	hrp.Size = Vector3.new(2, 2, 1)
+	hrp.Parent = char
+	local head = Instance.new("Part")
+	head.Name = "Head"
+	head.Anchored = true
+	head.Size = Vector3.new(2, 1, 1)
+	head.Parent = char
+	char.Parent = workspace
+	fp.Character = char
+	local function stand(pos) -- pos = punto del suelo
+		hrp.CFrame = CFrame.new(pos.X, pos.Y + 3, pos.Z)
+		head.CFrame = CFrame.new(pos.X, pos.Y + 4.5, pos.Z)
+	end
+	-- un Secreta gigante en un hueco del anillo: su aviso se alcanza desde fuera del nido
+	local pack = G.Packs.debugSpawn(1, 2, 10, 5000, false)
+	local home = pack.part.CFrame
+	local centre = Vector3.new(0, 0, G.World.zoneStart(1) + C.NEST_OFFSET)
+	local out = (pack.home - centre).Unit
+	stand(pack.home + out * 30 + Vector3.new(0, 0.2, 0))
+	G.Packs.grab(fp, pack)
+	assert(pack.state == "ground" and not s.carrying, "se robó desde lejos")
+	stand(pack.home + out * 5 + Vector3.new(0, 0.2, 0))
+	local reach = (hrp.Position - pack.part.Position).Magnitude
+	assert(reach <= pack.prompt.MaxActivationDistance, string.format("aviso inalcanzable (%.1f > %.1f)", reach, pack.prompt.MaxActivationDistance))
+	G.Packs.grab(fp, pack)
+	assert(pack.state == "carried" and s.carrying == pack and pack.carrier == fp and pack.prompt.Enabled == false, "no lo cogió")
+	assert(G.World.guardians[1].target == fp, "el guardián no persigue")
+	assert(pack.part:FindFirstChild("CarryFX") and pack.part:FindFirstChild("CarryTrail"), "sin estela")
+	-- sigue a la cabeza, de pie, con su haz de luz
+	stand(Vector3.new(40, 0.2, 150))
+	G.Packs.stepPacks()
+	local c = pack.part.Position
+	assert(math.abs(c.X - 40) < 0.01 and math.abs(c.Z - 150) < 0.01 and c.Y - pack.part.Size.Y / 2 > head.Position.Y + 0.5, "no flota sobre la cabeza")
+	assert(pack.part.CFrame.UpVector.Y > 0.999, "torcido al llevarlo")
+	assert(math.abs(pack.beam.Position.X - 40) < 0.01 and math.abs(pack.beam.Position.Z - 150) < 0.01, "el haz no lo sigue")
+	local crimp = pack.part:FindFirstChild("Crimp")
+	assert((crimp.Position - c).Magnitude < pack.part.Size.Y, "los adornos soldados no siguen al sobre")
+	-- golpe: cae y se queda quieto donde cayó
+	G.Packs.dropCarried(fp, true, hrp.Position)
+	assert(pack.state == "loose" and pack.prompt.Enabled and not s.carrying and not pack.carrier, "no cayó")
+	assert(G.World.guardians[1].target == nil, "el guardián sigue persiguiendo")
+	assert(not pack.part:FindFirstChild("CarryFX") and not pack.part:FindFirstChild("CarryTrail"), "la estela sigue")
+	local cf = pack.part.CFrame
+	G.Packs.stepPacks()
+	task.wait()
+	G.Packs.stepPacks()
+	assert(pack.part.CFrame == cf, "el sobre suelto se mueve")
+	assert(math.abs(cf.X - 40) < 0.01 and math.abs(cf.Z - 150) < 0.01, "no está donde cayó")
+	local lo = math.huge
+	for _, ch in ipairs(pack.part:GetChildren()) do
+		if ch:IsA("BasePart") and ch.Name == "Crimp" then
+			lo = math.min(lo, (extents(ch)))
+		end
+	end
+	assert(math.abs(lo - PS.FLOOR_Y) < 0.05, string.format("no se apoya en el suelo (%.2f)", lo))
+	-- si cae dentro del nido, se apoya en el lecho (no se hunde hasta la pista)
+	stand(Vector3.new(42, 0.2, 150))
+	G.Packs.grab(fp, pack)
+	stand(centre + Vector3.new(4, 0.2, -3))
+	G.Packs.dropCarried(fp, true, hrp.Position)
+	lo = math.huge
+	for _, ch in ipairs(pack.part:GetChildren()) do
+		if ch:IsA("BasePart") and ch.Name == "Crimp" then
+			lo = math.min(lo, (extents(ch)))
+		end
+	end
+	assert(pack.state == "loose" and math.abs(lo - (PS.FLOOR_Y + PS.NEST_BED)) < 0.05, string.format("dentro del nido no se apoya en el lecho (%.2f)", lo))
+	stand(centre + Vector3.new(6, 0.2, -3))
+	-- se vuelve a coger y se suelta sin golpe: vuelve a su hueco, igual que estaba
+	G.Packs.grab(fp, pack)
+	assert(pack.state == "carried", "no se pudo recoger del suelo")
+	G.Packs.dropCarried(fp, false)
+	assert(pack.state == "ground" and pack.loosePos == nil, "no volvió al nido")
+	assert((pack.part.Position - home.Position).Magnitude < 0.001 and pack.part.CFrame.LookVector:Dot(home.LookVector) > 0.9999, "no quedó como estaba")
+	-- entrega en la parcela
+	s.plot = G.World.plots[1]
+	stand(pack.home + out * 5 + Vector3.new(0, 0.2, 0))
+	G.Packs.grab(fp, pack)
+	assert(pack.state == "carried", "no lo cogió para entregarlo")
+	stand(s.plot.center + Vector3.new(0, 1, 0))
+	G.Packs.stepPacks()
+	assert(pack.state == "gone" and pack.part.Parent == nil and not s.carrying, "no se entregó")
+	local got = d.altarPacks[#d.altarPacks]
+	assert(got and got.r == 10 and got.kg == 5000, "el altar no recibió el sobre")
+	s.plot = nil
+	char:Destroy()
 end)
 
 add(fails == 0 and "🎉 TODO OK" or ("⚠️ FALLOS: " .. fails))
