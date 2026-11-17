@@ -1,0 +1,631 @@
+-- Sobres: aparición al amanecer, robo, guardianes que persiguen, entrega en la parcela y altares
+local RunService = game:GetService("RunService")
+local MessagingService = game:GetService("MessagingService")
+local CollectionService = game:GetService("CollectionService")
+
+local Packs = {}
+local G
+local C
+
+Packs.list = {} -- sobres en el mundo
+local nextId = 0
+local pendingSave = {} -- [player] = { pack = datos, untilT = tiempo }
+
+---------------------------------------------------------------------
+-- Tirada de rareza
+---------------------------------------------------------------------
+local function rollRarity(zoneIndex, luck)
+	local zone = C.ZONES[zoneIndex]
+	-- rarezas "imposibles" (zona 3 en adelante)
+	if zoneIndex >= 3 then
+		for k = #C.ULTRA, 1, -1 do
+			local u = C.ULTRA[k]
+			if math.random() < (luck * zoneIndex / 6) / u.oneIn then
+				return u.r
+			end
+		end
+	end
+	local total = 0
+	local weights = {}
+	local maxR = 0
+	for r in pairs(zone.weights) do
+		maxR = math.max(maxR, r)
+	end
+	for r, w in pairs(zone.weights) do
+		-- la suerte potencia las dos rarezas más altas de la zona
+		local ww = (r >= maxR - 1) and w * luck or w
+		weights[r] = ww
+		total += ww
+	end
+	local x = math.random() * total
+	for r = 1, #C.RARITIES do
+		local w = weights[r]
+		if w then
+			x -= w
+			if x <= 0 then
+				return r
+			end
+		end
+	end
+	return maxR
+end
+Packs.rollRarity = rollRarity
+
+-- Probabilidades de cada zona (para mostrarlas en el juego)
+function Packs.odds(zoneIndex)
+	local zone = C.ZONES[zoneIndex]
+	local total = 0
+	for _, w in pairs(zone.weights) do
+		total += w
+	end
+	local out = {}
+	for r, w in pairs(zone.weights) do
+		out[r] = w / total
+	end
+	if zoneIndex >= 3 then
+		for _, u in ipairs(C.ULTRA) do
+			out[u.r] = (zoneIndex / 6) / u.oneIn
+		end
+	end
+	return out
+end
+
+---------------------------------------------------------------------
+-- Objeto físico del sobre
+---------------------------------------------------------------------
+local function makePackPart(pack)
+	local rarity = C.RARITIES[pack.rarity]
+	local p = Instance.new("Part")
+	p.Name = "Pack"
+	p.Size = Vector3.new(3, 4, 0.5)
+	p.Anchored = true
+	p.CanCollide = false
+	p.Color = rarity.color
+	p.Material = pack.rarity >= 5 and Enum.Material.Neon or Enum.Material.SmoothPlastic
+	local border = Instance.new("SelectionBox")
+	border.Adornee = p
+	border.LineThickness = 0.08
+	border.Color3 = Color3.fromRGB(255, 220, 120)
+	border.Parent = p
+	local light = Instance.new("PointLight")
+	light.Color = rarity.color
+	light.Range = 10 + pack.rarity
+	light.Brightness = 1 + pack.rarity * 0.2
+	light.Parent = p
+	if rarity.sparkle or rarity.rainbow or pack.dawn then
+		local pe = Instance.new("ParticleEmitter")
+		pe.Rate = 15
+		pe.Lifetime = NumberRange.new(0.8, 1.6)
+		pe.Speed = NumberRange.new(1, 4)
+		pe.LightEmission = 1
+		pe.Color = ColorSequence.new(rarity.color, Color3.new(1, 1, 1))
+		pe.Size = NumberSequence.new(0.5, 0)
+		pe.Parent = p
+	end
+	local gui = G.World.billboard(p, "", rarity.color, UDim2.fromOffset(240, 60), Vector3.new(0, 3.5, 0))
+	gui:SetAttribute("Rarity", pack.rarity)
+	gui:SetAttribute("Dawn", pack.dawn == true)
+	gui.Label.Text = "" -- el cliente pone el nombre en su idioma
+	CollectionService:AddTag(gui, "Loc")
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Steal"
+	prompt.ObjectText = ""
+	prompt.HoldDuration = 0.3
+	prompt.MaxActivationDistance = 10
+	prompt.RequiresLineOfSight = false
+	prompt:SetAttribute("Kind", "steal")
+	CollectionService:AddTag(prompt, "LocPrompt")
+	prompt.Parent = p
+	prompt.Triggered:Connect(function(player)
+		Packs.grab(player, pack)
+	end)
+	-- haz de luz para las rarezas Secreta o superiores
+	if pack.rarity >= C.ANNOUNCE_BIG_FROM then
+		local beam = Instance.new("Part")
+		beam.Name = "Beam"
+		beam.Anchored = true
+		beam.CanCollide = false
+		beam.Material = Enum.Material.Neon
+		beam.Color = rarity.id == 10 and Color3.fromRGB(200, 120, 255) or rarity.color
+		beam.Transparency = 0.4
+		beam.Shape = Enum.PartType.Cylinder
+		beam.Size = Vector3.new(300, 3, 3)
+		beam.Parent = p
+		pack.beam = beam
+	end
+	p.Parent = workspace
+	pack.part = p
+	pack.prompt = prompt
+end
+
+local function placeOnGround(pack, pos)
+	pack.part.CFrame = CFrame.new(pos) * CFrame.Angles(0, math.rad(os.clock() * 50 % 360), 0)
+	if pack.beam then
+		pack.beam.CFrame = CFrame.new(pos + Vector3.new(0, 150, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	end
+end
+
+local function destroyPack(pack)
+	pack.state = "gone"
+	if pack.part then
+		pack.part:Destroy()
+	end
+	if pack.beam then
+		pack.beam:Destroy()
+	end
+	Packs.list[pack.id] = nil
+end
+
+local function spawnPack(zoneIndex, spotIndex, dawn)
+	local luck = (G.serverLuckUntil and os.clock() < G.serverLuckUntil) and 3 or 1
+	if dawn then
+		luck *= C.DAWN_LUCK
+	end
+	nextId += 1
+	local pack = {
+		id = nextId,
+		zone = zoneIndex,
+		spot = spotIndex,
+		rarity = rollRarity(zoneIndex, luck),
+		dawn = dawn,
+		state = "ground",
+		carrier = nil,
+	}
+	pack.home = G.World.zoneParts[zoneIndex].spots[spotIndex]
+	makePackPart(pack)
+	placeOnGround(pack, pack.home)
+	Packs.list[pack.id] = pack
+	return pack
+end
+
+---------------------------------------------------------------------
+-- Amanecer: se renuevan todos los sobres y se avisa en el chat
+---------------------------------------------------------------------
+function Packs.refreshAll()
+	for _, pack in pairs(Packs.list) do
+		if pack.state ~= "carried" and pack.state ~= "pending" then
+			destroyPack(pack)
+		end
+	end
+	G.Net.announce("all", "dawn", {}, { color = "#FFB347" })
+	local best = {}
+	for z = 1, #C.ZONES do
+		local dawnSpot = math.random(1, C.PACKS_PER_ZONE)
+		for i = 1, C.PACKS_PER_ZONE do
+			local pack = spawnPack(z, i, i == dawnSpot)
+			if pack.rarity >= C.ANNOUNCE_CHAT_FROM then
+				table.insert(best, pack)
+			end
+		end
+	end
+	table.sort(best, function(a, b)
+		return a.rarity > b.rarity
+	end)
+	for _, pack in ipairs(best) do
+		local big = pack.rarity >= C.ANNOUNCE_BIG_FROM
+		local color = G.Format.hex(C.RARITIES[pack.rarity].color)
+		G.Net.announce("all", big and "packSpawnedBig" or "packSpawned", { { rarity = pack.rarity }, { zone = pack.zone }, pack.zone }, { color = color, big = big })
+		if pack.rarity >= C.ANNOUNCE_GLOBAL_FROM then
+			local host = game:GetService("Players"):GetPlayers()[1]
+			pcall(function()
+				MessagingService:PublishAsync("GlobalAnnounce", { key = "packGlobal", args = { { rarity = pack.rarity }, host and host.DisplayName or "?" }, color = color, jobId = game.JobId })
+			end)
+		end
+	end
+end
+
+-- Al anochecer, los sobres que alguien llevaba se pierden
+function Packs.nightfall()
+	for player, s in pairs(G.Core.sessions) do
+		if s.carrying then
+			Packs.dropCarried(player, false)
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- Robar, llevar, soltar
+---------------------------------------------------------------------
+function Packs.grab(player, pack)
+	local s = G.Core.sessions[player]
+	local d = G.Data.profiles[player]
+	if not s or not d or pack.state == "carried" or pack.state == "gone" or pack.state == "pending" then
+		return
+	end
+	if s.carrying or s.afk or G.DayNight.isNight() then
+		return
+	end
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp or (hrp.Position - pack.part.Position).Magnitude > 14 then
+		return
+	end
+	if d.speed < C.ZONES[pack.zone].req then
+		return
+	end
+	pack.state = "carried"
+	pack.carrier = player
+	s.carrying = pack
+	pack.prompt.Enabled = false
+	if pack.beam then
+		pack.beam.Transparency = 0.7
+	end
+	-- el guardián de la zona de origen despierta y persigue
+	local guard = G.World.guardians[pack.zone]
+	guard.target = player
+	guard.pack = pack
+	if pack.rarity >= C.ANNOUNCE_CHAT_FROM then
+		G.Net.announce("all", "stoleBig", { player.DisplayName, { rarity = pack.rarity }, { guardian = pack.zone } }, { color = G.Format.hex(C.RARITIES[pack.rarity].color) })
+	end
+end
+
+-- Suelta el sobre que lleva el jugador. loose=true lo deja en el suelo (golpe); false lo devuelve a su sitio
+function Packs.dropCarried(player, loose, at)
+	local s = G.Core.sessions[player]
+	if not s or not s.carrying then
+		return nil
+	end
+	local pack = s.carrying
+	s.carrying = nil
+	pack.carrier = nil
+	for _, guard in ipairs(G.World.guardians) do
+		if guard.target == player then
+			guard.target = nil
+		end
+	end
+	if G.DayNight.isNight() then
+		destroyPack(pack)
+		return nil
+	end
+	pack.state = loose and "loose" or "ground"
+	pack.prompt.Enabled = true
+	if pack.beam then
+		pack.beam.Transparency = 0.4
+	end
+	local pos = loose and at and Vector3.new(at.X, 2.5, at.Z) or pack.home
+	pack.loosePos = pos
+	placeOnGround(pack, pos)
+	return pack
+end
+
+local function deliver(player, pack)
+	local d = G.Data.profiles[player]
+	local s = G.Core.sessions[player]
+	local item = { r = pack.rarity, rem = C.RARITIES[pack.rarity].open, dawn = pack.dawn == true }
+	if #d.altarPacks < G.Core.altarCount(player) then
+		table.insert(d.altarPacks, item)
+	elseif #d.queue < C.PACK_QUEUE_MAX then
+		table.insert(d.queue, item)
+		G.Net.toast(player, "altarsFull")
+	else
+		G.Net.toast(player, "queueFull")
+		return false
+	end
+	s.carrying = nil
+	for _, guard in ipairs(G.World.guardians) do
+		if guard.target == player then
+			guard.target = nil
+		end
+	end
+	if pack.rarity >= C.ANNOUNCE_CHAT_FROM then
+		G.Net.announce("all", "escaped", { player.DisplayName, { rarity = pack.rarity } }, { color = G.Format.hex(C.RARITIES[pack.rarity].color) })
+	end
+	destroyPack(pack)
+	return true
+end
+
+local function caught(player, guardIndex)
+	local s = G.Core.sessions[player]
+	if not s or not s.carrying then
+		return
+	end
+	local pack = s.carrying
+	G.Net.announce("all", "caught", { { guardian = guardIndex }, player.DisplayName }, { color = "#FF5A5A" })
+	local product = C.PRODUCTS.savePack
+	if product.id ~= 0 then
+		-- ofrecer "Salvar el sobre" durante 10 s
+		s.carrying = nil
+		pack.carrier = nil
+		pack.state = "pending"
+		pack.part.Transparency = 1
+		pendingSave[player] = { pack = pack, untilT = os.clock() + 10 }
+		G.Net.Offer:FireClient(player, "savePack")
+		task.delay(10.5, function()
+			local p = pendingSave[player]
+			if p and p.pack == pack then
+				pendingSave[player] = nil
+				if pack.state == "pending" then
+					pack.part.Transparency = 0
+					pack.state = "ground"
+					pack.prompt.Enabled = true
+					placeOnGround(pack, pack.home)
+				end
+			end
+		end)
+	else
+		Packs.dropCarried(player, false)
+	end
+	for _, guard in ipairs(G.World.guardians) do
+		if guard.target == player then
+			guard.target = nil
+		end
+	end
+	-- de vuelta a casa
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if hrp and s.plot then
+		hrp.CFrame = CFrame.new(s.plot.spawn)
+	end
+end
+
+-- Compra de "Salvar el sobre"
+function Packs.savePurchased(player)
+	local p = pendingSave[player]
+	local d = G.Data.profiles[player]
+	if not d then
+		return false
+	end
+	local rarity
+	if p then
+		pendingSave[player] = nil
+		rarity = p.pack.rarity
+		local dawn = p.pack.dawn
+		destroyPack(p.pack)
+		local item = { r = rarity, rem = C.RARITIES[rarity].open, dawn = dawn == true }
+		if #d.altarPacks < G.Core.altarCount(player) then
+			table.insert(d.altarPacks, item)
+		else
+			table.insert(d.queue, item)
+		end
+	else
+		-- si el tiempo se pasó, se le da un sobre de la mejor zona a la que puede entrar
+		local z = 1
+		for i, zone in ipairs(C.ZONES) do
+			if d.speed >= zone.req then
+				z = i
+			end
+		end
+		rarity = rollRarity(z, 1)
+		table.insert(d.queue, { r = rarity, rem = C.RARITIES[rarity].open, dawn = false })
+	end
+	G.Net.toast(player, "bought")
+	return true
+end
+
+---------------------------------------------------------------------
+-- Altares: cuenta atrás y apertura
+---------------------------------------------------------------------
+function Packs.tickAltars(player, mult)
+	local d = G.Data.profiles[player]
+	local s = G.Core.sessions[player]
+	if not d or not s then
+		return
+	end
+	local maxA = G.Core.altarCount(player)
+	while #d.altarPacks < maxA and #d.queue > 0 do
+		table.insert(d.altarPacks, table.remove(d.queue, 1))
+	end
+	for _, p in ipairs(d.altarPacks) do
+		if p.rem > 0 then
+			p.rem = math.max(0, p.rem - mult)
+		end
+	end
+	if not s.plot then
+		return
+	end
+	for i, a in ipairs(s.plot.altars) do
+		local p = d.altarPacks[i]
+		if i > maxA then
+			a.prompt.Enabled = false
+			a.glow.Transparency = 1
+			a.gui.Label.Text = ""
+		elseif p then
+			local rarity = C.RARITIES[p.r]
+			a.glow.Color = rarity.color
+			a.glow.Transparency = p.rem <= 0 and 0 or 0.5
+			a.gui.Label.TextColor3 = rarity.color
+			a.gui:SetAttribute("Rarity", p.r)
+			a.gui:SetAttribute("Rem", p.rem)
+			a.prompt.Enabled = p.rem <= 0
+		else
+			a.glow.Transparency = 1
+			a.prompt.Enabled = false
+			a.gui:SetAttribute("Rarity", 0)
+			a.gui:SetAttribute("Rem", 0)
+		end
+	end
+end
+
+local function rollGod(r, dawn)
+	local pool = {}
+	for _, g in ipairs(C.GODS_BY_RARITY[r] or {}) do
+		if not g.dawnOnly or dawn then
+			table.insert(pool, g)
+		end
+	end
+	if #pool == 0 then
+		pool = C.GODS_BY_RARITY[r]
+	end
+	return pool[math.random(1, #pool)]
+end
+
+function Packs.openAltar(player, i)
+	local d = G.Data.profiles[player]
+	local p = d and d.altarPacks[i]
+	if not p or p.rem > 0 then
+		return
+	end
+	table.remove(d.altarPacks, i)
+	local god = rollGod(p.r, p.dawn)
+	local isNew = G.Core.addGod(player, god)
+	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew })
+	if god.r >= C.ANNOUNCE_CHAT_FROM then
+		local color = G.Format.hex(C.RARITIES[god.r].color)
+		G.Net.announce("all", "gotGod", { player.DisplayName, { god = god.id }, { rarity = god.r } }, { color = color, big = god.r >= C.ANNOUNCE_BIG_FROM })
+		if god.r >= C.ANNOUNCE_GLOBAL_FROM then
+			pcall(function()
+				MessagingService:PublishAsync("GlobalAnnounce", { key = "gotGodGlobal", args = { player.DisplayName, { god = god.id }, { rarity = god.r }, "" }, color = color, jobId = game.JobId })
+			end)
+		end
+	end
+	Packs.tickAltars(player, 0)
+end
+
+-- "Abrir ya" con Robux: abre el primer sobre de ese grupo de rarezas
+function Packs.openNow(player, minR, maxR)
+	local d = G.Data.profiles[player]
+	if not d then
+		return false
+	end
+	for _, p in ipairs(d.altarPacks) do
+		if p.rem > 0 and p.r >= minR and p.r <= maxR then
+			p.rem = 0
+			return true
+		end
+	end
+	-- si no hay ninguno de ese grupo, se aplica al que más tiempo le quede
+	local best
+	for _, p in ipairs(d.altarPacks) do
+		if p.rem > 0 and (not best or p.rem > best.rem) then
+			best = p
+		end
+	end
+	if best then
+		best.rem = 0
+	end
+	return true
+end
+
+---------------------------------------------------------------------
+-- Bucle: guardianes, entregas, sobres flotando, pasillo
+---------------------------------------------------------------------
+local function guardianStep(guard, dt)
+	local model = guard.model
+	local pos = model:GetPivot().Position
+	local target = guard.target
+	local s = target and G.Core.sessions[target]
+	local hrp = target and target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+	if target and (not s or not s.carrying or not hrp or hrp.Position.Z < G.World.SAFE_Z) then
+		guard.target = nil
+		target = nil
+	end
+	local goal, speed
+	if target and hrp then
+		local d = G.Data.profiles[target]
+		local hum = target.Character:FindFirstChildOfClass("Humanoid")
+		local ws = hum and hum.WalkSpeed or 16
+		local guardSpeed = C.ZONES[guard.zone].guardian.speed
+		if d and d.speed >= guardSpeed then
+			speed = math.max(18, ws * 0.82) -- eres más rápido: escapas
+		else
+			speed = ws * 1.18 + 4 -- te alcanza
+		end
+		goal = Vector3.new(hrp.Position.X, guard.height, hrp.Position.Z)
+		if (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).Magnitude < 7 + guard.height * 0.3 then
+			caught(target, guard.zone)
+			return
+		end
+	else
+		goal = guard.home
+		speed = 40
+	end
+	local flat = Vector3.new(goal.X - pos.X, 0, goal.Z - pos.Z)
+	local dist = flat.Magnitude
+	if dist < 0.5 then
+		return
+	end
+	local step = math.min(dist, speed * dt)
+	local newPos = Vector3.new(pos.X, guard.height, pos.Z) + flat.Unit * step
+	local bob = target and math.abs(math.sin(os.clock() * 10)) * 0.8 or 0
+	model:PivotTo(CFrame.lookAt(newPos + Vector3.new(0, bob, 0), newPos + flat.Unit + Vector3.new(0, bob, 0)))
+end
+
+function Packs.start()
+	RunService.Heartbeat:Connect(function(dt)
+		for _, guard in ipairs(G.World.guardians) do
+			guardianStep(guard, dt)
+			local bb = guard.model.PrimaryPart:FindFirstChildOfClass("BillboardGui")
+			if bb then
+				bb:SetAttribute("Chasing", guard.target ~= nil)
+			end
+		end
+		for _, pack in pairs(Packs.list) do
+			if pack.state == "carried" and pack.carrier then
+				local char = pack.carrier.Character
+				local head = char and char:FindFirstChild("Head")
+				if head then
+					pack.part.CFrame = head.CFrame * CFrame.new(0, 3, 0) * CFrame.Angles(0, math.rad(os.clock() * 120 % 360), 0)
+					if pack.beam then
+						pack.beam.CFrame = CFrame.new(head.Position + Vector3.new(0, 152, 0)) * CFrame.Angles(0, 0, math.rad(90))
+					end
+				end
+				-- ¿ha llegado a su parcela?
+				local s = G.Core.sessions[pack.carrier]
+				if s and s.plot and char and char:FindFirstChild("HumanoidRootPart") then
+					local hp = char.HumanoidRootPart.Position
+					local c = s.plot.center
+					if math.abs(hp.X - c.X) <= G.World.PLOT_SIZE / 2 and math.abs(hp.Z - c.Z) <= G.World.PLOT_SIZE / 2 then
+						deliver(pack.carrier, pack)
+					end
+				end
+			elseif pack.state == "ground" or pack.state == "loose" then
+				placeOnGround(pack, pack.state == "loose" and pack.loosePos or pack.home)
+			end
+		end
+	end)
+	-- control del pasillo (5 veces por segundo)
+	task.spawn(function()
+		while true do
+			task.wait(0.2)
+			local night = G.DayNight.isNight()
+			for player, s in pairs(G.Core.sessions) do
+				local d = G.Data.profiles[player]
+				local char = player.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				if d and hrp and s.plot then
+					local p = hrp.Position
+					if p.Z >= C.CORRIDOR_START - 3 then
+						if night then
+							hrp.CFrame = CFrame.new(s.plot.spawn)
+							G.Net.toast(player, "nightClosed")
+						else
+							local zi = G.World.zoneAt(p.Z)
+							local zone = C.ZONES[zi]
+							if zi > 1 and d.speed < zone.req then
+								local back = G.World.zoneStart(zi) - 10
+								hrp.CFrame = CFrame.new(Vector3.new(p.X, p.Y, back), Vector3.new(p.X, p.Y, back - 10))
+								G.Net.toast(player, "needSpeed", G.Format.num(zone.req), { zone = zi })
+							end
+						end
+					end
+				end
+			end
+		end
+	end)
+end
+
+function Packs.init(g)
+	G = g
+	C = g.Config
+	-- altares: abrir
+	for _, plot in ipairs(G.World.plots) do
+		for i, a in ipairs(plot.altars) do
+			a.prompt.Triggered:Connect(function(player)
+				if plot.owner == player then
+					Packs.openAltar(player, i)
+				end
+			end)
+		end
+	end
+	-- avisos de otros servidores
+	pcall(function()
+		MessagingService:SubscribeAsync("GlobalAnnounce", function(msg)
+			local data = msg.Data
+			if type(data) == "table" and data.jobId ~= game.JobId then
+				G.Net.announce("all", data.key, data.args, { color = data.color, big = true })
+			end
+		end)
+	end)
+end
+
+return Packs

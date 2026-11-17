@@ -1,0 +1,331 @@
+-- Steal a God ⚡ Roba un Dios — configuración del juego
+-- Todo lo que se puede ajustar (zonas, rarezas, dioses, precios, Robux) está aquí.
+
+local Config = {}
+
+---------------------------------------------------------------------
+-- CICLO DE DÍA Y NOCHE
+---------------------------------------------------------------------
+Config.DAY_SECONDS = 300 -- 5 minutos de día
+Config.NIGHT_SECONDS = 15 -- 15 segundos de noche
+Config.NIGHT_WARNING = 10 -- aviso antes de que anochezca
+Config.NIGHT_TREADMILL_MULT = 3 -- la cinta da x3 de noche
+Config.NIGHT_OPEN_MULT = 10 -- los sobres se abren x10 más rápido de noche
+
+---------------------------------------------------------------------
+-- RAREZAS (14)
+---------------------------------------------------------------------
+-- open = segundos para abrir el sobre · income = dinero por segundo del dios
+Config.RARITIES = {
+	{ id = 1, es = "Común", en = "Common", color = Color3.fromRGB(170, 170, 170), open = 10 },
+	{ id = 2, es = "Poco común", en = "Uncommon", color = Color3.fromRGB(80, 200, 90), open = 30 },
+	{ id = 3, es = "Rara", en = "Rare", color = Color3.fromRGB(60, 140, 255), open = 60 },
+	{ id = 4, es = "Épica", en = "Epic", color = Color3.fromRGB(170, 80, 255), open = 180 },
+	{ id = 5, es = "Legendaria", en = "Legendary", color = Color3.fromRGB(255, 200, 40), open = 600 },
+	{ id = 6, es = "Mítica", en = "Mythic", color = Color3.fromRGB(255, 60, 70), open = 1800 },
+	{ id = 7, es = "Divina", en = "Divine", color = Color3.fromRGB(255, 248, 225), open = 3600 },
+	{ id = 8, es = "Celestial", en = "Celestial", color = Color3.fromRGB(90, 230, 255), open = 10800 },
+	{ id = 9, es = "Primordial", en = "Primordial", color = Color3.fromRGB(255, 120, 200), open = 28800, rainbow = true },
+	{ id = 10, es = "Secreta", en = "Secret", color = Color3.fromRGB(25, 25, 35), open = 86400, sparkle = true },
+	{ id = 11, es = "Godlike", en = "Godlike", color = Color3.fromRGB(255, 170, 0), open = 172800, sparkle = true },
+	{ id = 12, es = "Omnipotente", en = "Omnipotent", color = Color3.fromRGB(255, 255, 255), open = 345600, sparkle = true },
+	{ id = 13, es = "Infinita", en = "Infinite", color = Color3.fromRGB(120, 90, 255), open = 604800, rainbow = true },
+	{ id = 14, es = "???", en = "???", color = Color3.fromRGB(0, 0, 0), open = 604800, sparkle = true },
+}
+for _, r in ipairs(Config.RARITIES) do
+	r.income = 4 * 6 ^ (r.id - 1)
+end
+Config.ANNOUNCE_CHAT_FROM = 6 -- Mítica o más: aviso en el chat del servidor
+Config.ANNOUNCE_BIG_FROM = 10 -- Secreta o más: cartel + haz de luz
+Config.ANNOUNCE_GLOBAL_FROM = 11 -- Godlike o más: aviso en todos los servidores
+
+---------------------------------------------------------------------
+-- MITOLOGÍAS (completar una entera da arma + multiplicador)
+---------------------------------------------------------------------
+Config.MYTHS = {
+	celtic = { es = "Celta", en = "Celtic", weapon = "druid", bonus = 0.10 },
+	egyptian = { es = "Egipcia", en = "Egyptian", weapon = "anubis", bonus = 0.15 },
+	aztec = { es = "Azteca", en = "Aztec", weapon = "macuahuitl", bonus = 0.20 },
+	babylonian = { es = "Babilónica", en = "Babylonian", weapon = "marduk", bonus = 0.25 },
+	greek = { es = "Griega", en = "Greek", weapon = "trident", bonus = 0.35 },
+	norse = { es = "Nórdica", en = "Norse", weapon = "mjolnir", bonus = 0.50 },
+}
+
+---------------------------------------------------------------------
+-- ARMAS (empuje)
+---------------------------------------------------------------------
+Config.WEAPONS = {
+	bat = { order = 0, es = "Bate de madera", en = "Wooden Bat", power = 1, color = Color3.fromRGB(150, 100, 55) },
+	druid = { order = 1, es = "Bastón druida", en = "Druid Staff", power = 1.5, color = Color3.fromRGB(70, 150, 60) },
+	anubis = { order = 2, es = "Cetro de Anubis", en = "Scepter of Anubis", power = 2, color = Color3.fromRGB(40, 40, 50) },
+	macuahuitl = { order = 3, es = "Macuahuitl", en = "Macuahuitl", power = 2.5, color = Color3.fromRGB(30, 30, 30) },
+	marduk = { order = 4, es = "Maza de Marduk", en = "Mace of Marduk", power = 3, color = Color3.fromRGB(200, 150, 50) },
+	trident = { order = 5, es = "Tridente de Poseidón", en = "Trident of Poseidon", power = 4, color = Color3.fromRGB(60, 200, 220) },
+	mjolnir = { order = 6, es = "Mjölnir", en = "Mjölnir", power = 6, color = Color3.fromRGB(160, 170, 190), lightning = true },
+}
+Config.HIT_RANGE = 9
+Config.HIT_COOLDOWN = 2
+Config.HIT_INVULN = 1
+Config.NEWBIE_PROTECTION = 600 -- segundos de juego protegidos
+
+---------------------------------------------------------------------
+-- DIOSES (64)
+---------------------------------------------------------------------
+Config.GODS = {
+	-- 1 Común
+	{ id = "pan", name = "Pan", r = 1, myth = "greek", factEs = "Dios de los pastores; su grito daba 'pánico'.", factEn = "God of shepherds; his shout gave us the word 'panic'." },
+	{ id = "eolo", name = "Eolo", r = 1, myth = "greek", factEs = "Guardaba los vientos en un odre.", factEn = "Kept the winds inside a leather bag." },
+	{ id = "iris", name = "Iris", r = 1, myth = "greek", factEs = "Mensajera de los dioses; el arcoíris era su camino.", factEn = "Messenger of the gods; the rainbow was her road." },
+	{ id = "bastet", name = "Bastet", r = 1, myth = "egyptian", factEs = "Diosa gata protectora del hogar.", factEn = "Cat goddess who protected the home." },
+	{ id = "sobek", name = "Sobek", r = 1, myth = "egyptian", factEs = "Dios cocodrilo del Nilo.", factEn = "Crocodile god of the Nile." },
+	{ id = "heimdall", name = "Heimdall", r = 1, myth = "norse", factEs = "Vigila el puente arcoíris Bifröst.", factEn = "Guards the rainbow bridge Bifröst." },
+	-- 2 Poco común
+	{ id = "eos", name = "Eos", r = 2, myth = "greek", factEs = "Diosa del amanecer.", factEn = "Goddess of the dawn." },
+	{ id = "selene", name = "Selene", r = 2, myth = "greek", factEs = "Conducía la Luna en su carro.", factEn = "Drove the Moon across the sky." },
+	{ id = "bragi", name = "Bragi", r = 2, myth = "norse", factEs = "Dios de la poesía.", factEn = "God of poetry." },
+	{ id = "khonsu", name = "Khonsu", r = 2, myth = "egyptian", factEs = "Dios de la Luna y el tiempo.", factEn = "God of the Moon and time." },
+	{ id = "brigid", name = "Brigid", r = 2, myth = "celtic", factEs = "Diosa del fuego y la forja.", factEn = "Goddess of fire and the forge." },
+	{ id = "xochiquetzal", name = "Xochiquétzal", r = 2, myth = "aztec", factEs = "Diosa de las flores.", factEn = "Goddess of flowers." },
+	-- 3 Rara
+	{ id = "hermes", name = "Hermes", r = 3, myth = "greek", factEs = "El dios más rápido, con sandalias aladas.", factEn = "The fastest god, with winged sandals." },
+	{ id = "artemisa", name = "Artemisa", r = 3, myth = "greek", factEs = "Diosa de la caza.", factEn = "Goddess of the hunt." },
+	{ id = "apolo", name = "Apolo", r = 3, myth = "greek", factEs = "Dios del sol y la música.", factEn = "God of the sun and music." },
+	{ id = "horus", name = "Horus", r = 3, myth = "egyptian", factEs = "Dios halcón del cielo.", factEn = "Falcon god of the sky." },
+	{ id = "freya", name = "Freya", r = 3, myth = "norse", factEs = "Viajaba en un carro tirado por gatos.", factEn = "Rode a chariot pulled by cats." },
+	{ id = "tyr", name = "Tyr", r = 3, myth = "norse", factEs = "Perdió su mano para encadenar a Fenrir.", factEn = "Lost his hand chaining Fenrir." },
+	{ id = "cernunnos", name = "Cernunnos", r = 3, myth = "celtic", factEs = "Dios astado de los bosques.", factEn = "Horned god of the forests." },
+	{ id = "tlaloc", name = "Tláloc", r = 3, myth = "aztec", factEs = "Dios de la lluvia.", factEn = "God of rain." },
+	{ id = "shamash", name = "Shamash", r = 3, myth = "babylonian", factEs = "Dios del sol y la justicia.", factEn = "God of the sun and justice." },
+	-- 4 Épica
+	{ id = "atenea", name = "Atenea", r = 4, myth = "greek", factEs = "Nació adulta y con armadura.", factEn = "Born fully grown and armored." },
+	{ id = "ares", name = "Ares", r = 4, myth = "greek", factEs = "Dios de la guerra.", factEn = "God of war." },
+	{ id = "hefesto", name = "Hefesto", r = 4, myth = "greek", factEs = "Forjaba las armas de los dioses.", factEn = "Forged the weapons of the gods." },
+	{ id = "anubis", name = "Anubis", r = 4, myth = "egyptian", factEs = "Pesaba el corazón de los muertos.", factEn = "Weighed the hearts of the dead." },
+	{ id = "isis", name = "Isis", r = 4, myth = "egyptian", factEs = "La gran diosa de la magia.", factEn = "The great goddess of magic." },
+	{ id = "loki", name = "Loki", r = 4, myth = "norse", factEs = "El embaucador que cambiaba de forma.", factEn = "The shapeshifting trickster." },
+	{ id = "quetzalcoatl", name = "Quetzalcóatl", r = 4, myth = "aztec", factEs = "La serpiente emplumada.", factEn = "The feathered serpent." },
+	{ id = "morrigan", name = "Morrígan", r = 4, myth = "celtic", factEs = "Se convertía en cuervo en las batallas.", factEn = "Turned into a crow in battle." },
+	{ id = "ishtar", name = "Ishtar", r = 4, myth = "babylonian", factEs = "Diosa del amor y la guerra.", factEn = "Goddess of love and war." },
+	-- 5 Legendaria
+	{ id = "poseidon", name = "Poseidón", r = 5, myth = "greek", factEs = "Su tridente provocaba terremotos.", factEn = "His trident caused earthquakes." },
+	{ id = "hades", name = "Hades", r = 5, myth = "greek", factEs = "Rey del Inframundo.", factEn = "King of the Underworld." },
+	{ id = "hera", name = "Hera", r = 5, myth = "greek", factEs = "Reina de los dioses.", factEn = "Queen of the gods." },
+	{ id = "ra", name = "Ra", r = 5, myth = "egyptian", factEs = "Cruzaba el cielo en una barca solar.", factEn = "Sailed the sky in a solar boat." },
+	{ id = "thor", name = "Thor", r = 5, myth = "norse", factEs = "Su martillo volvía siempre a su mano.", factEn = "His hammer always returned to his hand." },
+	{ id = "huitzilopochtli", name = "Huitzilopochtli", r = 5, myth = "aztec", factEs = "Dios del sol y la guerra azteca.", factEn = "Aztec god of sun and war." },
+	{ id = "dagda", name = "Dagda", r = 5, myth = "celtic", factEs = "Su caldero nunca se vaciaba.", factEn = "His cauldron was never empty." },
+	{ id = "enki", name = "Enki", r = 5, myth = "babylonian", factEs = "Dios del agua y la sabiduría.", factEn = "God of water and wisdom." },
+	-- 6 Mítica
+	{ id = "odin", name = "Odín", r = 6, myth = "norse", factEs = "Dio un ojo a cambio de sabiduría.", factEn = "Gave an eye for wisdom." },
+	{ id = "osiris", name = "Osiris", r = 6, myth = "egyptian", factEs = "Volvió de la muerte para reinar.", factEn = "Returned from death to rule." },
+	{ id = "cronos", name = "Cronos", r = 6, myth = "greek", factEs = "El titán del tiempo.", factEn = "The titan of time." },
+	{ id = "tiamat", name = "Tiamat", r = 6, myth = "babylonian", factEs = "La dragona del océano primordial.", factEn = "Dragon of the primordial sea." },
+	{ id = "tezcatlipoca", name = "Tezcatlipoca", r = 6, myth = "aztec", factEs = "El espejo humeante de la noche.", factEn = "The smoking mirror of the night." },
+	-- 7 Divina
+	{ id = "hiperion", name = "Hiperión", r = 7, myth = "greek", factEs = "Titán de la luz.", factEn = "Titan of light." },
+	{ id = "atlas", name = "Atlas", r = 7, myth = "greek", factEs = "Sostiene el cielo sobre sus hombros.", factEn = "Holds the sky on his shoulders." },
+	{ id = "set", name = "Set", r = 7, myth = "egyptian", factEs = "Dios del caos y las tormentas.", factEn = "God of chaos and storms." },
+	{ id = "marduk", name = "Marduk", r = 7, myth = "babylonian", factEs = "Venció a Tiamat y creó el mundo.", factEn = "Defeated Tiamat and made the world." },
+	{ id = "danu", name = "Danu", r = 7, myth = "celtic", factEs = "La madre de los dioses celtas.", factEn = "Mother of the Celtic gods." },
+	-- 8 Celestial
+	{ id = "urano", name = "Urano", r = 8, myth = "greek", factEs = "El cielo en persona.", factEn = "The sky itself." },
+	{ id = "nut", name = "Nut", r = 8, myth = "egyptian", factEs = "Su cuerpo era la bóveda estrellada.", factEn = "Her body was the starry sky." },
+	{ id = "ymir", name = "Ymir", r = 8, myth = "norse", factEs = "Con su cuerpo se creó el mundo.", factEn = "The world was made from his body." },
+	-- 9 Primordial
+	{ id = "gaia", name = "Gaia", r = 9, myth = "greek", factEs = "La Tierra, madre de todo.", factEn = "The Earth, mother of all." },
+	{ id = "erebo", name = "Érebo", r = 9, myth = "greek", factEs = "La oscuridad primordial.", factEn = "The primordial darkness." },
+	{ id = "nun", name = "Nun", r = 9, myth = "egyptian", factEs = "Las aguas del caos original.", factEn = "The waters of original chaos." },
+	-- 10 Secreta
+	{ id = "zeus", name = "Zeus", r = 10, myth = "greek", factEs = "Rey del Olimpo y señor del rayo.", factEn = "King of Olympus, lord of lightning." },
+	{ id = "nyx", name = "Nyx", r = 10, myth = "greek", factEs = "Diosa de la noche; hasta Zeus la temía.", factEn = "Goddess of night; even Zeus feared her.", dawnOnly = true },
+	{ id = "prometeo", name = "Prometeo", r = 10, myth = "greek", factEs = "Robó el fuego a los dioses.", factEn = "Stole fire from the gods." },
+	-- 11 Godlike
+	{ id = "caos", name = "Caos", r = 11, myth = "greek", factEs = "Lo primero que existió.", factEn = "The first thing that ever existed." },
+	{ id = "fanes", name = "Fanes", r = 11, myth = "greek", factEs = "Nació de un huevo cósmico.", factEn = "Hatched from a cosmic egg." },
+	{ id = "atum", name = "Atum", r = 11, myth = "egyptian", factEs = "Se creó a sí mismo.", factEn = "Created himself." },
+	-- 12 Omnipotente
+	{ id = "ananke", name = "Ananké", r = 12, myth = "greek", factEs = "El destino; ni los dioses podían desobedecerla.", factEn = "Fate; not even gods could defy her." },
+	{ id = "ometeotl", name = "Ometéotl", r = 12, myth = "aztec", factEs = "El dios dual creador de todo.", factEn = "The dual creator of everything." },
+	-- 13 Infinita
+	{ id = "ouroboros", name = "Ouroboros", r = 13, myth = "cosmic", factEs = "La serpiente que se muerde la cola: el infinito.", factEn = "The serpent eating its own tail: infinity." },
+	-- 14 ???
+	{ id = "unknown", name = "???", r = 14, myth = "cosmic", factEs = "Nadie sabe quién es… todavía.", factEn = "Nobody knows who this is… yet." },
+}
+Config.GOD_BY_ID = {}
+Config.GODS_BY_RARITY = {}
+for i, g in ipairs(Config.GODS) do
+	g.index = i
+	Config.GOD_BY_ID[g.id] = g
+	Config.GODS_BY_RARITY[g.r] = Config.GODS_BY_RARITY[g.r] or {}
+	table.insert(Config.GODS_BY_RARITY[g.r], g)
+end
+
+---------------------------------------------------------------------
+-- ÍNDICE: recompensas por dioses distintos conseguidos
+---------------------------------------------------------------------
+Config.INDEX_REWARDS = {
+	{ count = 5, money = 0.10 },
+	{ count = 10, speed = 0.10 },
+	{ count = 15, money = 0.25 },
+	{ count = 20, speed = 0.25 },
+	{ count = 30, money = 0.50 },
+	{ count = 40, speed = 0.50 },
+	{ count = 50, moneyMult = 2 },
+	{ count = #Config.GODS, moneyMult = 2, speedMult = 2 },
+}
+
+---------------------------------------------------------------------
+-- ZONAS (6 en la v1; las demás llegarán en actualizaciones)
+---------------------------------------------------------------------
+Config.ZONE_LENGTH = 260
+Config.CORRIDOR_START = 160 -- Z donde empieza el pasillo
+Config.CORRIDOR_HALF_WIDTH = 36
+Config.PACKS_PER_ZONE = 6
+Config.ZONES = {
+	{
+		es = "Arcadia griega", en = "Greek Arcadia", req = 0,
+		ground = Color3.fromRGB(110, 170, 80), accent = Color3.fromRGB(240, 235, 220),
+		guardian = { es = "Minotauro", en = "Minotaur", kind = "minotaur", color = Color3.fromRGB(120, 70, 40), speed = 30 },
+		weights = { [1] = 70, [2] = 25, [3] = 4.5, [4] = 0.5 },
+	},
+	{
+		es = "Bosque celta", en = "Celtic Forest", req = 1e3,
+		ground = Color3.fromRGB(50, 110, 60), accent = Color3.fromRGB(90, 70, 50),
+		guardian = { es = "Dullahan", en = "Dullahan", kind = "dullahan", color = Color3.fromRGB(30, 35, 45), speed = 3e3 },
+		weights = { [1] = 30, [2] = 45, [3] = 20, [4] = 4.5, [5] = 0.5 },
+	},
+	{
+		es = "Desierto de Egipto", en = "Egyptian Desert", req = 5e4,
+		ground = Color3.fromRGB(220, 185, 120), accent = Color3.fromRGB(200, 160, 60),
+		guardian = { es = "Esfinge", en = "Sphinx", kind = "sphinx", color = Color3.fromRGB(205, 165, 95), speed = 1.5e5 },
+		weights = { [2] = 30, [3] = 45, [4] = 20, [5] = 4.5, [6] = 0.5 },
+	},
+	{
+		es = "Selva azteca", en = "Aztec Jungle", req = 2e6,
+		ground = Color3.fromRGB(40, 120, 70), accent = Color3.fromRGB(120, 120, 110),
+		guardian = { es = "Jaguar guerrero", en = "Jaguar Warrior", kind = "jaguar", color = Color3.fromRGB(230, 160, 40), speed = 6e6 },
+		weights = { [3] = 30, [4] = 45, [5] = 20, [6] = 4.5, [7] = 0.5 },
+	},
+	{
+		es = "Babilonia", en = "Babylon", req = 1e8,
+		ground = Color3.fromRGB(190, 150, 100), accent = Color3.fromRGB(40, 80, 170),
+		guardian = { es = "Lamassu", en = "Lamassu", kind = "lamassu", color = Color3.fromRGB(180, 170, 150), speed = 3e8 },
+		weights = { [4] = 30, [5] = 45, [6] = 20, [7] = 4.5, [8] = 0.5 },
+	},
+	{
+		es = "Fiordos nórdicos", en = "Norse Fjords", req = 5e9,
+		ground = Color3.fromRGB(200, 215, 230), accent = Color3.fromRGB(80, 100, 130),
+		guardian = { es = "Fenrir", en = "Fenrir", kind = "fenrir", color = Color3.fromRGB(70, 75, 90), speed = 1.5e10 },
+		weights = { [5] = 30, [6] = 45, [7] = 20, [8] = 4.4, [9] = 0.6 },
+	},
+}
+-- Probabilidad (1 entre N) de las rarezas "imposibles" en cualquier sobre de zona 3+
+Config.ULTRA = {
+	{ r = 10, oneIn = 1e5 },
+	{ r = 11, oneIn = 1e7 },
+	{ r = 12, oneIn = 1e9 },
+	{ r = 13, oneIn = 1e14 },
+	{ r = 14, oneIn = 1e15 },
+}
+Config.DAWN_LUCK = 3 -- los sobres del amanecer tienen x3 de suerte (1 por zona)
+
+---------------------------------------------------------------------
+-- VELOCIDAD, CINTA Y PARCELA
+---------------------------------------------------------------------
+Config.TREADMILL_MAX = 40
+function Config.treadmillGain(level) -- velocidad por segundo
+	return 5 * 3 ^ (level - 1)
+end
+function Config.treadmillCost(level) -- precio para llegar a ese nivel
+	return 20 * 4 ^ (level - 2)
+end
+Config.COMBO_MAX = 5
+Config.COMBO_DECAY = 2.2 -- segundos sin acertar antes de perder el combo
+
+function Config.walkSpeedFor(speed)
+	return math.clamp(16 + 9 * math.log10(1 + speed), 16, 110)
+end
+
+Config.PLOT_MAX = 25
+function Config.pedestalsFor(level)
+	return 2 + level
+end
+function Config.plotCost(level)
+	return 100 * 5 ^ (level - 2)
+end
+Config.ALTARS_BASE = 3
+Config.ALTARS_MAX = 8
+function Config.altarCost(n) -- precio del altar número n (4, 5, ...)
+	return 500 * 30 ^ (n - 4)
+end
+Config.PACK_QUEUE_MAX = 10
+
+---------------------------------------------------------------------
+-- ENTRENADORES (héroes) — se fusionan 2 iguales para subir de nivel
+---------------------------------------------------------------------
+Config.COACHES = {
+	{ id = "heracles", es = "Hércules", en = "Heracles", cost = 1e3, bonus = 0.10 },
+	{ id = "aquiles", es = "Aquiles", en = "Achilles", cost = 5e4, bonus = 0.15 },
+	{ id = "perseo", es = "Perseo", en = "Perseus", cost = 2.5e6, bonus = 0.20 },
+	{ id = "teseo", es = "Teseo", en = "Theseus", cost = 1e8, bonus = 0.25 },
+}
+Config.COACH_TIERS = {
+	{ es = "Normal", en = "Normal", mult = 1 },
+	{ es = "Dorado", en = "Golden", mult = 2.5 },
+	{ es = "Divino", en = "Divine", mult = 6 },
+	{ es = "Mutado", en = "Mutated", mult = 15 },
+}
+Config.COACH_EQUIP = 3
+
+---------------------------------------------------------------------
+-- AURAS
+---------------------------------------------------------------------
+Config.AURAS = {
+	{ id = "rayo", es = "Rayo de Zeus", en = "Zeus' Lightning", cost = 1e4, speed = 0.25, color = Color3.fromRGB(255, 240, 120) },
+	{ id = "fuego", es = "Fuego del Inframundo", en = "Underworld Fire", cost = 2.5e5, money = 0.25, color = Color3.fromRGB(255, 90, 30) },
+	{ id = "sol", es = "Sol de Ra", en = "Sun of Ra", cost = 2e7, speed = 0.60, color = Color3.fromRGB(255, 190, 60) },
+	{ id = "escarcha", es = "Escarcha nórdica", en = "Norse Frost", cost = 1e9, money = 0.60, color = Color3.fromRGB(150, 220, 255) },
+	{ id = "marea", es = "Marea de Poseidón", en = "Poseidon's Tide", cost = 5e10, speed = 0.50, money = 0.50, color = Color3.fromRGB(40, 160, 255) },
+	{ id = "divina", es = "Aura Divina", en = "Divine Aura", cost = 5e12, speed = 1.5, money = 1.5, color = Color3.fromRGB(255, 255, 255) },
+}
+Config.AURA_BY_ID = {}
+for _, a in ipairs(Config.AURAS) do
+	Config.AURA_BY_ID[a.id] = a
+end
+
+---------------------------------------------------------------------
+-- ROBUX
+-- Pon aquí los IDs cuando crees los pases y productos en create.roblox.com
+-- Mientras valgan 0, el botón sale como "Próximamente".
+---------------------------------------------------------------------
+Config.PASSES = {
+	speed2x = { id = 0, price = 199, es = "Velocidad x2", en = "2x Speed" },
+	money2x = { id = 0, price = 149, es = "Dinero x2", en = "2x Money" },
+	autoTreadmill = { id = 0, price = 249, es = "Cinta automática", en = "Auto Treadmill" },
+	luck2x = { id = 0, price = 299, es = "Suerte x2", en = "2x Luck" },
+	moreSlots = { id = 0, price = 99, es = "+5 pedestales y +2 altares", en = "+5 pedestals & +2 altars" },
+	vip = { id = 0, price = 349, es = "VIP (+10% de todo)", en = "VIP (+10% everything)" },
+}
+Config.PRODUCTS = {
+	savePack = { id = 0, price = 25, es = "Salvar el sobre", en = "Save the pack" },
+	speedBoost = { id = 0, price = 49, es = "Velocidad x3 (15 min)", en = "3x Speed (15 min)" },
+	serverNight = { id = 0, price = 99, es = "Noche para el servidor", en = "Night for the server" },
+	serverLuck = { id = 0, price = 149, es = "Suerte x3 para el servidor (10 min)", en = "3x Luck for the server (10 min)" },
+	moneySmall = { id = 0, price = 49, es = "Dinero: 10 min de ingresos", en = "Money: 10 min of income" },
+	moneyBig = { id = 0, price = 199, es = "Dinero: 2 h de ingresos", en = "Money: 2 h of income" },
+	openNowLow = { id = 0, price = 19, es = "Abrir ya (Común–Épica)", en = "Open now (Common–Epic)" },
+	openNowMid = { id = 0, price = 79, es = "Abrir ya (Legendaria–Celestial)", en = "Open now (Legendary–Celestial)" },
+	openNowHigh = { id = 0, price = 299, es = "Abrir ya (Primordial o más)", en = "Open now (Primordial+)" },
+	instantUpgrade = { id = 0, price = 79, es = "Mejora de parcela instantánea", en = "Instant plot upgrade" },
+	divineShield = { id = 0, price = 29, es = "Escudo divino (3 min)", en = "Divine Shield (3 min)" },
+}
+
+---------------------------------------------------------------------
+-- AFK: antes de que Roblox expulse por inactividad (20 min), el juego
+-- te reconecta al mismo juego y sigues en modo AFK.
+---------------------------------------------------------------------
+Config.AFK_REJOIN_AFTER = 17 * 60
+
+Config.MAX_PLAYERS_PLOTS = 8
+
+return Config
