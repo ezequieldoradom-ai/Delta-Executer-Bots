@@ -1107,6 +1107,109 @@ local function decorZone(i, z0, zone)
 			cl.Parent = crystal
 		end
 	end
+
+	-- ARENA DEL GUARDIÁN (petición del dueño: "las plazas de los bosses más atractivas y con más efectos").
+	-- Alrededor de su casa (z0+L-25): anillo de luz en el suelo, círculo de runas rojo que gira, ascuas que suben,
+	-- 6 pilares con cristal flotante, dos grandes hogueras y una puerta detrás. Todo sin colisión (el guardián y los
+	-- jugadores pasan a través) y lejos de los sobres (z0+65/135) y del nido (z0+100).
+	local home = Vector3.new(0, 0, z0 + L - 25)
+	local RED = Color3.fromRGB(255, 60, 40)
+	local R = 22
+	local FLAT = CFrame.Angles(0, 0, math.rad(90)) -- cilindro tumbado (su eje X pasa a ser la vertical)
+	nc({ Name = "ArenaFloor", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, R * 2, R * 2), CFrame = CFrame.new(home + Vector3.new(0, 0.3, 0)) * FLAT, Color = t.panel:Lerp(Color3.new(0, 0, 0), 0.35), Material = t.floorMat })
+	nc({ Name = "ArenaRim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.25, R * 2 + 2.4, R * 2 + 2.4), CFrame = CFrame.new(home + Vector3.new(0, 0.26, 0)) * FLAT, Color = t.glow, Material = Enum.Material.Neon, Transparency = 0.1 })
+	nc({ Name = "ArenaRimInner", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.32, R * 2 - 9, R * 2 - 9), CFrame = CFrame.new(home + Vector3.new(0, 0.31, 0)) * FLAT, Color = RED, Material = Enum.Material.Neon, Transparency = 0.45 })
+	-- círculo de runas que gira despacio bajo el guardián
+	local runes = nc({ Name = "ArenaRunes", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.1, R * 2 - 10, R * 2 - 10), CFrame = CFrame.new(home + Vector3.new(0, 0.48, 0)) * FLAT, Color = RED, Transparency = 1 })
+	local rd = Instance.new("Decal")
+	rd.Texture = G.Config.VFX.runes
+	rd.Face = Enum.NormalId.Right
+	rd.Color3 = RED:Lerp(Color3.new(1, 1, 1), 0.15)
+	rd.Parent = runes
+	runes:SetAttribute("SpinSpeed", 0.25)
+	runes:SetAttribute("SpinAxis", "X")
+	CollectionService:AddTag(runes, "FxSpin")
+	-- ascuas que suben de toda la arena y onda roja que se abre en el suelo
+	local emit = nc({ Name = "ArenaEmbers", Size = Vector3.new(R * 1.6, 0.2, R * 1.6), CFrame = CFrame.new(home + Vector3.new(0, 0.6, 0)), Transparency = 1 })
+	local em = Instance.new("ParticleEmitter")
+	em.Texture = G.Config.VFX.sparkle
+	em.Rate = 14
+	em.Lifetime = NumberRange.new(2.5, 4)
+	em.Speed = NumberRange.new(3, 7)
+	em.Acceleration = Vector3.new(0, 2, 0)
+	em.SpreadAngle = Vector2.new(15, 15)
+	em.LightEmission = 1
+	em.LightInfluence = 0
+	em.Color = ColorSequence.new(Color3.fromRGB(255, 200, 120), RED)
+	em.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.15, 0.9), NumberSequenceKeypoint.new(1, 0) })
+	em.RotSpeed = NumberRange.new(-90, 90)
+	em.Parent = emit
+	local waveAt = Instance.new("Attachment")
+	waveAt.Parent = emit
+	local wave = Instance.new("ParticleEmitter")
+	wave.Texture = G.Config.VFX.ring
+	wave.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
+	wave.EmissionDirection = Enum.NormalId.Top
+	wave.Speed = NumberRange.new(0.01)
+	wave.SpreadAngle = Vector2.new(0, 0)
+	wave.Rate = 0.5
+	wave.Lifetime = NumberRange.new(2.4)
+	wave.LightEmission = 0.8
+	wave.LightInfluence = 0
+	wave.Color = ColorSequence.new(RED, t.glow)
+	wave.Size = NumberSequence.new(4, R * 2.2)
+	wave.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(0.7, 0.6), NumberSequenceKeypoint.new(1, 1) })
+	wave.Parent = waveAt
+	local glow = Instance.new("PointLight")
+	glow.Color = RED
+	glow.Range = 40
+	glow.Brightness = 1.2
+	glow.Shadows = false
+	glow.Parent = emit
+	-- 6 pilares en corro (sin el hueco de delante, por donde llegan los jugadores)
+	for k = 0, 5 do
+		local a = math.rad(-75 + k * 30) -- de -75º a 75º: abanico hacia el fondo de la zona
+		local p = home + Vector3.new(math.sin(a) * (R + 3), 0, math.cos(a) * (R + 3))
+		nc({ Name = "ArenaPillarBase", Size = Vector3.new(4.4, 1.4, 4.4), CFrame = CFrame.new(p + Vector3.new(0, 0.7, 0)), Color = t.trim, Material = t.trimMat })
+		local shaft = nc({ Name = "ArenaPillar", Shape = Enum.PartType.Cylinder, Size = Vector3.new(12, 2.6, 2.6), CFrame = CFrame.new(p + Vector3.new(0, 7.4, 0)) * FLAT, Color = t.pillar, Material = t.pillarMat })
+		shaft.CastShadow = true
+		nc({ Name = "ArenaPillarBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 3, 3), CFrame = CFrame.new(p + Vector3.new(0, 9, 0)) * FLAT, Color = RED, Material = Enum.Material.Neon, Transparency = 0.15 })
+		nc({ Name = "ArenaPillarCap", Size = Vector3.new(3.8, 1, 3.8), CFrame = CFrame.new(p + Vector3.new(0, 13.9, 0)), Color = t.trim, Material = t.trimMat })
+		local c = nc({ Name = "ArenaCrystal", Size = Vector3.new(2, 4, 2), CFrame = CFrame.new(p + Vector3.new(0, 17.5, 0)) * CFrame.Angles(0, 0, math.rad(45)), Color = k % 2 == 0 and RED or t.glow, Material = Enum.Material.Neon, Transparency = 0.1 })
+		c:SetAttribute("BobAmp", 0.7)
+		c:SetAttribute("BobPhase", k)
+		c:SetAttribute("SpinSpeed", 1.5)
+		CollectionService:AddTag(c, "FxBob")
+		CollectionService:AddTag(c, "FxSpin")
+		local cl = Instance.new("PointLight")
+		cl.Color = c.Color
+		cl.Range = 14
+		cl.Brightness = 1.3
+		cl.Shadows = false
+		cl.Parent = c
+	end
+	-- puerta del guardián al fondo, con emblema de neón y dos grandes hogueras rojas
+	local gz = home.Z + R + 1
+	for _, sx in ipairs({ -1, 1 }) do
+		nc({ Name = "ArenaGateColumn", Size = Vector3.new(3.6, 26, 3.6), CFrame = CFrame.new(sx * 13, 13, gz), Color = t.pillar, Material = t.pillarMat })
+		nc({ Name = "ArenaGateNeon", Size = Vector3.new(0.5, 24, 3.8), CFrame = CFrame.new(sx * 13 - sx * 1.9, 13, gz), Color = t.glow, Material = Enum.Material.Neon })
+		for _, pp in ipairs(brazier(Vector3.new(sx * 19, 0, gz - 3), RED, nil, 1.5)) do
+			pp.CanCollide = false
+		end
+	end
+	nc({ Name = "ArenaGateLintel", Size = Vector3.new(31, 3.2, 4.4), CFrame = CFrame.new(0, 27.6, gz), Color = t.trim, Material = t.trimMat })
+	local emblem = nc({ Name = "ArenaGateEmblem", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 7, 7), CFrame = CFrame.new(0, 27.6, gz - 2.4) * CFrame.Angles(0, math.rad(90), 0), Color = RED, Material = Enum.Material.Neon })
+	local ed = Instance.new("Decal")
+	ed.Texture = G.Config.VFX.runes
+	ed.Face = Enum.NormalId.Left
+	ed.Color3 = Color3.fromRGB(255, 230, 200)
+	ed.Parent = emblem
+	local el = Instance.new("PointLight")
+	el.Color = RED
+	el.Range = 30
+	el.Brightness = 2
+	el.Shadows = false
+	el.Parent = emblem
 end
 
 -- Guardianes construidos con piezas
