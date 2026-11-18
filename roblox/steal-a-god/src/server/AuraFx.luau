@@ -62,10 +62,14 @@ local function emit(att, props)
 	return e
 end
 
+-- Nota de ajuste (visto en Studio, de día y sobre mármol blanco): la luz aditiva (LightEmission 1)
+-- en capas grandes y suaves se suma hasta el blanco puro; esas capas van con LightEmission ~0,5
+-- para que conserven el color. Las chispas, arcos y destellos pequeños sí pueden ir a 1.
+
 -- Resplandor pegado al cuerpo (se dibuja por detrás del personaje)
 local function bodyGlow(att, color, size, rate, clear)
 	return emit(att, {
-		Name = "Glow", Texture = VFX.glow, Rate = rate, Lifetime = NumberRange.new(0.9, 1.3),
+		Name = "Glow", Texture = VFX.glow, Rate = rate, Lifetime = NumberRange.new(0.9, 1.3), LightEmission = 0.5,
 		LockedToPart = true, ZOffset = -1.5, Rotation = NumberRange.new(0, 360),
 		Color = cs(color), Size = ns({ { 0, size * 0.8 }, { 1, size } }),
 		Transparency = ns({ { 0, 1 }, { 0.25, clear }, { 0.7, clear }, { 1, 1 } }),
@@ -112,7 +116,7 @@ end
 -- Rayos de sol que giran despacio detrás del jugador
 local function sunburst(att, color, size, spin, rate, clear)
 	return emit(att, {
-		Name = "Rays", Texture = VFX.rays, Rate = rate, Lifetime = NumberRange.new(2.4, 3),
+		Name = "Rays", Texture = VFX.rays, Rate = rate, Lifetime = NumberRange.new(2.4, 3), LightEmission = 0.55,
 		LockedToPart = true, ZOffset = -2.5, Rotation = NumberRange.new(0, 360), RotSpeed = NumberRange.new(spin),
 		Color = cs(color), Size = ns({ { 0, size * 0.85 }, { 0.5, size }, { 1, size * 0.9 } }),
 		Transparency = ns({ { 0, 1 }, { 0.3, clear }, { 0.7, clear }, { 1, 1 } }),
@@ -150,14 +154,15 @@ local BUILD = {}
 
 -- 1 · Rayo de Zeus: chispazos eléctricos que saltan del cuerpo
 function BUILD.rayo(a, c)
-	bodyGlow(a("body"), c, 5.5, 3, 0.8)
+	bodyGlow(a("body"), c, 6, 3, 0.6)
 	emit(a("body"), {
-		Name = "Arcs", Texture = VFX.streak, Rate = 12, Lifetime = NumberRange.new(0.12, 0.26),
+		Name = "Arcs", Texture = VFX.streak, Rate = 16, Lifetime = NumberRange.new(0.12, 0.26),
 		Speed = NumberRange.new(10, 18), SpreadAngle = Vector2.new(180, 180), Drag = 4, LockedToPart = true,
 		Orientation = PO.VelocityParallel, Brightness = 3, Color = cs(WHITE, c),
-		Size = ns({ { 0, 2.4 }, { 1, 0.6 } }), Transparency = ns({ { 0, 0 }, { 0.7, 0.2 }, { 1, 1 } }),
+		Size = ns({ { 0, 3.2 }, { 1, 0.8 } }), Transparency = ns({ { 0, 0 }, { 0.7, 0.2 }, { 1, 1 } }),
 	})
-	sparks(a("body"), WHITE, c, 10, 0.55, { Lifetime = NumberRange.new(0.5, 0.9), Speed = NumberRange.new(4, 9), Acceleration = Vector3.new(0, -10, 0) })
+	sparks(a("body"), WHITE, c, 12, 0.7, { Lifetime = NumberRange.new(0.5, 0.9), Speed = NumberRange.new(4, 9), Acceleration = Vector3.new(0, -10, 0) })
+	groundPulse(a("feet"), c, 1, 3, 8, 0.9) -- chispazo en el suelo: se ve aunque haya mucha luz
 	light(a("body"), c, 10, 1.1)
 end
 
@@ -165,13 +170,14 @@ end
 function BUILD.fuego(a, c)
 	local ember = rgb(255, 200, 90)
 	local dark = rgb(150, 20, 10)
-	bodyGlow(a("body"), c, 6, 3, 0.78)
+	bodyGlow(a("body"), c, 6.5, 3, 0.6)
 	emit(a("feet"), {
-		Name = "Flames", Texture = VFX.flame, Rate = 16, Lifetime = NumberRange.new(0.6, 1),
+		Name = "Flames", Texture = VFX.flame, Rate = 22, Lifetime = NumberRange.new(0.7, 1.1), LightEmission = 0.6,
 		Speed = NumberRange.new(3, 6), SpreadAngle = Vector2.new(28, 28), Acceleration = Vector3.new(0, 7, 0),
 		Rotation = NumberRange.new(-12, 12), Color = cs(ember, c, dark),
-		Size = ns({ { 0, 2.6 }, { 0.5, 2 }, { 1, 0.4 } }), Transparency = ns({ { 0, 0.15 }, { 0.6, 0.4 }, { 1, 1 } }),
+		Size = ns({ { 0, 3.2 }, { 0.5, 2.6 }, { 1, 0.5 } }), Transparency = ns({ { 0, 0.05 }, { 0.6, 0.3 }, { 1, 1 } }),
 	})
+	groundPulse(a("feet"), c, 1, 3, 9, 1.2)
 	sparks(a("body"), ember, c, 10, 0.4, { Name = "Embers", Lifetime = NumberRange.new(1, 1.8), Speed = NumberRange.new(2, 5), SpreadAngle = Vector2.new(60, 60), Acceleration = Vector3.new(0, 6, 0) })
 	emit(a("body"), {
 		Name = "Smoke", Texture = VFX.smoke, Rate = 4, Lifetime = NumberRange.new(1.2, 1.8), LightEmission = 0,
@@ -201,8 +207,8 @@ end
 -- 4 · Escarcha nórdica: nieve que cae, niebla helada, púas de hielo y runas bajo los pies
 function BUILD.escarcha(a, c)
 	local ice = c:Lerp(WHITE, 0.6)
-	bodyGlow(a("body"), c, 7, 3, 0.74)
-	runeCircle(a("feet"), ice, 7.5, 40, 0.15)
+	bodyGlow(a("body"), c, 7, 3, 0.6)
+	runeCircle(a("feet"), c, 7.5, 40, 0.1) -- en el color del aura: el blanco helado no se veía sobre el mármol
 	groundPulse(a("feet"), c, 1.5, 4, 11, 1.6)
 	sparks(a("head"), WHITE, c, 18, 0.55, {
 		Name = "Snow", Lifetime = NumberRange.new(1.2, 2), Speed = NumberRange.new(2, 5),
@@ -217,8 +223,8 @@ function BUILD.escarcha(a, c)
 	emit(a("feet"), {
 		Name = "Shards", Texture = VFX.streak, Rate = 6, Lifetime = NumberRange.new(0.4, 0.6),
 		Speed = NumberRange.new(10, 14), SpreadAngle = Vector2.new(35, 35), Drag = 3,
-		Orientation = PO.VelocityParallel, Brightness = 2, Color = cs(WHITE, c),
-		Size = ns({ { 0, 2 }, { 1, 0.3 } }),
+		Orientation = PO.VelocityParallel, Brightness = 2, Color = cs(c, rgb(60, 140, 255)),
+		Size = ns({ { 0, 2.6 }, { 1, 0.4 } }),
 	})
 	light(a("body"), c, 14, 1.5)
 end
@@ -263,9 +269,10 @@ end
 function BUILD.divina(a, _c)
 	local gold = rgb(255, 214, 110)
 	local pale = rgb(255, 244, 205)
-	sunburst(a("back"), pale, 15, 16, 1.5, 0.35)
-	sunburst(a("back"), gold, 11, -28, 1, 0.3)
-	bodyGlow(a("body"), pale, 8, 4, 0.6)
+	-- (más contenida: en Studio quemaba a blanco media pantalla y no se veía al jugador)
+	sunburst(a("back"), gold, 12, 16, 1.2, 0.5)
+	sunburst(a("back"), rgb(255, 180, 60), 9, -28, 1, 0.45)
+	bodyGlow(a("body"), gold, 7, 3, 0.68)
 	halo(a("head"), gold, 3.6)
 	runeCircle(a("feet"), gold, 10.5, 30, 0.05)
 	runeCircle(a("feet"), WHITE, 6.5, -55, 0.1)

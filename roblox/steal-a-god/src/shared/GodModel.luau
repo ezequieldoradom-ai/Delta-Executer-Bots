@@ -503,7 +503,11 @@ function GodModel.decorate(model, rarity)
 	local torso = model:FindFirstChild("Torso") or model:FindFirstChild("Body") or model:FindFirstChild("UpperTorso")
 	local feet = root and root.CFrame * CFrame.new(0, -(model:GetAttribute("PivotH") or 0), 0) or nil
 	local VFX = require(script.Parent.Config).VFX
-	if rarity.id >= 2 then
+	-- Los dioses con avatar (ropa del catálogo) van sin Highlight: visto en Studio, el contorno
+	-- dibujaba el borde de la placa invisible de runas (cuadrados planos en el suelo), el relleno
+	-- apagaba los colores de la ropa y Roblox solo pinta ~31 Highlights a la vez (con varias
+	-- parcelas llenas unos dioses lo tenían y otros no). La rareza se ve en el anillo, runas y partículas.
+	if rarity.id >= 2 and not model:GetAttribute("Avatar") then
 		local h = Instance.new("Highlight")
 		h.FillColor = color
 		h.FillTransparency = rarity.id >= 7 and 0.75 or 0.92

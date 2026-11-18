@@ -531,8 +531,8 @@ function World.setStatue(plot, i, entry)
 	local head = m:FindFirstChild("Head") or m:FindFirstChild("Torso")
 	if head then
 		local color = rarity.id == 10 and Color3.fromRGB(210, 140, 255) or rarity.color
-		local tag = billboard(head, string.format("<b>%s</b> <font size=\"13\" color=\"#FFE9A8\">%d kg</font>\n<font color=\"#6CFF7A\">$%s/s</font>", god.name, kg, G.Format.num(rarity.income * G.Config.kgMult(kg))), color, UDim2.fromOffset(170, 56), Vector3.new(0, 2.2 * scale + 1.2, 0))
-		tag.MaxDistance = 60
+		local tag = billboard(head, string.format("<b>%s</b> <font size=\"13\" color=\"#FFE9A8\">%d kg</font>\n<font color=\"#6CFF7A\">$%s/s</font>", god.name, kg, G.Format.num(rarity.income * G.Config.kgMult(kg))), color, UDim2.fromOffset(136, 46), Vector3.new(0, 2.2 * scale + 1.2, 0))
+		tag.MaxDistance = 45 -- con la parcela llena, de lejos solo se veía una maraña de carteles
 	end
 	m.Parent = plot.folder
 	ped.statue = m
