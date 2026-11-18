@@ -1,4 +1,4 @@
--- Steal a God ⚡ Roba un Dios — cliente (interfaz, animaciones y efectos)
+﻿-- Steal a God ⚡ Roba un Dios — cliente (interfaz, animaciones y efectos)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -410,6 +410,10 @@ end
 local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Position = UDim2.new(0, 14, 0.57, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
 	-- orden por LayoutOrder (explícito: Misiones va entre la Tienda y el Índice aunque se cree la última)
 	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
+})
+-- Columna derecha (petición del dueño): Índice y Misiones
+local sideRight = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 160), Position = UDim2.new(1, -14, 0.45, 0), AnchorPoint = Vector2.new(1, 0.5), Parent = gui }, {
+	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center, HorizontalAlignment = Enum.HorizontalAlignment.Right, SortOrder = Enum.SortOrder.LayoutOrder }),
 })
 
 local panel = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromScale(0.64, 0.7), Position = UDim2.fromScale(0.5, 0.47), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 10, Parent = gui }, {
@@ -972,7 +976,9 @@ local function sideButton(order, emoji, text, color, onClick)
 	-- borde arcoíris que gira (UIGradient dentro del UIStroke; el color del trazo lo tiñe: blanco = arcoíris puro)
 	local rimGrad = new("UIGradient", { Color = RAINBOW_SEQ })
 	local body = gradient(color:Lerp(WHITE, 0.15), darker(color, 0.5), 100)
-	local b = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(200, 60), LayoutOrder = order * 10, Parent = side }, {
+	-- 2 = Índice y 6 = Misiones van a la columna derecha
+	local column = (order == 2 or order == 6) and sideRight or side
+	local b = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(200, 60), LayoutOrder = order * 10, Parent = column }, {
 		corner(18),
 		body,
 		stroke(WHITE, 3.5),
@@ -1101,28 +1107,41 @@ end)
 local topGui = new("ScreenGui", { Name = "HUDTop", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 5, Parent = gui.Parent })
 afkButton.Parent = topGui
 afkButton.AnchorPoint = Vector2.new(0, 0.5)
-local function placeAfk()
+-- botones pequeños de la barra de arriba: AFK a la izquierda; Ajustes a la derecha (ver más abajo)
+local topButtons = {}
+local function placeTop()
 	local inset = game:GetService("GuiService").TopbarInset
 	local h = math.clamp(inset.Height - 12, 30, 42)
-	afkButton.Size = UDim2.fromOffset(math.floor(h * 2.9), h)
-	afkButton.Position = UDim2.fromOffset(inset.Min.X + 8, inset.Min.Y + inset.Height / 2)
-	afkFx.iconBg.Size = UDim2.fromOffset(h - 8, h - 8)
-	afkFx.iconBg.Position = UDim2.fromOffset(4, 4)
-	afkFx.text.Size = UDim2.new(1, -(h + 4), 1, -10)
-	afkFx.text.Position = UDim2.fromOffset(h + 1, 5)
+	for _, tb in ipairs(topButtons) do
+		local w = math.floor(h * tb.ratio)
+		tb.button.Size = UDim2.fromOffset(w, h)
+		tb.button.AnchorPoint = Vector2.new(tb.right and 1 or 0, 0.5)
+		tb.button.Position = UDim2.fromOffset(tb.right and (inset.Max.X - 8) or (inset.Min.X + 8), inset.Min.Y + inset.Height / 2)
+		tb.fx.iconBg.Size = UDim2.fromOffset(h - 8, h - 8)
+		tb.fx.iconBg.Position = UDim2.fromOffset(4, 4)
+		tb.fx.text.Size = UDim2.new(1, -(h + 4), 1, -10)
+		tb.fx.text.Position = UDim2.fromOffset(h + 1, 5)
+		tb.fx.gui.Size = UDim2.new(1, -6, 1, -6)
+		tb.fx.small = true
+	end
 end
-placeAfk()
-game:GetService("GuiService"):GetPropertyChangedSignal("TopbarInset"):Connect(placeAfk)
+local function toTopbar(button, fx, ratio, right)
+	button.Parent = topGui
+	table.insert(topButtons, { button = button, fx = fx, ratio = ratio, right = right })
+	placeTop()
+end
+toTopbar(afkButton, afkFx, 2.9, false)
+game:GetService("GuiService"):GetPropertyChangedSignal("TopbarInset"):Connect(placeTop)
 afkFx.body.Color = GREEN_RAINBOW_SEQ
 afkFx.body.Rotation = 0
 afkFx.greenBody = afkFx.body
 afkFx.rim.Color = GREEN_RAINBOW_SEQ
-afkFx.gui.Size = UDim2.new(1, -6, 1, -6)
-afkFx.small = true
 local function openSettings()
 	openPanel("settings", "⚙️ " .. t("settings"), nil, Color3.fromRGB(200, 200, 220))
 end
-sideButton(5, "⚙️", t("settings"), Color3.fromRGB(150, 150, 175), openSettings)
+-- Ajustes: pequeño, arriba a la derecha (en la barra de Roblox, a la izquierda de sus botones de la derecha)
+local settingsButton, settingsFx = sideButton(5, "⚙️", t("settings"), Color3.fromRGB(150, 150, 175), openSettings)
+toTopbar(settingsButton, settingsFx, 3.3, true)
 
 ---------------------------------------------------------------------
 -- Controles de PC (teclado) y consola (mando de PS5/Xbox)
