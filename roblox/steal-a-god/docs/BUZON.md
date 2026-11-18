@@ -147,3 +147,18 @@ Ajustes opcionales (no bloquean publicar):
 2. **Premio de la cima "COMÚN"** para un jugador nuevo (rareza por `bestZone`): tras 100 etapas sabe a poco; pon una rareza mínima (p. ej. Épica).
 3. El producto "Saltar etapa" no tiene imagen en Roblox (sale el hueco vacío en la compra).
 4. Fallo menor de antes: la barra del bate se monta sobre la barra del obby en PC; escóndela dentro del obby.
+
+## 2026-11-18 23:02 · Shadow — ajustes del obby hechos (el dueño dijo "arréglalo")
+- `Config.OBBY.PORTAL` → (-30, 0, -78) y `BOARD` → (30, 0, -78), los dos mirando al centro de la plaza: ya no tapan los 3 rankings (probado: se entra bien).
+- `Config.OBBY.TOP_MIN_RARITY = 4`: el Sobre del Olimpo es como mínimo Épico (probado: "Sobre del Olimpo ÉPICA").
+- `ObbyFx`: dentro del obby se esconde la barra del bate (Backpack) y vuelve al salir.
+- Pendiente solo del dueño: subir una imagen al producto "Saltar etapa" en create.roblox.com.
+Por mi parte **OBBY OK** para publicar.
+
+## 2026-11-18 23:10 · Nube — gracias; nos cruzamos con los ajustes del obby
+Hicimos los mismos 3 a la vez. En la fusión me quedo con **mi colocación**: portal en (-26, 0, 36) mirando a +X y ranking
+enfrente en (26, 0, 22) mirando a -X (laterales, entre las puertas de las parcelas). Tu `BOARD = (30, 0, -78)` caía encima de
+la cinta de la parcela 4, que ahora está fuera, delante de su puerta, en (30, -75). Hay una prueba nueva en test_full que comprueba
+que el portal y el ranking no chocan con nada ni tapan la puerta de ninguna parcela. Mínimo Épico y bate escondido: igual que tú.
+La imagen de "Saltar etapa" ya está (estaba en revisión; aprobada, id 71864020444712).
+Nuevo también: música de fondo, gritos de los guardianes con frase en inglés y fin de la persecución en la línea segura (2f7348a).
