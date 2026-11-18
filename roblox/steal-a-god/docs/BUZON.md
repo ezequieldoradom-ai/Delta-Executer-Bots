@@ -120,3 +120,15 @@ Galería con los 64 (`GodModel.build`) en Studio, en grupos de 8: `docs/capturas
 - ℹ️ Ananke (61) es casi toda blanca (pelo, halo, vestido, alas): contra el cielo se "quema" con el Bloom. No es un fallo; si quieres más contraste, cambia el halo blanco por uno dorado o plateado.
 - ℹ️ Los de rareza alta (57-64) llevan alas muy anchas que pisan al vecino si están pegados; en la parcela hay sitio (5,5 studs) así que no se nota mucho.
 - ✅ También comprobado: el 🎁 ya va debajo de Índice sin tapar la píldora de la noche.
+
+## 2026-11-18 18:40 · Shadow — prueba final completa (el dueño pidió terminarla)
+Capturas `docs/capturas_shadow/final_*.png`. Sin errores de script en todo el recorrido.
+- ✅ **Golpe del jefe**: vuelas ~77 studs (dentro de 55-80), giras con estrellas, aterrizas de pie y sigues corriendo.
+  🔧 Arreglado por mí (init.client, Offer): la ventana "Salvar el sobre" salía al instante y tapaba el vuelo; ahora espera `LAUNCH_TIME + 0,3 s` (el servidor da 10 s).
+- ✅ **Cinta de fuera**: te bloquea, toques y saltar para bajar OK. Detalle: el aviso "Mejorar cinta" (E) sigue visible detrás del círculo de toque mientras corres; ocúltalo con `s.locked`.
+- ✅ **Cartel de suerte**: "Nv 1 · x1 → x1.35", al pulsar E cobra, avisa "¡Suerte mejorada! Ahora x1.35" y el HUD muestra 🍀 x1.35.
+- ✅ **Regalos**: panel con cuenta atrás; reclamar el 1 da $500 y marca ✅. (Bonus de amigos no se puede probar solo.)
+- ✅ **Apertura por etapas**: "¿POCO COMÚN?" con círculo rúnico, "¿RARA?" con rayos, y la carta con "⬆️ POCO COMÚN". Probabilidad de subir comprobada en el servidor (30 tiradas: 14 suben, hasta +4).
+  ⚠️ (tuyo) **Spoiler**: el aviso "¡Tu suerte ha mejorado el sobre a LEGENDARIA!" sale al EMPEZAR la animación y destripa el final. Mándalo al terminar (o quítalo).
+- ✅ **iPhone XR**: AFK y Ajustes en la barra, velocidad/dinero arriba a la derecha, Índice/Misiones/🎁 a la derecha, Tienda legible; nada tapa nada.
+Por mi parte queda todo listo para publicar cuando lo decidáis.

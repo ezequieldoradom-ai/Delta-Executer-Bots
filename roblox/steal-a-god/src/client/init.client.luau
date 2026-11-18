@@ -2080,8 +2080,12 @@ Remotes:WaitForChild("Offer").OnClientEvent:Connect(function(key, amount, away)
 	end
 	local p = Config.PRODUCTS[key]
 	if p and p.id ~= 0 then
-		showBanner(t("savePackAsk"), Color3.fromRGB(255, 120, 120))
-		MarketplaceService:PromptProductPurchase(player, p.id)
+		-- (visto en Studio: la ventana de compra salía al instante y tapaba el vuelo y "¡A VOLAR!";
+		-- el servidor da 10 s para comprar, así que esperamos a que aterrices)
+		task.delay(key == "savePack" and (Config.LAUNCH_TIME or 1.3) + 0.3 or 0, function()
+			showBanner(t("savePackAsk"), Color3.fromRGB(255, 120, 120))
+			MarketplaceService:PromptProductPurchase(player, p.id)
+		end)
 	end
 end)
 
