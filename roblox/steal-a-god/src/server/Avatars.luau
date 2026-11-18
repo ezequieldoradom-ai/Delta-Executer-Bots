@@ -23,6 +23,68 @@ local ITEM = {
 	Ring = true, AxeBlade = true, AxeEdge = true,
 }
 local TORSO = { Skirt = true, Belt = true, Sash = true, Wing = true, Shield = true, Star = true }
+-- Piezas de una cabeza de animal (se conservan con keep = { "head" })
+local ANIMAL_HEAD = {
+	Snout = true, EarL = true, EarR = true, Beak = true, Teeth = true, EyeL = true, EyeR = true, HornL = true, HornR = true,
+	HornTipL = true, HornTipR = true, Mane = true, Fangs = true, NoseRing = true, Nose = true,
+}
+
+-- Ropa del catálogo (Outfits.luau). Se carga sin romper nada si el archivo no existe.
+local OUTFITS = {}
+do
+	local m = script.Parent:FindFirstChild("Outfits")
+	if m then
+		local ok, t = pcall(require, m)
+		if ok and type(t) == "table" then
+			OUTFITS = t
+		end
+	end
+end
+Avatars.OUTFITS = OUTFITS
+local OUTFIT_FIELDS = {
+	hat = "HatAccessory", hair = "HairAccessory", face = "FaceAccessory", neck = "NeckAccessory",
+	shoulders = "ShouldersAccessory", front = "FrontAccessory", back = "BackAccessory", waist = "WaistAccessory",
+}
+
+local function idString(list)
+	local parts = {}
+	for _, v in ipairs(list) do
+		local n = tonumber(v)
+		if n and n > 0 then
+			table.insert(parts, string.format("%.0f", n))
+		end
+	end
+	return table.concat(parts, ",")
+end
+
+-- Pone la ropa del catálogo en la descripción del avatar
+local function applyOutfit(d, outfit)
+	for key, field in pairs(OUTFIT_FIELDS) do
+		if type(outfit[key]) == "table" then
+			d[field] = idString(outfit[key])
+		end
+	end
+	if tonumber(outfit.shirt) then
+		d.Shirt = tonumber(outfit.shirt)
+	end
+	if tonumber(outfit.pants) then
+		d.Pants = tonumber(outfit.pants)
+	end
+	if type(outfit.layered) == "table" and #outfit.layered > 0 then
+		local acc = {}
+		for i, l in ipairs(outfit.layered) do
+			local ok, kind = pcall(function()
+				return Enum.AccessoryType[l.type]
+			end)
+			if ok and kind and tonumber(l.id) then
+				table.insert(acc, { AccessoryType = kind, AssetId = tonumber(l.id), IsLayered = true, Order = i })
+			end
+		end
+		if #acc > 0 then
+			d:SetAccessories(acc, false) -- false: solo la ropa 3D; no quita pelo ni sombreros
+		end
+	end
+end
 
 -- Animaciones oficiales de Roblox (R15)
 Avatars.ANIM = {
@@ -38,7 +100,7 @@ local function weld(a, b)
 	w.Parent = b
 end
 
-local function makeRig(L, god)
+local function makeRig(L, god, outfit)
 	local d = Instance.new("HumanoidDescription")
 	local skin = L.skin
 	local chest = L.chest or L.robe
@@ -60,6 +122,9 @@ local function makeRig(L, god)
 			d[k] = Color3.fromRGB(8, 8, 12)
 		end
 	end
+	if outfit then
+		applyOutfit(d, outfit)
+	end
 	local rig = Players:CreateHumanoidModelFromDescription(d, Enum.HumanoidRigType.R15)
 	return rig
 end
@@ -70,10 +135,26 @@ function Avatars.make(god)
 		return existing
 	end
 	local L = G.GodModel.look(god)
-	local ok, rig = pcall(makeRig, L, god)
+	local outfit = OUTFITS[god.id]
+	local ok, rig = pcall(makeRig, L, god, outfit)
+	if (not ok or not rig) and outfit then
+		-- si la ropa del catálogo falla (prenda borrada…), se crea sin ella
+		warn("Ropa del catálogo no cargada", god.id, rig)
+		outfit = nil
+		ok, rig = pcall(makeRig, L, god, nil)
+	end
 	if not ok or not rig then
 		warn("Avatar no creado", god.id, rig)
 		return nil
+	end
+	-- qué piezas propias se conservan cuando lleva ropa del catálogo
+	local keep = nil
+	if outfit then
+		keep = {}
+		for _, k in ipairs(outfit.keep or { "item" }) do
+			keep[k] = true
+		end
+		rig:SetAttribute("Outfit", true)
 	end
 	rig.Name = god.id
 	local hum = rig:FindFirstChildOfClass("Humanoid")
@@ -109,7 +190,7 @@ function Avatars.make(god)
 	local oldTorso = old:FindFirstChild("Torso")
 	local oldArmR = old:FindFirstChild("ArmR")
 	local oldHand = oldArmR.CFrame * CFrame.new(0, -oldArmR.Size.Y / 2, 0) * CFrame.Angles(math.rad(-35), 0, 0)
-	local animalHead = L.head ~= nil and L.head ~= "goat"
+	local animalHead = L.head ~= nil and L.head ~= "goat" and (not keep or keep.head == true)
 	if animalHead then
 		rigHead.Transparency = 1
 		local face = rigHead:FindFirstChildOfClass("Decal")
@@ -125,7 +206,17 @@ function Avatars.make(god)
 		if p:IsA("BasePart") then
 			local name = p.Name
 			local target, rel
-			if HEAD[name] or (name == "Head" and animalHead) then
+			-- con ropa del catálogo solo se conservan las piezas pedidas en "keep"
+			local wanted = true
+			if keep then
+				wanted = (keep.item and ITEM[name] ~= nil)
+					or (keep.head and animalHead and (name == "Head" or ANIMAL_HEAD[name] ~= nil))
+					or (keep.wings and (name == "Wing" or name == "WingL" or name == "WingR"))
+					or false
+			end
+			if not wanted then
+				target = nil
+			elseif HEAD[name] or (name == "Head" and animalHead) then
 				if name == "Star" then
 					continue
 				end
