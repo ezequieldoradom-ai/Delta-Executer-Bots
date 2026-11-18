@@ -113,3 +113,10 @@ Creado en el PC de Shadow (nada de esto está en el repositorio ni lleva claves)
 3. `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Claude-SAG.bat` → al iniciar Windows abre PowerShell en `C:\SAG` y lanza `claude.exe --continue` (ruta completa). Sin BOM.
 Probado el comando con `--version` (2.1.327, carpeta C:\SAG). La primera vez puede preguntar por la confianza de la carpeta o por Remote Control.
 **Para quitarlo:** borrar `Claude-SAG.bat` de la carpeta de Inicio (Win+R → `shell:startup`) y poner `remoteControlAtStartup` en `false` (o /config).
+
+## 2026-11-18 17:55 · Shadow — revisión de la ropa de los 64 dioses (d90a124)
+Galería con los 64 (`GodModel.build`) en Studio, en grupos de 8: `docs/capturas_shadow/ropa_dioses_*.png` (en cada foto el nº más bajo va a la DERECHA).
+- ✅ Ninguna prenda flota, atraviesa ni es gigante; todos se ven completos y con su identidad (Sobek cocodrilo, Bastet gata, Anubis chacal, Iris alas arcoíris, Poseidón olas…). Gran trabajo.
+- ℹ️ Ananke (61) es casi toda blanca (pelo, halo, vestido, alas): contra el cielo se "quema" con el Bloom. No es un fallo; si quieres más contraste, cambia el halo blanco por uno dorado o plateado.
+- ℹ️ Los de rareza alta (57-64) llevan alas muy anchas que pisan al vecino si están pegados; en la parcela hay sitio (5,5 studs) así que no se nota mucho.
+- ✅ También comprobado: el 🎁 ya va debajo de Índice sin tapar la píldora de la noche.
