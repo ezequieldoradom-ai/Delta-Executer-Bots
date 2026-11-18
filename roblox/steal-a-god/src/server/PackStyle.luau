@@ -536,10 +536,13 @@ end
 -- rayos de sol detrás (giran despacio)
 function FX.sunburst(ctx, o)
 	local k = ctx.k
-	local t = o.t or 0.45
+	-- Visto en Studio: con varios sobres raros juntos los rayos se suman (luz aditiva) y el nido
+	-- quedaba blanco. Más pequeños, más transparentes y con menos emisión siguen luciendo sin quemar.
+	local t = math.max(o.t or 0.45, 0.62)
 	local e = emitter(ctx, ctx.fx, {
 		Name = "Sunburst", Texture = C.VFX.rays, Rate = 0.8, Lifetime = NumberRange.new(3), Speed = NumberRange.new(0), LockedToPart = true,
-		Color = ColorSequence.new(o.color or ctx.accent), Size = NumberSequence.new((o.size or 14) * k),
+		LightEmission = 0.45,
+		Color = ColorSequence.new(o.color or ctx.accent), Size = NumberSequence.new((o.size or 14) * k * 0.7),
 		Transparency = seq({ { 0, 1 }, { 0.25, t }, { 0.75, t }, { 1, 1 } }), Rotation = NumberRange.new(0, 360), RotSpeed = NumberRange.new(10, 16), ZOffset = -(0.5 * k + 0.6),
 	})
 	if o.rainbow then
