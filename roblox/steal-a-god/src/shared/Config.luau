@@ -66,6 +66,8 @@ Config.WEAPONS = {
 Config.HIT_RANGE = 9
 Config.HIT_COOLDOWN = 2
 Config.HIT_INVULN = 1
+Config.LAUNCH_TIME = 1.3 -- segundos en el aire cuando un guardián te atrapa
+Config.LAUNCH_DIST = { 55, 80 } -- studs que vuelas hacia atrás por el pasillo
 Config.NEWBIE_PROTECTION = 600 -- segundos de juego protegidos
 
 ---------------------------------------------------------------------

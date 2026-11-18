@@ -469,6 +469,26 @@ step("Combo: toques en pantalla decididos por el servidor (x2, x3, x4, x5)", fun
 	assert(G.Core.leaveTreadmill(fp) == false, "bajar dos veces")
 end)
 
+step("Golpe del jefe: te lanza volando hacia atrás sin salir del pasillo", function()
+	local fp, _, s = fakePlayer(-121)
+	local W = C.CORRIDOR_HALF_WIDTH
+	for _, x in ipairs({ -W + 2, -30, 0, 25, W - 2 }) do
+		for _, z in ipairs({ C.CORRIDOR_START + 20, C.CORRIDOR_START + 500 }) do
+			local pos = Vector3.new(x, 5, z)
+			for _, side in ipairs({ -1, 1 }) do
+				s.invulnUntil = 0
+				local vel, T = G.Packs.launch(fp, pos + Vector3.new(side * 6, 0, 4), pos)
+				local land = pos + Vector3.new(vel.X, 0, vel.Z) * T
+				assert(math.abs(land.X) <= W - 7.9, string.format("sale por el lado: x=%.1f", land.X))
+				assert(land.Z < pos.Z - 40, "no vuela hacia atrás")
+				local apex = vel.Y * vel.Y / (2 * workspace.Gravity)
+				assert(apex > 15 and apex < 60, string.format("altura rara: %.1f", apex))
+				assert(s.invulnUntil > os.clock() + T, "sin invulnerabilidad al aterrizar")
+			end
+		end
+	end
+end)
+
 step("Colección enorme: se recorta sin tocar el índice", function()
 	local fp, d = fakePlayer(-107)
 	for i = 1, 700 do

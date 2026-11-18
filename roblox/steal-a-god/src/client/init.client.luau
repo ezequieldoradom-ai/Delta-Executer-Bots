@@ -127,6 +127,8 @@ local SFX = {
 	click = sound("rbxasset://sounds/electronicpingshort.wav", 0.25, 1.4),
 	pop = sound("rbxasset://sounds/action_jump.mp3", 0.4, 1.3),
 	whoosh = sound("rbxasset://sounds/swordslash.wav", 0.5, 0.8),
+	fly = sound("rbxasset://sounds/action_falling.mp3", 0.6, 1),
+	thud = sound("rbxasset://sounds/collide.wav", 0.7, 0.7),
 	reward = sound("rbxasset://sounds/electronicpingshort.wav", 0.6, 0.8),
 }
 local function opt(key)
@@ -1520,7 +1522,88 @@ Remotes:WaitForChild("Toast").OnClientEvent:Connect(function(key, args)
 	end
 end)
 
-Remotes:WaitForChild("Knock").OnClientEvent:Connect(function(vel)
+-- Vuelo cuando un guardián te atrapa: das vueltas por el aire con estela, estrellitas y la cámara se abre
+local flying = false
+local function launchFlight(vel, T)
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not hrp or not hum or flying then
+		return
+	end
+	flying = true
+	hum.PlatformStand = true
+	hrp.AssemblyLinearVelocity = vel
+	local axis = Vector3.new(math.random() - 0.5, 0, math.random() - 0.5)
+	axis = axis.Magnitude > 0.05 and axis.Unit or Vector3.new(1, 0, 0)
+	hrp.AssemblyAngularVelocity = axis * 9
+	-- estela blanca y dorada
+	local a0 = new("Attachment", { Position = Vector3.new(0, 1.2, 0), Parent = hrp })
+	local a1 = new("Attachment", { Position = Vector3.new(0, -1.2, 0), Parent = hrp })
+	local trail = new("Trail", {
+		Attachment0 = a0,
+		Attachment1 = a1,
+		Lifetime = 0.45,
+		LightEmission = 0.7,
+		Color = ColorSequence.new(WHITE, GOLD),
+		Transparency = NumberSequence.new(0.2, 1),
+		WidthScale = NumberSequence.new(1, 0),
+		FaceCamera = true,
+		Parent = hrp,
+	})
+	-- estrellitas girando sobre la cabeza
+	local head = char:FindFirstChild("Head")
+	local stars = head and new("BillboardGui", { Size = UDim2.fromOffset(110, 44), StudsOffset = Vector3.new(0, 2.6, 0), AlwaysOnTop = true, Parent = head }, {
+		label({ Text = "💫 💥 💫", Size = UDim2.fromScale(1, 1), TextScaled = true }),
+	})
+	floatText(t("flying"), Color3.fromRGB(255, 120, 90), gui, UDim2.new(0.5, -100, 0.36, 0))
+	shake(1.1, 0.5)
+	play("whoosh", 0.6)
+	play("fly", 1)
+	local cam = workspace.CurrentCamera
+	local fov = cam.FieldOfView
+	if opt("shake") then
+		TweenService:Create(cam, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { FieldOfView = math.min(100, fov + 18) }):Play()
+	end
+	local spin = stars and RunService.RenderStepped:Connect(function()
+		stars.StudsOffset = Vector3.new(math.sin(os.clock() * 8) * 0.4, 2.6, 0)
+	end)
+	task.delay(T, function()
+		if spin then
+			spin:Disconnect()
+		end
+		if stars then
+			stars:Destroy()
+		end
+		trail.Enabled = false
+		task.delay(0.5, function()
+			trail:Destroy()
+			a0:Destroy()
+			a1:Destroy()
+		end)
+		if hrp.Parent then
+			hrp.AssemblyAngularVelocity = Vector3.zero
+			local _, yaw = hrp.CFrame:ToEulerAnglesYXZ()
+			hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, yaw, 0)
+		end
+		if hum.Parent then
+			hum.PlatformStand = false
+			hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+		end
+		if opt("shake") then
+			TweenService:Create(cam, TweenInfo.new(0.4, Enum.EasingStyle.Quad), { FieldOfView = fov }):Play()
+		end
+		shake(0.6, 0.25)
+		play("thud", 0.8)
+		flying = false
+	end)
+end
+
+Remotes:WaitForChild("Knock").OnClientEvent:Connect(function(vel, opts)
+	if type(opts) == "table" and opts.flight then
+		launchFlight(vel, tonumber(opts.time) or 1.3)
+		return
+	end
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	local hum = char and char:FindFirstChildOfClass("Humanoid")

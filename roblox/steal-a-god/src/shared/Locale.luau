@@ -49,6 +49,7 @@ local T = {
 	caught = { es = "💀 %s ha atrapado a %s", en = "💀 %s caught %s" },
 	batSteal = { es = "💥 %s le ha quitado el sobre %s a %s de un golpe", en = "💥 %s knocked the %s pack out of %s's hands" },
 	gotGod = { es = "✨ %s ha conseguido a %s (%s)", en = "✨ %s got %s (%s)" },
+	flying = { es = "💥 ¡A VOLAR!", en = "💥 SENT FLYING!" },
 	gotMutation = { es = "🧬 ¡%s ha conseguido un dios mutado: %s %s!", en = "🧬 %s got a mutated god: %s %s!" },
 	gotGodGlobal = { es = "🌍 ✨ %s ha conseguido a %s (%s) %s", en = "🌍 ✨ %s got %s (%s) %s" },
 	top10 = { es = "🏆 ¡%s ha entrado en el Top 10 de %s!", en = "🏆 %s entered the Top 10 for %s!" },

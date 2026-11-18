@@ -563,7 +563,46 @@ local function deliver(player, pack)
 	return true
 end
 
-local function caught(player, guardIndex)
+-- Onda de choque donde el guardián te golpea (la ven todos)
+local function shockwave(pos, color)
+	local ring = Instance.new("Part")
+	ring.Name = "Shockwave"
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Anchored, ring.CanCollide, ring.CanQuery, ring.CanTouch, ring.CastShadow = true, false, false, false, false
+	ring.Material = Enum.Material.Neon
+	ring.Color = color
+	ring.Transparency = 0.25
+	ring.Size = Vector3.new(0.4, 4, 4)
+	ring.CFrame = CFrame.new(pos.X, pos.Y - 2.5, pos.Z) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = workspace
+	game:GetService("TweenService"):Create(ring, TweenInfo.new(0.55, Enum.EasingStyle.Quad), { Size = Vector3.new(0.4, 34, 34), Transparency = 1 }):Play()
+	game:GetService("Debris"):AddItem(ring, 0.6)
+end
+
+-- El jefe te lanza por los aires hacia atrás por el pasillo (ya no te manda directo a tu base).
+-- Devuelve la velocidad de salida y el tiempo de vuelo. Nunca te saca del pasillo por los lados.
+function Packs.launch(player, fromPos, hrpPos)
+	local s = G.Core.sessions[player]
+	local away = Vector3.new(hrpPos.X - fromPos.X, 0, hrpPos.Z - fromPos.Z)
+	away = away.Magnitude > 0.1 and away.Unit or Vector3.new(0, 0, -1)
+	local dir = (away * 0.45 + Vector3.new(0, 0, -1)).Unit -- sobre todo hacia la plaza
+	local T = C.LAUNCH_TIME
+	local dist = C.LAUNCH_DIST[1] + math.random() * (C.LAUNCH_DIST[2] - C.LAUNCH_DIST[1])
+	local flat = dir * (dist / T)
+	local limit = C.CORRIDOR_HALF_WIDTH - 8
+	local landX = hrpPos.X + flat.X * T
+	if math.abs(landX) > limit then
+		flat = Vector3.new((math.sign(landX) * limit - hrpPos.X) / T, 0, flat.Z)
+	end
+	local vy = workspace.Gravity * T / 2
+	local vel = Vector3.new(flat.X, vy, flat.Z)
+	if s then
+		s.invulnUntil = os.clock() + T + 1.5
+	end
+	return vel, T
+end
+
+local function caught(player, guardIndex, guardPos)
 	local s = G.Core.sessions[player]
 	if not s or not s.carrying then
 		return
@@ -600,11 +639,14 @@ local function caught(player, guardIndex)
 			guard.target = nil
 		end
 	end
-	-- de vuelta a casa
+	-- ¡a volar! el golpe te lanza por los aires (el cliente hace el vuelo: es dueño de su personaje)
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if hrp and s.plot then
-		hrp.CFrame = s.plot.spawnCF
+	if hrp then
+		local from = guardPos or (hrp.Position + Vector3.new(0, 0, 6))
+		local vel, T = Packs.launch(player, from, hrp.Position)
+		shockwave(hrp.Position, Color3.fromRGB(255, 90, 70))
+		G.Net.Knock:FireClient(player, vel, { flight = true, time = T })
 	end
 end
 
@@ -829,7 +871,7 @@ local function guardianStep(guard, dt)
 		end
 		goal = Vector3.new(hrp.Position.X, guard.height, hrp.Position.Z)
 		if (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).Magnitude < 7 + guard.height * 0.3 then
-			caught(target, guard.zone)
+			caught(target, guard.zone, pos)
 			return
 		end
 	else
