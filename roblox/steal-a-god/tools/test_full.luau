@@ -35,6 +35,7 @@ step("Cargar módulos", function()
 	G.DayNight = require(Server.DayNight)
 	G.Boards = require(Server.Boards)
 	G.Shop = require(Server.Shop)
+	G.Quests = require(Server.Quests)
 	G.serverLuckUntil = 0
 	local function optional(name)
 		local m = Server:FindFirstChild(name)
@@ -60,6 +61,7 @@ step("Iniciar sistemas", function()
 	G.Shop.init(G)
 	G.Boards.init(G)
 	G.Core.init(G)
+	G.Quests.init(G)
 end)
 step("Amanecer (sobres)", function() G.Packs.refreshAll() end)
 add("   Sobres creados:", (function() local n = 0; for _ in pairs(G.Packs.list) do n += 1 end; return n end)())
@@ -792,6 +794,407 @@ step("Robar, llevar, soltar y entregar un sobre del nido", function()
 	assert(got and got.r == 10 and got.kg == 5000, "el altar no recibió el sobre")
 	s.plot = nil
 	char:Destroy()
+end)
+
+---------------------------------------------------------------------
+-- FASE 2: misiones diarias, racha diaria, tutorial y suerte (jugadores simulados)
+---------------------------------------------------------------------
+local Q = C.QUESTS
+local Quests = G.Quests
+local today = Quests.today()
+
+-- personaje mínimo (raíz y cabeza) para robar, llevar y golpear
+local function withChar(fp)
+	local char = Instance.new("Model")
+	local hrp = Instance.new("Part")
+	hrp.Name = "HumanoidRootPart"
+	hrp.Anchored = true
+	hrp.Size = Vector3.new(2, 2, 1)
+	hrp.Parent = char
+	local head = Instance.new("Part")
+	head.Name = "Head"
+	head.Anchored = true
+	head.Size = Vector3.new(2, 1, 1)
+	head.Parent = char
+	char.Parent = workspace
+	fp.Character = char
+	local function stand(pos)
+		hrp.CFrame = CFrame.new(pos.X, pos.Y + 3, pos.Z)
+		head.CFrame = CFrame.new(pos.X, pos.Y + 4.5, pos.Z)
+	end
+	return char, hrp, stand
+end
+local function setMissions(d, ids)
+	d.missions = { day = today, rr = 0, list = {} }
+	for _, id in ipairs(ids) do
+		table.insert(d.missions.list, { id = id, goal = C.QUEST_BY_ID[id].goal, progress = 0, claimed = false })
+	end
+end
+local function progressOf(d, id)
+	for _, m in ipairs(d.missions.list) do
+		if m.id == id then
+			return m.progress
+		end
+	end
+	return nil
+end
+local function forget(...)
+	for _, fp in ipairs({ ... }) do
+		if fp.Character then
+			fp.Character:Destroy()
+			fp.Character = nil
+		end
+		G.Data.profiles[fp] = nil
+		G.Core.sessions[fp] = nil
+	end
+end
+
+step("Misiones: al entrar, 3 distintas y el tutorial según el progreso", function()
+	local fp, d = fakePlayer(-301)
+	Quests.onJoin(fp)
+	assert(d.missions.day == today and #d.missions.list == Q.PER_DAY, "misiones: " .. #d.missions.list)
+	local seen, ids = {}, {}
+	for i, m in ipairs(d.missions.list) do
+		assert(C.QUEST_BY_ID[m.id] and not seen[m.id], "misión repetida o desconocida: " .. tostring(m.id))
+		seen[m.id] = true
+		ids[i] = m.id
+		assert(m.goal == C.QUEST_BY_ID[m.id].goal and m.progress == 0 and m.claimed == false, "misión mal creada")
+	end
+	assert(d.tutorial == 1, "un jugador nuevo empieza el tutorial")
+	-- el mismo día salen las mismas (no se arreglan entrando y saliendo)
+	d.missions.day = 0
+	Quests.onJoin(fp)
+	for i, m in ipairs(d.missions.list) do
+		assert(m.id == ids[i], "cambiaron al volver a entrar")
+	end
+	-- veteranos (con dioses o más de 10 min jugados): sin tutorial
+	local fp2, d2 = fakePlayer(-302)
+	d2.gods.zeus = 1
+	Quests.onJoin(fp2)
+	local fp3, d3 = fakePlayer(-303)
+	d3.playtime = 900
+	Quests.onJoin(fp3)
+	assert(d2.tutorial == Q.TUTORIAL_DONE and d3.tutorial == Q.TUTORIAL_DONE, "un veterano tiene tutorial")
+	-- "dios nuevo" solo se pide si hay alguno que pueda conseguir en sus zonas
+	local withNew, without = 0, 0
+	for k = 1, 30 do
+		local f1, a = fakePlayer(-1000 - k)
+		Quests.onJoin(f1)
+		if progressOf(a, "newgod") then
+			withNew += 1
+		end
+		local f2, b = fakePlayer(-2000 - k)
+		for _, g in ipairs(C.GODS) do
+			if C.ZONES[1].weights[g.r] then
+				b.gods[g.id] = 1
+			end
+		end
+		Quests.onJoin(f2)
+		if progressOf(b, "newgod") then
+			without += 1
+		end
+		forget(f1, f2)
+	end
+	assert(withNew > 0 and without == 0, string.format("dios nuevo: %d veces a quien puede · %d a quien no", withNew, without))
+	add(string.format("   Misiones de hoy (ejemplo): %s", table.concat(ids, ", ")))
+	forget(fp, fp2, fp3)
+end)
+
+step("Misiones: robar, escapar, abrir, combo, dios nuevo y golpe suman (sin pasarse)", function()
+	local fp, d, s = fakePlayer(-310)
+	d.tutorial = Q.TUTORIAL_DONE
+	setMissions(d, { "steal", "escape", "open" })
+	for _ = 1, 9 do
+		Quests.event(fp, "steal", 1)
+	end
+	assert(progressOf(d, "steal") == 5, "robar no se para en la meta: " .. progressOf(d, "steal"))
+	Quests.event(fp, "hit", 1) -- no está en su lista: no pasa nada
+	-- robar de verdad: soltar y coger otra vez el mismo sobre no suma
+	setMissions(d, { "steal", "escape", "open" })
+	local _, hrp, stand = withChar(fp)
+	local pack = G.Packs.debugSpawn(1, 4, 2, 100, false)
+	local centre = Vector3.new(0, 0, G.World.zoneStart(1) + C.NEST_OFFSET)
+	stand(pack.home + (pack.home - centre).Unit * 5 + Vector3.new(0, 0.2, 0))
+	G.Packs.grab(fp, pack)
+	assert(s.carrying == pack and progressOf(d, "steal") == 1, "robar no sumó")
+	G.Packs.dropCarried(fp, true, hrp.Position)
+	G.Packs.grab(fp, pack)
+	assert(s.carrying == pack and progressOf(d, "steal") == 1, "coger otra vez el mismo sobre sumó")
+	-- llegar a casa con él = escapar
+	s.plot = G.World.plots[2]
+	stand(s.plot.center + Vector3.new(0, 1, 0))
+	G.Packs.stepPacks()
+	assert(pack.state == "gone" and progressOf(d, "escape") == 1, "escapar no sumó")
+	-- abrirlo en el altar
+	s.plot = nil
+	local i = #d.altarPacks
+	d.altarPacks[i].rem = 0
+	G.Packs.openAltar(fp, i)
+	assert(progressOf(d, "open") == 1, "abrir no sumó")
+	-- combo acertado, dios nuevo (uno repetido no cuenta) y golpe en el pasillo
+	setMissions(d, { "combo", "newgod", "hit" })
+	s.onTreadmill, s.lastTap = true, 0
+	assert(G.Core.handleCombo(fp, 0) == true and progressOf(d, "combo") == 1, "combo no sumó")
+	s.onTreadmill = false
+	G.Core.addGod(fp, C.GOD_BY_ID.ouroboros, 100)
+	G.Core.addGod(fp, C.GOD_BY_ID.ouroboros, 100)
+	assert(progressOf(d, "newgod") == 1, "dios nuevo: " .. progressOf(d, "newgod"))
+	local fv, dv = fakePlayer(-311)
+	dv.playtime = C.NEWBIE_PROTECTION + 1
+	local _, vhrp = withChar(fv)
+	hrp.CFrame = CFrame.lookAt(Vector3.new(30, 3.2, 160), Vector3.new(30, 3.2, 170))
+	vhrp.CFrame = CFrame.new(30, 3.2, 164)
+	s.lastHit = 0
+	G.Combat.swing(fp, Instance.new("Folder"))
+	assert(dv.playtime > 0 and progressOf(d, "hit") == 1, "golpear no sumó")
+	forget(fp, fv)
+end)
+
+step("Misiones: reclamar paga una sola vez y llega cada tipo de premio", function()
+	local fp, d = fakePlayer(-320)
+	d.tutorial = Q.TUTORIAL_DONE
+	setMissions(d, { "steal", "open", "escape" }) -- dinero, suerte, velocidad
+	assert(Quests.claimMission(fp, 1) == false, "pagó una misión sin terminar")
+	for _, m in ipairs(d.missions.list) do
+		m.progress = m.goal
+	end
+	local m0 = d.money
+	assert(Quests.claimMission(fp, 1) == true and d.money >= m0 + Q.MONEY_MIN, "no pagó el dinero")
+	local m1 = d.money
+	assert(Quests.claimMission(fp, 1) == false and d.money == m1, "pagó dos veces")
+	assert(Quests.claimMission(fp, 2) == true and d.boosts.luck > os.time() + 9 * 60, "sin suerte")
+	assert(Quests.claimMission(fp, 3) == true and d.boosts.speed > os.time() + 4 * 60, "sin velocidad")
+	for _, bad in ipairs({ 0, 4, 99, -1, "x", 1.5, {} }) do
+		assert(Quests.claimMission(fp, bad) == false, "índice raro: " .. tostring(bad))
+	end
+	assert(Quests.claimMission(fp, nil) == false, "índice nil")
+	-- premio de sobre: llega al altar
+	setMissions(d, { "newgod" })
+	d.missions.list[1].progress = 1
+	local before = #d.altarPacks + #d.queue
+	assert(Quests.claimMission(fp, 1) == true and #d.altarPacks + #d.queue == before + 1, "el sobre no llegó")
+	-- por la acción del cliente (como lo pide el botón)
+	setMissions(d, { "train" })
+	d.missions.list[1].progress = d.missions.list[1].goal
+	local m2 = d.money
+	G.Core.handleAction(fp, "claimMission", 1)
+	local m3 = d.money
+	G.Core.handleAction(fp, "claimMission", 1)
+	assert(d.missions.list[1].claimed and m3 > m2 and d.money == m3, "la acción claimMission no pagó o pagó dos veces")
+	forget(fp)
+end)
+
+step("Misiones: cambiar una sin terminar (1 al día) y cambio de día", function()
+	local fp, d, s = fakePlayer(-325)
+	setMissions(d, { "steal", "open", "escape" })
+	d.missions.list[2].progress = d.missions.list[2].goal
+	assert(Quests.rerollMission(fp, 2) == false, "cambió una terminada")
+	assert(G.Core.handleAction(fp, "rerollMission", 1) and d.missions.list[1].id ~= "steal", "no cambió")
+	local id = d.missions.list[1].id
+	assert(id ~= "open" and id ~= "escape" and d.missions.list[1].progress == 0, "la nueva repite o trae progreso: " .. id)
+	assert(Quests.rerollMission(fp, 3) == false and Quests.state(fp).rr == 0, "dejó cambiar dos veces")
+	-- medianoche UTC: las terminadas sin reclamar se pagan solas y salen nuevas
+	d.missions.day = today - 1
+	d.missions.list[1].progress = d.missions.list[1].goal
+	local m0 = d.money
+	Quests.tick(fp, s, d)
+	assert(d.missions.day == today and #d.missions.list == Q.PER_DAY and d.missions.rr == 0, "no salieron las de hoy")
+	assert(d.money >= m0 + Q.MONEY_MIN or d.boosts.luck > os.time() or d.boosts.speed > os.time() or #d.altarPacks > 0, "no pagó la terminada de ayer")
+	for _, m in ipairs(d.missions.list) do
+		assert(m.progress == 0 and not m.claimed, "una nueva trae progreso")
+	end
+	-- una lista de hoy vacía (partida rota o misiones quitadas de Config) se vuelve a llenar, sin pagar nada
+	d.missions = { day = today, rr = 1, list = {} }
+	local m1 = d.money
+	Quests.tick(fp, s, d)
+	assert(#d.missions.list == Q.PER_DAY and d.money == m1, "la lista vacía de hoy no se rellena")
+	forget(fp)
+end)
+
+step("Racha diaria: una vez al día, sigue si es seguida y se reinicia tras un hueco", function()
+	local fp, d = fakePlayer(-340)
+	local q = Quests.state(fp)
+	assert(q.dailyCan == true and q.streak == 1, "un jugador nuevo puede reclamar el día 1")
+	local m0 = d.money
+	assert(Quests.claimDaily(fp) == true and d.daily.last == today and d.daily.streak == 1 and d.money >= m0 + Q.MONEY_MIN, "día 1")
+	local m1 = d.money
+	assert(Quests.claimDaily(fp) == false and d.money == m1, "cobró dos veces el mismo día")
+	G.Core.handleAction(fp, "claimDaily")
+	assert(d.money == m1, "la acción cobró dos veces")
+	q = Quests.state(fp)
+	assert(q.dailyCan == false and q.streak == 1, "estado tras reclamar")
+	-- ayer reclamó el día 3: hoy toca el 4 (velocidad)
+	d.daily.last, d.daily.streak = today - 1, 3
+	assert(Quests.state(fp).streak == 4, "la racha seguida no sube")
+	assert(Quests.claimDaily(fp) == true and d.daily.streak == 4 and d.boosts.speed > os.time() + 60, "día 4: velocidad")
+	-- un hueco de 3 días: vuelta al día 1
+	d.daily.last, d.daily.streak = today - 3, 5
+	assert(Quests.state(fp).streak == 1 and Quests.claimDaily(fp) == true and d.daily.streak == 1, "el hueco no reinicia la racha")
+	-- el día 7 da un MEGA sobre del amanecer; el 8 vuelve al premio del día 1
+	d.daily.last, d.daily.streak = today - 1, 6
+	assert(Quests.claimDaily(fp) == true and d.daily.streak == 7, "día 7")
+	local mega = false
+	for _, p in ipairs(d.altarPacks) do
+		mega = mega or p.dawn == true
+	end
+	for _, p in ipairs(d.queue) do
+		mega = mega or p.dawn == true
+	end
+	assert(mega, "el día 7 no dio el MEGA sobre")
+	assert(Quests.dailyReward(8) == Q.DAILY[1] and Quests.dailyReward(14) == Q.DAILY[7], "el ciclo no es de 7 días")
+	-- dato roto (último día muy en el futuro): se puede reclamar y empieza de cero
+	d.daily.last, d.daily.streak = today + 400, 9
+	assert(Quests.claimDaily(fp) == true and d.daily.streak == 1, "un dato roto bloquea la racha")
+	forget(fp)
+end)
+
+step("Tutorial: avanza con lo que hace el jugador, vuelve atrás si pierde el sobre y paga una vez", function()
+	local fp, d, s = fakePlayer(-350)
+	Quests.onJoin(fp)
+	assert(d.tutorial == 1, "empieza en 1")
+	s.onTreadmill = true
+	d.speed = 10
+	Quests.tick(fp, s, d)
+	assert(d.tutorial == 1, "avanzó sin velocidad")
+	d.speed = C.ZONES[1].guardian.speed
+	Quests.tick(fp, s, d)
+	assert(d.tutorial == 2, "paso 1 (cinta)")
+	s.lastTap = 0
+	G.Core.handleCombo(fp, 0)
+	assert(d.tutorial == 3, "paso 2 (combo): " .. d.tutorial)
+	s.onTreadmill = false
+	Quests.event(fp, "steal", 1)
+	assert(d.tutorial == 4, "paso 3 (robar)")
+	Quests.tick(fp, s, d) -- no lleva nada: lo perdió
+	assert(d.tutorial == 3, "no vuelve a robar al perder el sobre")
+	s.carrying = { rarity = 1 }
+	Quests.tick(fp, s, d)
+	assert(d.tutorial == 4, "recoger un sobre del suelo no avanza")
+	s.carrying = nil
+	G.Packs.givePack(fp, { r = 1, rem = 10, dawn = false, kg = 100 })
+	Quests.event(fp, "escape", 1)
+	Quests.tick(fp, s, d)
+	assert(d.tutorial == 5, "paso 4 (volver a casa)")
+	Quests.event(fp, "open", 1)
+	assert(d.tutorial == 6, "paso 5 (abrir)")
+	d.money = C.treadmillCost(2)
+	G.Core.handleAction(fp, "buyTreadmill")
+	local m0 = d.money
+	Quests.tick(fp, s, d)
+	assert(d.treadmill == 2 and d.tutorial == Q.TUTORIAL_DONE and d.money >= m0 + Q.MONEY_MIN, "paso 6 (mejorar) o premio")
+	local m1 = d.money
+	Quests.advance(fp)
+	Quests.tick(fp, s, d)
+	Quests.event(fp, "open", 1)
+	Quests.onJoin(fp)
+	assert(d.tutorial == Q.TUTORIAL_DONE and d.money == m1, "el premio del tutorial se pagó dos veces")
+	-- saltarlo: termina sin premio y no vuelve
+	local fp2, d2 = fakePlayer(-351)
+	Quests.onJoin(fp2)
+	Quests.event(fp2, "combo", 1)
+	local mm = d2.money
+	G.Core.handleAction(fp2, "skipTutorial")
+	Quests.onJoin(fp2)
+	assert(d2.tutorial == Q.TUTORIAL_DONE and d2.money == mm, "saltar el tutorial")
+	forget(fp, fp2)
+end)
+
+step("Datos: partidas antiguas cargan bien, la basura se rechaza y todo se guarda", function()
+	local old = G.Data.sanitize({ money = 50, speed = 10, gods = { zeus = 1 }, boosts = { speed = 5 } }, C)
+	assert(old.money == 50 and old.gods.zeus == 1 and old.boosts.speed == 5, "lo antiguo no se conserva")
+	assert(old.missions.day == 0 and #old.missions.list == 0 and old.missions.rr == 0, "misiones por defecto")
+	assert(old.daily.last == 0 and old.daily.streak == 0 and old.tutorial == 0 and old.boosts.luck == 0, "racha/tutorial/suerte por defecto")
+	local junk = G.Data.sanitize({
+		missions = {
+			day = "x",
+			rr = -5,
+			list = { { id = "fake", goal = 1 }, { id = "steal", goal = 5, progress = 999, claimed = "yes" }, { id = "steal", goal = 3 }, "basura", { id = "open", goal = 0 / 0, progress = -3 }, { id = "train", goal = 1e12, progress = 1e12 }, { id = "combo" } },
+		},
+		daily = { last = math.huge, streak = "mucho" },
+		tutorial = 99,
+		boosts = { luck = 0 / 0 },
+	}, C)
+	local l = junk.missions.list
+	assert(#l == Q.PER_DAY, "lista: " .. #l)
+	assert(l[1].id == "steal" and l[1].progress == 5 and l[1].claimed == false, "progreso sin tope o reclamado falso")
+	assert(l[2].id == "open" and l[2].goal == C.QUEST_BY_ID.open.goal and l[2].progress == 0, "meta rota")
+	assert(l[3].id == "train" and l[3].goal == 1e6 and l[3].progress == 1e6, "meta enorme")
+	assert(junk.missions.day == 0 and junk.missions.rr == 0, "día o cambios rotos")
+	assert(junk.daily.last == 0 and junk.daily.streak == 0, "racha rota")
+	assert(junk.tutorial == Q.TUTORIAL_DONE and junk.boosts.luck == 0, "tutorial o suerte rotos")
+	for _, bad in ipairs({ "basura", 42, { list = "no" } }) do
+		local dd = G.Data.sanitize({ missions = bad, daily = bad }, C)
+		assert(#dd.missions.list == 0 and dd.daily.streak == 0 and dd.missions.day == 0, "basura: " .. typeof(bad))
+	end
+	-- guardar y cargar de verdad (DataStore real, clave de prueba)
+	G.Data.KEY_PREFIX = "test_q_" .. os.time() .. "_"
+	local fp = { UserId = 778 }
+	local d = G.Data.load(fp, C)
+	d.missions = { day = today, rr = 1, list = { { id = "open", goal = 5, progress = 3, claimed = false } } }
+	d.daily = { last = today, streak = 6 }
+	d.tutorial = 4
+	d.boosts.luck = os.time() + 300
+	assert(G.Data.save(fp), "guardar")
+	G.Data.profiles[fp] = nil
+	local d2, st = G.Data.load(fp, C)
+	assert(st == "existing" and d2.missions.day == today and d2.missions.list[1].progress == 3 and d2.missions.rr == 1, "misiones no guardadas")
+	assert(d2.daily.streak == 6 and d2.daily.last == today and d2.tutorial == 4 and d2.boosts.luck > os.time(), "racha, tutorial o suerte no guardados")
+	game:GetService("DataStoreService"):GetDataStore(G.Data.STORE_NAME):RemoveAsync(G.Data.KEY_PREFIX .. 778)
+	G.Data.profiles[fp] = nil
+	G.Data.KEY_PREFIX = "u_"
+end)
+
+step("Suerte: el boost multiplica tu suerte y mejora los sobres que llevas a casa", function()
+	local fp, d, s = fakePlayer(-360)
+	assert(select(3, G.Core.mults(fp)) == 1 and G.Core.personalLuck(fp) == 1, "suerte base")
+	local msg = Quests.give(fp, { kind = "luck", mins = 10 })
+	assert(msg[1] == "rewardLuck" and msg[2] == 10, "aviso del premio")
+	assert(select(3, G.Core.mults(fp)) == Q.LUCK_BOOST and G.Core.personalLuck(fp) == Q.LUCK_BOOST, "el boost no cuenta")
+	s.passes.luck2x = true
+	G.Core.invalidate(fp)
+	assert(select(3, G.Core.mults(fp)) == 2 * Q.LUCK_BOOST, "pase + boost")
+	G.serverLuckUntil = os.clock() + 60
+	G.Core.invalidate(fp)
+	assert(select(3, G.Core.mults(fp)) == 6 * Q.LUCK_BOOST and G.Core.personalLuck(fp) == 2 * Q.LUCK_BOOST, "suerte del servidor")
+	G.serverLuckUntil = 0
+	s.passes.luck2x = nil
+	d.boosts.luck = os.time() - 1
+	G.Core.invalidate(fp)
+	assert(select(3, G.Core.mults(fp)) == 1, "el boost no caduca")
+	-- al llegar a casa: 12 % de mejorar con suerte x2, nunca por encima de la rareza máxima de la zona
+	d.boosts.luck = os.time() + 600
+	local item = { r = 1, rem = 10 }
+	assert(G.Packs.luckUpgrade(fp, 1, item, 0.05) == true and item.r == 2 and item.rem == C.RARITIES[2].open, "no mejoró")
+	assert(G.Packs.luckUpgrade(fp, 1, { r = 1, rem = 10 }, 0.5) == false, "mejora demasiado a menudo")
+	assert(G.Packs.luckUpgrade(fp, 1, { r = 4, rem = 1 }, 0) == false, "pasó de la rareza máxima de la zona")
+	d.boosts.luck = 0
+	assert(G.Packs.luckUpgrade(fp, 1, { r = 1, rem = 10 }, 0) == false, "mejoró sin suerte")
+	forget(fp)
+end)
+
+step("Estado del cliente: misiones solo cuando cambian, boost de suerte y suerte del servidor", function()
+	local fp, d = fakePlayer(-370)
+	Quests.onJoin(fp)
+	local sent = {}
+	local saved = G.Net.State
+	G.Net.State = { FireClient = function(_, _, payload)
+		table.insert(sent, payload)
+	end }
+	d.boosts.luck = os.time() + 120
+	local ok, err = pcall(function()
+		G.Core.sendState(fp)
+		G.Core.sendState(fp)
+		Quests.event(fp, d.missions.list[1].id, 1)
+		G.Core.sendState(fp)
+	end)
+	G.Net.State = saved
+	assert(ok, tostring(err))
+	local q1 = sent[1].quests
+	assert(q1 and #q1.missions == Q.PER_DAY and q1.tutorial == 1 and q1.dailyCan == true and q1.rr == Q.REROLLS, "el primer estado no lleva las misiones")
+	assert(sent[2].quests == nil, "manda las misiones sin cambios")
+	assert(sent[3].quests and sent[3].quests.missions[1].progress == 1, "no mandó el progreso")
+	assert(sent[1].luckLeft > 100 and sent[1].luckLeft <= 120 and sent[1].spawnLuck == 1, "suerte en el estado")
+	forget(fp)
 end)
 
 add(fails == 0 and "🎉 TODO OK" or ("⚠️ FALLOS: " .. fails))

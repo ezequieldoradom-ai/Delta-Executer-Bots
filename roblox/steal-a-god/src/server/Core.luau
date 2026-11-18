@@ -159,14 +159,27 @@ function Core.computeMults(player, d, s)
 	if os.time() < (d.boosts and d.boosts.speed or 0) then
 		speedMul *= 3
 	end
-	local luck = 1
-	if s.passes.luck2x then
-		luck *= 2
-	end
+	-- suerte que se muestra: la tuya (pase y premio) por la del servidor (compra de Suerte x3)
+	local luck = Core.personalLuck(player, d, s)
 	if os.clock() < (G.serverLuckUntil or 0) then
 		luck *= 3
 	end
 	return (1 + speedAdd) * speedMul, (1 + moneyAdd) * moneyMul, luck
+end
+
+-- Tu suerte propia: pase Suerte x2 y boost de suerte (premio de misiones y racha).
+-- Mejora los sobres que llevas a casa (Packs.luckUpgrade) y los sobres de premio.
+function Core.personalLuck(player, d, s)
+	d = d or G.Data.profiles[player]
+	s = s or Core.sessions[player]
+	local luck = 1
+	if s and s.passes and s.passes.luck2x then
+		luck *= 2
+	end
+	if d and d.boosts and os.time() < (d.boosts.luck or 0) then
+		luck *= C.QUESTS.LUCK_BOOST
+	end
+	return luck
 end
 
 ---------------------------------------------------------------------
@@ -300,6 +313,9 @@ function Core.addGod(player, god, kg)
 	table.insert(d.godList, { id = god.id, kg = kg or 100 })
 	G.Data.trimGodList(d, C)
 	Core.invalidate(player)
+	if isNew and G.Quests then
+		G.Quests.event(player, "newgod", 1)
+	end
 	if isNew then
 		local w = Core.bestWeapon(d)
 		if w ~= d.weapon then
@@ -631,6 +647,13 @@ local function onJoin(player)
 		comboTarget = 0.5,
 	}
 	Core.sessions[player] = s
+	-- misiones del día y tutorial: antes de cualquier espera, así el primer estado ya los lleva
+	if G.Quests then
+		local ok, err = pcall(G.Quests.onJoin, player)
+		if not ok then
+			warn("Misiones al entrar:", err)
+		end
+	end
 	G.Shop.checkPasses(player)
 	local plot = freePlot()
 	if plot then
@@ -758,6 +781,9 @@ function Core.handleCombo(player, serverTime)
 	if hit then
 		s.combo = math.min(C.COMBO_MAX, s.combo + 0.5)
 		s.comboTarget = 0.15 + math.random() * 0.7
+		if G.Quests then
+			G.Quests.event(player, "combo", 1)
+		end
 	end
 	return hit
 end
@@ -785,7 +811,20 @@ function Core.sendState(player)
 			end
 		end
 	end
+	-- misiones, racha y tutorial: solo cuando cambian (y cada 5 s por si se perdió un mensaje)
+	local quests = nil
+	if G.Quests then
+		local ok, q = pcall(G.Quests.state, player)
+		local sig = ok and G.Quests.signature(q) or nil
+		if sig and (sig ~= s.questSig or os.clock() - (s.questAt or 0) > 5) then
+			s.questSig, s.questAt = sig, os.clock()
+			quests = q
+		end
+	end
 	G.Net.State:FireClient(player, {
+		quests = quests,
+		luckLeft = math.max(0, (d.boosts.luck or 0) - os.time()),
+		spawnLuck = os.clock() < (G.serverLuckUntil or 0) and 3 or 1,
 		chase = chase,
 		isOwner = s.isOwner,
 		settings = d.settings,
@@ -876,6 +915,14 @@ function Core.start()
 					d.playtime += 1
 					Core.addMoney(player, Core.income(player))
 					G.Packs.tickAltars(player, night and C.NIGHT_OPEN_MULT or 1)
+					if G.Quests then
+						-- protegido: un fallo en las misiones no debe parar el bucle de todos los jugadores
+						local ok, err = pcall(G.Quests.tick, player, s, d)
+						if not ok and not s.questWarned then
+							s.questWarned = true
+							warn("Misiones:", err)
+						end
+					end
 					local ls = player:FindFirstChild("leaderstats")
 					if ls then
 						ls["⚡"].Value = G.Format.num(d.speed)

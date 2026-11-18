@@ -420,6 +420,46 @@ Config.VENDORS = {
 }
 
 ---------------------------------------------------------------------
+-- MISIONES DIARIAS, RACHA DIARIA Y TUTORIAL (los usan el servidor y el cliente)
+-- Premios: money = segundos de tus ingresos (mínimo MONEY_MIN) · luck = minutos de Suerte x2 ·
+-- speed = minutos de Velocidad x3 · pack = sobre de tu mejor zona (luck = suerte de la tirada; big = sobre del amanecer)
+---------------------------------------------------------------------
+Config.QUESTS = {
+	PER_DAY = 3, -- misiones al día
+	REROLLS = 1, -- misiones que se pueden cambiar cada día
+	MONEY_MIN = 500,
+	LUCK_BOOST = 2, -- el boost de suerte multiplica tu suerte por 2
+	-- racha diaria: 7 días que se repiten (el día 7, un MEGA sobre del amanecer)
+	DAILY = {
+		{ kind = "money", secs = 300 },
+		{ kind = "luck", mins = 10 },
+		{ kind = "money", secs = 900 },
+		{ kind = "speed", mins = 5 },
+		{ kind = "pack", luck = 2 },
+		{ kind = "money", secs = 1800 },
+		{ kind = "pack", luck = 5, big = true },
+	},
+	-- weight = lo a menudo que sale (golpear necesita a otros jugadores en el pasillo: sale poco)
+	POOL = {
+		{ id = "steal", goal = 5, weight = 3, icon = "📦", reward = { kind = "money", secs = 600 } },
+		{ id = "open", goal = 5, weight = 3, icon = "🔮", reward = { kind = "luck", mins = 10 } },
+		{ id = "escape", goal = 3, weight = 3, icon = "🏃", reward = { kind = "speed", mins = 5 } },
+		{ id = "train", goal = 180, weight = 3, icon = "⚡", reward = { kind = "money", secs = 600 } },
+		{ id = "newgod", goal = 1, weight = 2, icon = "✨", reward = { kind = "pack", luck = 2 } },
+		{ id = "combo", goal = 10, weight = 3, icon = "🎯", reward = { kind = "money", secs = 450 } },
+		{ id = "hit", goal = 3, weight = 1, icon = "🏏", reward = { kind = "money", secs = 300 } },
+	},
+	-- tutorial: 1 cinta → 2 combo → 3 robar → 4 volver a casa → 5 abrir → 6 mejorar la cinta → 7 terminado
+	TUTORIAL_STEPS = 6,
+	TUTORIAL_DONE = 7,
+	TUTORIAL_REWARD = { kind = "money", secs = 900 },
+}
+Config.QUEST_BY_ID = {}
+for _, q in ipairs(Config.QUESTS.POOL) do
+	Config.QUEST_BY_ID[q.id] = q
+end
+
+---------------------------------------------------------------------
 -- LUZ del mundo (la usan el servidor y el cliente: deben coincidir)
 ---------------------------------------------------------------------
 Config.LIGHT = {

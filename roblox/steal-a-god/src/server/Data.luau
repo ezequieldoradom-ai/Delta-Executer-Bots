@@ -50,9 +50,13 @@ local function defaults()
 		aura = nil,
 		weapon = "bat",
 		settings = { sfx = true, music = true, particles = true, shake = true, othersAuras = true, ui = 2 },
-		boosts = { speed = 0, shield = 0 }, -- fin de boosts comprados (os.time)
+		boosts = { speed = 0, shield = 0, luck = 0 }, -- fin de boosts comprados o ganados (os.time)
 		openTokens = {}, -- "Abrir ya" pendientes por categoría
 		receipts = {}, -- PurchaseId ya entregados
+		-- misiones del día (day = día UTC, rr = cambios usados hoy), racha diaria y tutorial
+		missions = { day = 0, rr = 0, list = {} }, -- list = { { id, goal, progress, claimed } }
+		daily = { last = 0, streak = 0 }, -- last = último día UTC reclamado
+		tutorial = 0, -- 0 = sin decidir (se decide al entrar), 1..6 = paso, 7 = terminado
 		savedAt = os.time(),
 	}
 end
@@ -153,7 +157,33 @@ function Data.sanitize(raw, C)
 	if type(raw.boosts) == "table" then
 		d.boosts.speed = num(raw.boosts.speed, 0, 0)
 		d.boosts.shield = num(raw.boosts.shield, 0, 0)
+		d.boosts.luck = num(raw.boosts.luck, 0, 0)
 	end
+	-- misiones: solo ids conocidos, sin repetir, con el progreso dentro de su meta
+	if type(raw.missions) == "table" then
+		local m = raw.missions
+		d.missions.day = math.floor(num(m.day, 0, 0, 1e7))
+		d.missions.rr = math.floor(num(m.rr, 0, 0, 100))
+		if type(m.list) == "table" then
+			local seen = {}
+			for _, e in ipairs(m.list) do
+				local def = type(e) == "table" and C.QUEST_BY_ID[e.id]
+				if def and not seen[e.id] then
+					seen[e.id] = true
+					local goal = math.floor(num(e.goal, def.goal, 1, 1e6))
+					table.insert(d.missions.list, { id = e.id, goal = goal, progress = math.floor(num(e.progress, 0, 0, goal)), claimed = e.claimed == true })
+					if #d.missions.list >= C.QUESTS.PER_DAY then
+						break
+					end
+				end
+			end
+		end
+	end
+	if type(raw.daily) == "table" then
+		d.daily.last = math.floor(num(raw.daily.last, 0, 0, 1e7))
+		d.daily.streak = math.floor(num(raw.daily.streak, 0, 0, 1e6))
+	end
+	d.tutorial = math.floor(num(raw.tutorial, 0, 0, C.QUESTS.TUTORIAL_DONE))
 	if type(raw.openTokens) == "table" then
 		for _, tier in ipairs({ "low", "mid", "high" }) do
 			d.openTokens[tier] = math.floor(num(raw.openTokens[tier], 0, 0, 1000))

@@ -128,7 +128,66 @@ local T = {
 	youHave = { es = "Tienes", en = "You have" },
 	safeFloor = { es = "ZONA SEGURA", en = "SAFE ZONE" },
 	nest = { es = "Nido de sobres", en = "Pack nest" },
+	-- misiones diarias, racha diaria y tutorial
+	missions = { es = "Misiones", en = "Missions" },
+	missionsTitle = { es = "Misiones y premios", en = "Missions & rewards" },
+	todayMissions = { es = "📜 Misiones de hoy", en = "📜 Today's missions" },
+	dailyStreak = { es = "🔥 Racha diaria", en = "🔥 Daily streak" },
+	streakDays = { es = "Racha: %d días seguidos", en = "Streak: %d days in a row" },
+	streakHint = { es = "Entra cada día: el día 7 te espera un MEGA sobre 🎁", en = "Come back every day: a MEGA pack 🎁 waits on day 7" },
+	dailyTitle = { es = "🔥 ¡PREMIO DIARIO!", en = "🔥 DAILY REWARD!" },
+	dayN = { es = "DÍA %d", en = "DAY %d" },
+	claimDay = { es = "¡RECLAMAR DÍA %d!", en = "CLAIM DAY %d!" },
+	claimed = { es = "Reclamado", en = "Claimed" },
+	tomorrow = { es = "Mañana: %s", en = "Tomorrow: %s" },
+	comeBack = { es = "✅ Premio de hoy reclamado · vuelve en %s", en = "✅ Today's reward claimed · come back in %s" },
+	resetIn = { es = "Nuevas en %s", en = "New in %s" },
+	reroll = { es = "Cambiar", en = "Swap" },
+	sure = { es = "¿Seguro?", en = "Sure?" },
+	rerolled = { es = "🔄 Misión cambiada", en = "🔄 Mission swapped" },
+	packWord = { es = "Sobre", en = "Pack" },
+	megaPack = { es = "MEGA", en = "MEGA" },
+	missionDone = { es = "✅ ¡Misión completada: %s! Reclama tu premio en 📜", en = "✅ Mission complete: %s! Claim your reward in 📜" },
+	missionAuto = { es = "🎁 Tus misiones completadas de ayer se han reclamado solas", en = "🎁 Yesterday's completed missions were claimed for you" },
+	rewardMoney = { es = "🎁 ¡Premio: 💰 $%s!", en = "🎁 Reward: 💰 $%s!" },
+	rewardLuck = { es = "🍀 ¡Suerte x2 durante %s min! Mejora los sobres que traes a casa", en = "🍀 2x Luck for %s min! It upgrades the packs you bring home" },
+	rewardSpeed = { es = "⚡ ¡Velocidad x3 durante %s min!", en = "⚡ 3x Speed for %s min!" },
+	rewardPack = { es = "📦 ¡Un sobre %s te espera en tu altar!", en = "📦 A %s pack is waiting at your altar!" },
+	luckUpgrade = { es = "🍀 ¡Tu suerte ha mejorado el sobre a %s!", en = "🍀 Your luck upgraded the pack to %s!" },
+	m_steal = { es = "Roba %d sobres", en = "Steal %d packs" },
+	m_open = { es = "Abre %d sobres", en = "Open %d packs" },
+	m_escape = { es = "Llega a casa con %d sobres", en = "Bring %d packs home" },
+	m_train = { es = "Entrena %d min en tu cinta", en = "Train %d min on your treadmill" },
+	m_newgod = { es = "Consigue %d dios nuevo", en = "Get %d new god" },
+	m_combo = { es = "Acierta %d combos en la cinta", en = "Land %d treadmill combos" },
+	m_hit = { es = "Golpea %d veces en el pasillo", en = "Land %d hits in the corridor" },
+	tutWelcome = { es = "👋 ¡Bienvenido! Sigue la luz dorada ✨", en = "👋 Welcome! Follow the golden light ✨" },
+	tutStep = { es = "PASO", en = "STEP" },
+	tut1 = { es = "Sube a tu cinta 🏃 y corre hasta ⚡ %s", en = "Step on your treadmill 🏃 and run to ⚡ %s" },
+	tut2 = { es = "Pulsa ¡TOCA! cuando la raya blanca pase por el verde 🎯", en = "Press TAP! when the white line is on the green 🎯" },
+	tut3 = { es = "Ve al pasillo y roba un sobre del nido 📦", en = "Go to the corridor and steal a pack from the nest 📦" },
+	tut4 = { es = "¡Corre a tu parcela antes de que te pille el guardián!", en = "Run back to your plot before the guardian catches you!" },
+	tut5 = { es = "¡Tu sobre está listo! Ábrelo en tu altar 🔮", en = "Your pack is ready! Open it at your altar 🔮" },
+	tut5wait = { es = "Tu sobre se abre en tu altar 🔮 Listo en %s", en = "Your pack opens at your altar 🔮 Ready in %s" },
+	tut6 = { es = "Abre la Tienda 🛒 y mejora tu cinta (💰 %s)", en = "Open the Shop 🛒 and upgrade your treadmill (💰 %s)" },
+	tutGo = { es = "¡Ve!", en = "Go!" },
+	tutCorridor = { es = "Pasillo", en = "Corridor" },
+	tutHome = { es = "Tu parcela", en = "Your plot" },
+	tutHere = { es = "¡Aquí!", en = "Here!" },
+	tutNice = { es = "¡BIEN HECHO!", en = "NICE!" },
+	tutorialDone = { es = "🎓 ¡Tutorial completado! Premio: 💰 $%s", en = "🎓 Tutorial complete! Reward: 💰 $%s" },
+	tutorialDoneBanner = { es = "🎓 ¡YA SABES JUGAR! Ahora, a por todos los dioses ⚡", en = "🎓 YOU KNOW HOW TO PLAY! Now go catch them all ⚡" },
+	skip = { es = "Saltar", en = "Skip" },
 }
+
+-- Texto de una misión diaria ("Roba 5 sobres"); el entrenamiento se cuenta en segundos y se muestra en minutos
+function Locale.mission(id: string, goal: number?): string
+	local g = goal or 1
+	if id == "train" then
+		g = math.max(1, math.floor(g / 60 + 0.5))
+	end
+	return Locale.t("m_" .. tostring(id), g)
+end
 
 local isSpanish = nil
 
