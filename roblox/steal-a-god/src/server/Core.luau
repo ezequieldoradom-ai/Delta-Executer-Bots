@@ -184,6 +184,15 @@ function Core.personalLuck(player, d, s)
 	return luck
 end
 
+-- Velocidad al andar: en el Ascenso al Olimpo, la misma para todos; con Modo lento, despacio
+-- (salvo llevando un sobre: el guardián te pillaría siempre); si no, según tu ⚡
+function Core.walkSpeed(s, d)
+	if s.inObby and C.OBBY then
+		return C.OBBY.WALK
+	end
+	return (s.slow and not s.carrying) and C.WALK_SLOW or C.walkSpeedFor(d.speed)
+end
+
 -- Amigos en el servidor (IsFriendsWith espera a Roblox: se mira al entrar, en segundo plano)
 function Core.friendCount(player)
 	local s = Core.sessions[player]
@@ -677,6 +686,9 @@ function Core.setAfk(player, on)
 	if not s then
 		return
 	end
+	if on and s.inObby and G.Obby then
+		G.Obby.leave(player) -- el AFK es en tu cinta: primero se sale del Olimpo
+	end
 	s.afk = on
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -847,11 +859,15 @@ local function onCharacter(player, char)
 	end
 	-- personaje nuevo: ya no está en la cinta
 	s.locked, s.onTreadmill, s.tap, s.tapHits, s.combo = false, false, nil, 0, 1
-	if s.plot then
+	if s.inObby and G.Obby then
+		-- en el Ascenso al Olimpo se reaparece en tu punto de control
+		task.wait(0.1)
+		hrp.CFrame = G.Obby.spawnCF(d.obby and d.obby.stage or 0)
+	elseif s.plot then
 		task.wait(0.1)
 		hrp.CFrame = s.plot.spawnCF
 	end
-	hum.WalkSpeed = (s.slow and not s.carrying) and C.WALK_SLOW or C.walkSpeedFor(d.speed)
+	hum.WalkSpeed = Core.walkSpeed(s, d)
 	hum.Died:Connect(function()
 		if s.carrying then
 			G.Packs.dropCarried(player, false)
@@ -1100,6 +1116,14 @@ function Core.sendState(player)
 		treadmill = d.treadmill,
 		treadmillGain = C.treadmillGain(d.treadmill) * speedMult,
 		luckLevel = d.luckLevel or 1,
+		obby = d.obby and {
+			on = s.inObby == true,
+			stage = d.obby.stage,
+			wins = d.obby.wins,
+			best = d.obby.best,
+			topToday = G.Quests and G.Quests.today and d.obby.top == G.Quests.today() or false,
+			run = s.obbyRunStart and (os.clock() - s.obbyRunStart) or nil,
+		} or nil,
 		playTime = os.clock() - (s.joinedAt or os.clock()), -- para los regalos por tiempo
 		gifts = Core.giftList(s), -- lista seguida de true/false (las tablas con huecos llegan mal al cliente)
 		friends = Core.friendCount(player),
@@ -1162,7 +1186,7 @@ local function tick(dt)
 				end
 			end
 			if hum then
-				hum.WalkSpeed = (s.slow and not s.carrying) and C.WALK_SLOW or C.walkSpeedFor(d.speed)
+				hum.WalkSpeed = Core.walkSpeed(s, d)
 			end
 			if hrp then
 				s.zone = G.World.zoneAt(hrp.Position.Z)

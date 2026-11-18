@@ -24,6 +24,8 @@ if G.PackStyle and G.PackStyle.init then G.PackStyle.init(G) end
 G.World.init(G)
 if G.Vendors then G.Vendors.init(G) end
 G.DayNight.init(G); G.Combat.init(G); G.Packs.init(G); G.Shop.init(G); G.Boards.init(G); G.Core.init(G)
+G.Obby = optional("Obby")
+if G.Obby then G.Obby.init(G) end
 G.Packs.refreshAll()
 -- parcela de ejemplo con dioses de todas las rarezas y kilos variados
 local plot = G.World.plots[2]

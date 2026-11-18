@@ -2159,6 +2159,8 @@ local function locLabel(bb)
 		local zone = Config.ZONES[zi]
 		local ok = (state.speed or 0) >= zone.req
 		l.Text = string.format("%s %d · %s%s", t("zone"), zi, Locale.name(zone), zi > 1 and string.format('\n<font color="%s">%s ⚡ %s</font>', ok and "#5CFF8A" or "#FF5A5A", t("requires"), Format.num(zone.req)) or "")
+	elseif bb:GetAttribute("ObbyPortal") then
+		l.Text = t("obbyPortalSign")
 	elseif bb:GetAttribute("EndSign") then
 		l.Text = string.format("%s\n%s", t("endSign"), t("moreZones"))
 	elseif bb:GetAttribute("Rarity") then
@@ -2168,7 +2170,7 @@ local function locLabel(bb)
 	end
 end
 
-local PROMPT_TEXT = { steal = "steal", open = "open", upgradeLuck = "upgradeLuck", upgradeTreadmill = "upgradeTreadmill" }
+local PROMPT_TEXT = { steal = "steal", open = "open", upgradeLuck = "upgradeLuck", upgradeTreadmill = "upgradeTreadmill", obbyEnter = "obbyEnter", obbyLeave = "obbyLeave" }
 local function promptOwnerOnly(p)
 	local owner = p:GetAttribute("Owner")
 	p.Enabled = owner == player.UserId
@@ -2990,7 +2992,7 @@ task.spawn(function()
 		end,
 		hooks = hooks,
 	}
-	for _, name in ipairs({ "Fx", "Music", "Missions" }) do
+	for _, name in ipairs({ "Fx", "Music", "Missions", "ObbyFx" }) do
 		local m = script:FindFirstChild(name)
 		if m then
 			local ok, err = pcall(function()

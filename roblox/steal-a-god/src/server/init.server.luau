@@ -29,6 +29,7 @@ G.AuraFx = optional("AuraFx") -- efectos de las auras de los jugadores
 G.PackStyle = optional("PackStyle") -- diseño de los sobres por rareza y nidos
 G.Vendors = optional("Vendors") -- dioses que venden auras y entrenadores
 G.PackTemplates = optional("PackTemplates") -- un sobre de muestra por rareza para la apertura en 3D
+G.Obby = optional("Obby") -- Ascenso al Olimpo: obby gigante en una isla flotante
 
 G.Net.init()
 require(script.Models).load(G.Config)
@@ -53,6 +54,9 @@ G.Packs.init(G)
 G.Shop.init(G)
 G.Boards.init(G)
 G.Quests.init(G) -- registra sus acciones en G.Core.actions (ANTES de Core.init: Core ya atiende a los jugadores al iniciarse)
+if G.Obby then
+	G.Obby.init(G) -- construye la isla y registra obbyEnter/obbyLeave
+end
 G.Core.init(G)
 
 -- Solo en Roblox Studio: enganche para revisar el juego desde la barra de comandos

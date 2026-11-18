@@ -45,6 +45,7 @@ step("Cargar módulos", function()
 	G.PackStyle = optional("PackStyle")
 	G.Vendors = optional("Vendors")
 	G.PackTemplates = optional("PackTemplates")
+	G.Obby = optional("Obby")
 end)
 step("Red", function() G.Net.init() end)
 step("Avatares", function() G.Avatars = require(Server.Avatars); G.Avatars.init(G) end)
@@ -64,6 +65,7 @@ step("Iniciar sistemas", function()
 	G.Boards.init(G)
 	G.Core.init(G)
 	G.Quests.init(G)
+	if G.Obby then G.Obby.init(G) end
 end)
 step("Amanecer (sobres)", function() G.Packs.refreshAll() end)
 add("   Sobres creados:", (function() local n = 0; for _ in pairs(G.Packs.list) do n += 1 end; return n end)())
@@ -678,6 +680,213 @@ step("Regalos gratis por tiempo y bonus de amigos", function()
 	G.Core.invalidate(fp)
 	assert(withFriends > base * 1.05, string.format("el bonus de amigos no suma: %.3f → %.3f", base, withFriends))
 	assert(G.Core.friendCount(fp) == 0, "amigos de mentira")
+end)
+
+step("Ascenso al Olimpo: isla, 101 puntos de control, 100 etapas variadas y nada que choque", function()
+	local O = C.OBBY
+	local obby = workspace:FindFirstChild("Obby")
+	assert(obby and obby:FindFirstChild("Pads") and obby:FindFirstChild("Stages"), "sin obby")
+	for i = 0, O.STAGES do
+		assert(obby.Pads:FindFirstChild("CP" .. i), "falta el punto de control " .. i)
+	end
+	local kinds, parts = {}, 0
+	for i = 1, O.STAGES do
+		local f = obby.Stages:FindFirstChild("Stage" .. i)
+		assert(f and #f:GetChildren() > 0, "etapa vacía " .. i)
+		local k = f:GetAttribute("Kind")
+		kinds[k] = (kinds[k] or 0) + 1
+	end
+	for _, k in ipairs(G.Obby.TYPES) do
+		assert((kinds[k] or 0) >= 5, "pocas etapas de " .. k .. ": " .. tostring(kinds[k]))
+	end
+	for _, d in ipairs(obby:GetDescendants()) do
+		if d:IsA("BasePart") then
+			parts += 1
+		end
+	end
+	local CS = game:GetService("CollectionService")
+	for _, tag in ipairs({ "ObbyKill", "ObbySpin", "ObbyMove", "ObbySwing", "ObbyVanish", "ObbyPad", "ObbyBelt", "ObbyWind", "ObbyGateSign" }) do
+		assert(#CS:GetTagged(tag) > 0, "nada con " .. tag)
+	end
+	-- ninguna pieza sólida de una etapa se mete en otra etapa ni en la isla
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local clashes = {}
+	for i = 1, O.STAGES do
+		local f = obby.Stages["Stage" .. i]
+		params.FilterDescendantsInstances = { f, obby.Pads }
+		for _, p in ipairs(f:GetDescendants()) do
+			if p:IsA("BasePart") and p.CanCollide then
+				for _, h in ipairs(workspace:GetPartsInPart(p, params)) do
+					if h.CanCollide and h:IsDescendantOf(obby) then
+						table.insert(clashes, string.format("etapa %d %s ↔ %s", i, p.Name, h:GetFullName()))
+					end
+				end
+			end
+		end
+	end
+	assert(#clashes == 0, "choques: " .. table.concat(clashes, " | ", 1, math.min(#clashes, 6)))
+	-- el puente de la cima no choca con las columnas del templo
+	local island = obby:FindFirstChild("Island")
+	local bridge = island and island:FindFirstChild("SummitBridge")
+	assert(bridge, "sin puente a la cima")
+	local ip = OverlapParams.new()
+	ip.FilterType = Enum.RaycastFilterType.Include
+	ip.FilterDescendantsInstances = { island }
+	for _, h in ipairs(workspace:GetPartsInPart(bridge, ip)) do
+		assert(h.Name ~= "SummitColumn" and h.Name ~= "SummitAltar", "el puente choca con " .. h.Name)
+	end
+	-- el portal de la plaza no se mete en nada del mundo
+	local portal = obby:FindFirstChild("ObbyPortal")
+	assert(portal, "sin portal en la plaza")
+	params.FilterDescendantsInstances = { obby }
+	for _, p in ipairs(portal:GetDescendants()) do
+		if p:IsA("BasePart") and p.CanCollide then
+			for _, h in ipairs(workspace:GetPartsInPart(p, params)) do
+				assert(not h.CanCollide or h.Name:find("^Plaza"), "el portal choca con " .. h:GetFullName())
+			end
+		end
+	end
+	local top = obby.Pads["CP" .. O.STAGES].Position.Y - obby.Pads.CP0.Position.Y
+	local counts = {}
+	for _, k in ipairs(G.Obby.TYPES) do
+		table.insert(counts, k .. " " .. kinds[k])
+	end
+	add(string.format("   %d piezas · sube %d studs · %s", parts, math.floor(top), table.concat(counts, ", ")))
+end)
+
+step("Ascenso al Olimpo: cada etapa se puede pasar saltando (huecos ≤ 9, subidas ≤ 6; más con impulsor o celosía)", function()
+	local O = C.OBBY
+	local obby = workspace.Obby
+	local CS = game:GetService("CollectionService")
+	-- puntos de la cara de arriba de una pieza (las que se mueven, en todo su recorrido)
+	local function surface(p)
+		local pts = {}
+		local half = p.Size / 2
+		local amp = CS:HasTag(p, "ObbyMove") and (p:GetAttribute("Amp") or 0) or 0
+		local base = (CS:HasTag(p, "ObbyMove") and p:GetAttribute("BaseCF")) or p.CFrame
+		local n = 4
+		for ix = 0, n do
+			for iz = 0, n do
+				local x = -half.X - amp + (2 * half.X + 2 * amp) * ix / n
+				local z = -half.Z + 2 * half.Z * iz / n
+				table.insert(pts, (base * CFrame.new(x, half.Y, z)).Position)
+			end
+		end
+		return pts
+	end
+	local function link(A, B)
+		local best, up = math.huge, 0
+		for _, a in ipairs(A.pts) do
+			for _, b in ipairs(B.pts) do
+				local d = Vector2.new(a.X - b.X, a.Z - b.Z).Magnitude
+				if d < best then
+					best, up = d, b.Y - a.Y
+				end
+			end
+		end
+		return best, up
+	end
+	local bad, worst = {}, 0
+	for i = 1, O.STAGES do
+		local nodes = {}
+		local function addNode(p, kind)
+			table.insert(nodes, { part = p, pts = surface(p), kind = kind })
+		end
+		addNode(obby.Pads["CP" .. (i - 1)], "start")
+		for _, p in ipairs(obby.Stages["Stage" .. i]:GetDescendants()) do
+			if p:IsA("BasePart") and p.CanCollide and not CS:HasTag(p, "ObbyKill") and p.Name ~= "Arm" then
+				addNode(p, p:IsA("TrussPart") and "truss" or (CS:HasTag(p, "ObbyPad") and "pad" or "floor"))
+			end
+		end
+		addNode(obby.Pads["CP" .. i], "goal")
+		local reached, queue = { [1] = true }, { 1 }
+		while #queue > 0 do
+			local a = nodes[table.remove(queue, 1)]
+			for j, b in ipairs(nodes) do
+				if not reached[j] and b.kind ~= "truss" then
+					local gap, up = link(a, b)
+					local ok = (up <= 6 and gap <= 9 - math.max(0, up) * 0.5) or (a.kind == "pad" and up <= 16 and gap <= 9)
+					if ok then
+						reached[j] = true
+						table.insert(queue, j)
+						worst = math.max(worst, gap)
+					end
+				elseif not reached[j] and b.kind == "truss" then
+					-- celosía: se sube desde cualquier suelo que la toque y lleva a lo que hay en su parte alta
+					local gap = link(a, b)
+					if gap <= 3 then
+						reached[j] = true
+						for k, c in ipairs(nodes) do
+							local g2 = link(b, c)
+							if not reached[k] and g2 <= 3.5 and c.part.Position.Y > b.part.Position.Y then
+								reached[k] = true
+								table.insert(queue, k)
+							end
+						end
+					end
+				end
+			end
+		end
+		if not reached[#nodes] then
+			table.insert(bad, i .. " (" .. obby.Stages["Stage" .. i]:GetAttribute("Kind") .. ")")
+		end
+	end
+	add(string.format("   hueco más grande que hay que saltar: %.1f studs", worst))
+	assert(#bad == 0, "etapas que no se pueden pasar: " .. table.concat(bad, ", "))
+end)
+
+step("Ascenso al Olimpo: entrar, puntos de control seguidos, premios por tramo y Sobre del Olimpo", function()
+	local O = C.OBBY
+	local fp, d, s = fakePlayer(-127)
+	s.carrying = { rarity = 1 }
+	assert(G.Obby.enter(fp) == false and not s.inObby, "entró llevando un sobre")
+	s.carrying = nil
+	assert(G.Obby.enter(fp) == true and s.inObby, "no entró")
+	assert(G.Core.walkSpeed(s, d) == O.WALK, "velocidad dentro del obby")
+	assert(G.Obby.reach(fp, 2) == false, "se saltó un punto de control")
+	s.obbyLastCp = os.clock() - 5
+	assert(G.Obby.reach(fp, 1) == true and d.obby.stage == 1, "no llegó al 1")
+	assert(G.Obby.reach(fp, 2) == false, "demasiado deprisa")
+	local m0 = d.money
+	for i = 2, 10 do
+		s.obbyLastCp = os.clock() - 5
+		assert(G.Obby.reach(fp, i), "no llegó al " .. i)
+	end
+	local m1 = d.money
+	assert(m1 > m0 and d.obby.secs[1] == true and #d.obby.secs == O.STAGES / O.PER_SECTION - 1, "premio del tramo 1")
+	d.obby.stage = 9
+	s.obbyLastCp = os.clock() - 5
+	G.Obby.reach(fp, 10)
+	assert(d.money == m1, "cobró dos veces el tramo 1 el mismo día")
+	-- cima: Sobre del Olimpo una vez al día
+	assert(G.Obby.finish(fp) == false, "terminó sin llegar arriba")
+	d.obby.stage = O.STAGES
+	s.obbyRunStart = os.clock() - 600
+	local before = #d.altarPacks + #d.queue
+	assert(G.Obby.finish(fp) == true, "no terminó")
+	assert(#d.altarPacks + #d.queue == before + 1, "sin Sobre del Olimpo")
+	local item = d.altarPacks[#d.altarPacks] or d.queue[#d.queue]
+	assert(item.luck and item.luck >= O.TOP_PACK_LUCK, "el Sobre del Olimpo no trae suerte")
+	assert(d.obby.wins == 1 and d.obby.best >= 599 and d.obby.best <= 601 and d.obby.stage == 0, "récord y reinicio")
+	d.obby.stage = O.STAGES
+	local m2 = d.money
+	G.Obby.finish(fp)
+	assert(#d.altarPacks + #d.queue == before + 1 and d.money > m2, "dos Sobres del Olimpo el mismo día")
+	-- estado del cliente
+	local sent
+	local saved = G.Net.State
+	G.Net.State = { FireClient = function(_, _, payload) sent = payload end }
+	pcall(G.Core.sendState, fp)
+	G.Net.State = saved
+	assert(sent and sent.obby and sent.obby.on == true and sent.obby.wins == 2 and sent.obby.topToday == true, "estado del obby")
+	assert(G.Obby.leave(fp) == true and not s.inObby, "salir")
+	-- datos guardados: se limpian y la lista de tramos va seguida
+	local dd = G.Data.sanitize({ obby = { stage = 999, wins = -3, best = "x", secs = { [3] = true, [99] = true, foo = true } } }, C)
+	assert(dd.obby.stage == O.STAGES and dd.obby.wins == 0 and dd.obby.best == 0, "datos del obby")
+	assert(#dd.obby.secs == O.STAGES / O.PER_SECTION - 1 and dd.obby.secs[3] == true and dd.obby.secs[1] == false, "lista de tramos")
+	-- los puntos de control y la cima tienen su sitio para aparecer
+	assert(G.Obby.spawnCF(0).Position.Y > O.CENTER.Y + O.START_UP and G.Obby.summit, "aparecer")
 end)
 
 step("Colección enorme: se recorta sin tocar el índice", function()

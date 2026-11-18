@@ -283,6 +283,43 @@ function Config.rollRarity(zoneIndex, luck, rng)
 end
 
 ---------------------------------------------------------------------
+-- ASCENSO AL OLIMPO: obby gigante en una isla flotante (portal en la plaza).
+-- 100 etapas en espiral alrededor del monte Olimpo, en 10 tramos de 10 (uno por mitología).
+-- Puntos de control guardados; dentro todos andan igual (WALK) para que los saltos sean justos.
+-- Premios: dinero al pasar cada tramo y el Sobre del Olimpo arriba (una vez al día cada uno).
+---------------------------------------------------------------------
+Config.OBBY = {
+	STAGES = 100,
+	PER_SECTION = 10,
+	CENTER = Vector3.new(0, 900, -900), -- centro de la isla (lejos del mapa: Z < pasillo)
+	RADIUS = 135, -- radio de la espiral
+	STAGE_LEN = 46, -- largo de cada etapa (studs de recorrido)
+	START_UP = 20, -- altura del primer punto de control sobre la isla
+	CLIMB = 320, -- lo que sube en total
+	WALK = 20, -- velocidad dentro del obby
+	FALL = 18, -- si caes más de esto bajo tu punto de control, vuelves a él
+	MIN_STAGE_TIME = 1.2, -- segundos mínimos entre puntos de control (anti-trampas)
+	PORTAL = Vector3.new(0, 0, -46), -- portal de la plaza
+	SECTION_MONEY_SECS = 150, -- dinero por tramo superado (segundos de tus ingresos), una vez al día
+	TOP_MONEY_SECS = 1800, -- dinero al llegar a la cima
+	TOP_RARITY_LUCK = 6, -- suerte para la rareza del Sobre del Olimpo
+	TOP_PACK_LUCK = 60, -- y su suerte al abrirlo (× la suerte normal del sobre)
+	KILL_COLOR = Color3.fromRGB(255, 70, 40),
+	SECTIONS = {
+		{ es = "Grecia", en = "Greece", floor = Color3.fromRGB(236, 230, 218), mat = Enum.Material.Marble, accent = Color3.fromRGB(240, 196, 92) },
+		{ es = "Egipto", en = "Egypt", floor = Color3.fromRGB(222, 186, 122), mat = Enum.Material.Sandstone, accent = Color3.fromRGB(50, 100, 210) },
+		{ es = "Asgard", en = "Asgard", floor = Color3.fromRGB(185, 222, 255), mat = Enum.Material.Ice, accent = Color3.fromRGB(110, 220, 255) },
+		{ es = "Selva azteca", en = "Aztec jungle", floor = Color3.fromRGB(70, 160, 110), mat = Enum.Material.Slate, accent = Color3.fromRGB(255, 200, 60) },
+		{ es = "Bosque celta", en = "Celtic woods", floor = Color3.fromRGB(112, 132, 92), mat = Enum.Material.Cobblestone, accent = Color3.fromRGB(110, 220, 120) },
+		{ es = "Babilonia", en = "Babylon", floor = Color3.fromRGB(46, 78, 170), mat = Enum.Material.Brick, accent = Color3.fromRGB(255, 205, 80) },
+		{ es = "Inframundo", en = "Underworld", floor = Color3.fromRGB(58, 52, 58), mat = Enum.Material.Basalt, accent = Color3.fromRGB(150, 255, 120) },
+		{ es = "Tormenta", en = "Storm", floor = Color3.fromRGB(228, 234, 246), mat = Enum.Material.SmoothPlastic, accent = Color3.fromRGB(110, 190, 255) },
+		{ es = "Cosmos", en = "Cosmos", floor = Color3.fromRGB(52, 30, 90), mat = Enum.Material.Glass, accent = Color3.fromRGB(210, 120, 255) },
+		{ es = "Olimpo", en = "Olympus", floor = Color3.fromRGB(255, 222, 140), mat = Enum.Material.Foil, accent = Color3.fromRGB(255, 255, 255) },
+	},
+}
+
+---------------------------------------------------------------------
 -- REGALOS GRATIS por tiempo jugado (en esta partida: se reinician al volver a entrar)
 -- y BONUS DE AMIGOS (+10 % de dinero por cada amigo en el servidor, máximo 5)
 ---------------------------------------------------------------------

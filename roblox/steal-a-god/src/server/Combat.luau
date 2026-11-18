@@ -88,8 +88,8 @@ function Combat.swing(player, tool)
 		return
 	end
 	local now = os.clock()
-	if now - s.lastHit < C.HIT_COOLDOWN then
-		return
+	if now - s.lastHit < C.HIT_COOLDOWN or s.inObby then
+		return -- en el Ascenso al Olimpo no se pega a nadie
 	end
 	s.lastHit = now
 	-- animación de golpe del script Animate por defecto
@@ -128,7 +128,7 @@ function Combat.swing(player, tool)
 	if not vs or not vd then
 		return
 	end
-	if now < vs.invulnUntil or os.time() < (vd.boosts and vd.boosts.shield or 0) or vs.afk then
+	if now < vs.invulnUntil or os.time() < (vd.boosts and vd.boosts.shield or 0) or vs.afk or vs.inObby then
 		return
 	end
 	if vd.playtime < C.NEWBIE_PROTECTION then

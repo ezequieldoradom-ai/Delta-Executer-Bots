@@ -44,6 +44,7 @@ local function defaults()
 		playtime = 0,
 		treadmill = 1,
 		luckLevel = 1, -- nivel de suerte propia (cartel de la parcela)
+		obby = { stage = 0, wins = 0, best = 0, day = 0, secs = {}, top = 0 }, -- Ascenso al Olimpo
 		plot = 1,
 		altars = 3,
 		altarPacks = {},
@@ -113,6 +114,26 @@ function Data.sanitize(raw, C)
 	d.playtime = num(raw.playtime, 0, 0)
 	d.treadmill = math.floor(num(raw.treadmill, 1, 1, C.TREADMILL_MAX))
 	d.luckLevel = math.floor(num(raw.luckLevel, 1, 1, C.LUCK_MAX))
+	if type(raw.obby) == "table" and C.OBBY then
+		local o = raw.obby
+		d.obby.stage = math.floor(num(o.stage, 0, 0, C.OBBY.STAGES))
+		d.obby.wins = math.floor(num(o.wins, 0, 0, 1e6))
+		d.obby.best = math.floor(num(o.best, 0, 0, 1e7))
+		d.obby.day = math.floor(num(o.day, 0, 0, 1e7))
+		d.obby.top = math.floor(num(o.top, 0, 0, 1e7))
+		-- tramos cobrados hoy: lista seguida de true/false (el DataStore no guarda listas con huecos)
+		local nSec = C.OBBY.STAGES / C.OBBY.PER_SECTION - 1
+		local secs = table.create(nSec, false)
+		if type(o.secs) == "table" then
+			for k, v in pairs(o.secs) do
+				local n = tonumber(k)
+				if n and n >= 1 and n <= nSec and n == math.floor(n) and v == true then
+					secs[n] = true
+				end
+			end
+		end
+		d.obby.secs = secs
+	end
 	d.plot = math.floor(num(raw.plot, 1, 1, C.PLOT_MAX))
 	d.altars = math.floor(num(raw.altars, C.ALTARS_BASE, C.ALTARS_BASE, C.ALTARS_MAX))
 	d.altarPacks = packList(raw.altarPacks, C, C.ALTARS_MAX + 2)
