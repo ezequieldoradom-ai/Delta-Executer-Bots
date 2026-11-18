@@ -299,13 +299,18 @@ Config.OBBY = {
 	WALK = 20, -- velocidad dentro del obby
 	FALL = 18, -- si caes más de esto bajo tu punto de control, vuelves a él
 	MIN_STAGE_TIME = 1.2, -- segundos mínimos entre puntos de control (anti-trampas)
-	PORTAL = Vector3.new(0, 0, -46), -- portal de la plaza
-	BOARD = Vector3.new(21, 0, -50), -- ranking de récords junto al portal
+	-- portal (lado izquierdo) y ranking (lado derecho, enfrente) en los laterales de la plaza, entre las
+	-- puertas de las parcelas y sin pisar sus cintas, mirando al centro (en el centro tapaban los rankings)
+	PORTAL = Vector3.new(-26, 0, 36),
+	FACING = Vector3.new(1, 0, 0),
+	BOARD = Vector3.new(26, 0, 22),
+	BOARD_FACING = Vector3.new(-1, 0, 0),
 	BOARD_STORE = "LB_Olympus_v1", -- OrderedDataStore: mejor tiempo (en segundos) de subir del 1 al 100 sin saltar etapas
 	SECTION_MONEY_SECS = 150, -- dinero por tramo superado (segundos de tus ingresos), una vez al día
 	TOP_MONEY_SECS = 1800, -- dinero al llegar a la cima
 	TOP_RARITY_LUCK = 6, -- suerte para la rareza del Sobre del Olimpo
 	TOP_PACK_LUCK = 60, -- y su suerte al abrirlo (× la suerte normal del sobre)
+	TOP_MIN_RARITY = 4, -- tras 100 etapas, como poco Épica
 	KILL_COLOR = Color3.fromRGB(255, 70, 40),
 	SECTIONS = {
 		{ es = "Grecia", en = "Greece", floor = Color3.fromRGB(236, 230, 218), mat = Enum.Material.Marble, accent = Color3.fromRGB(240, 196, 92) },

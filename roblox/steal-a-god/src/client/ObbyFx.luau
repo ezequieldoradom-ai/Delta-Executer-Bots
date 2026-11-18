@@ -288,6 +288,10 @@ local function step(dt)
 	hud.bar.Visible = on and not (ctx.isBusy and ctx.isBusy())
 	if on ~= wasOn then
 		wasOn = on
+		-- la barra de herramientas (el bate) se montaba sobre la barra del obby: fuera mientras subes
+		pcall(function()
+			game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, not on)
+		end)
 		if on then
 			ui.showBanner("🏛️ " .. t("obbyTitle"), Color3.fromRGB(255, 215, 110))
 			ctx.play("whoosh", 0.8)

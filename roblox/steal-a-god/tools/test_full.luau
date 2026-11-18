@@ -776,6 +776,14 @@ step("Ascenso al Olimpo: isla, 101 puntos de control, 100 etapas variadas y nada
 	for _, p in ipairs(plazaBoard:GetDescendants()) do
 		table.insert(plazaStuff, p)
 	end
+	-- ni tapan la entrada de ninguna parcela (franja de 26 × 16 delante de su puerta)
+	for _, pl in ipairs(G.World.plots) do
+		local gate = pl.cf * CFrame.new(0, 6, G.World.PLOT_SIZE / 2 + 8)
+		local ip = OverlapParams.new()
+		ip.FilterType = Enum.RaycastFilterType.Include
+		ip.FilterDescendantsInstances = { portal, plazaBoard }
+		assert(#workspace:GetPartBoundsInBox(gate, Vector3.new(26, 10, 16), ip) == 0, "el portal o el ranking tapan la entrada de la parcela " .. pl.index)
+	end
 	for _, p in ipairs(plazaStuff) do
 		if p:IsA("BasePart") and p.CanCollide then
 			for _, h in ipairs(workspace:GetPartsInPart(p, params)) do
