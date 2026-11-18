@@ -115,6 +115,12 @@ local T = {
 	endSign = { es = "🔒 MÁS ZONAS PRÓXIMAMENTE", en = "🔒 MORE ZONES COMING SOON" },
 	chasing = { es = "¡TE PERSIGUE!", en = "CHASING!" },
 	moreZones = { es = "Próxima actualización: Inframundo, Atlántida, Olimpo…", en = "Next update: Underworld, Atlantis, Olympus…" },
+	-- cinta con toques de combo
+	comboLost = { es = "¡COMBO PERDIDO!", en = "COMBO LOST!" },
+	taps = { es = "toques", en = "taps" },
+	jumpToLeave = { es = "Salta para bajar de la cinta (%s)", en = "Jump to get off the treadmill (%s)" },
+	jumpButton = { es = "botón de saltar", en = "jump button" },
+	spaceKey = { es = "Espacio", en = "Space" },
 	-- vendedores (dioses junto a la entrada del pasillo)
 	music = { es = "Música", en = "Music" },
 	talk = { es = "Hablar", en = "Talk" },
@@ -164,7 +170,7 @@ local T = {
 	tutWelcome = { es = "👋 ¡Bienvenido! Sigue la luz dorada ✨", en = "👋 Welcome! Follow the golden light ✨" },
 	tutStep = { es = "PASO", en = "STEP" },
 	tut1 = { es = "Sube a tu cinta 🏃 y corre hasta ⚡ %s", en = "Step on your treadmill 🏃 and run to ⚡ %s" },
-	tut2 = { es = "Pulsa ¡TOCA! cuando la raya blanca pase por el verde 🎯", en = "Press TAP! when the white line is on the green 🎯" },
+	tut2 = { es = "Toca los círculos que aparecen en la pantalla antes de que se cierre el aro 🎯", en = "Tap the circles that pop up on screen before the ring closes 🎯" },
 	tut3 = { es = "Ve al pasillo y roba un sobre del nido 📦", en = "Go to the corridor and steal a pack from the nest 📦" },
 	tut4 = { es = "¡Corre a tu parcela antes de que te pille el guardián!", en = "Run back to your plot before the guardian catches you!" },
 	tut5 = { es = "¡Tu sobre está listo! Ábrelo en tu altar 🔮", en = "Your pack is ready! Open it at your altar 🔮" },

@@ -1054,24 +1054,12 @@ end
 -- (las teclas se enlazan más abajo, después de la cinta: usan `tread` y `doTap`)
 
 ---------------------------------------------------------------------
--- Minijuego de la cinta (combo)
+-- Cinta: bloqueado corriendo y toques de combo que salen por la pantalla
+-- (el servidor decide cuándo, dónde y si se acertó; aquí solo se dibujan)
 ---------------------------------------------------------------------
-local tread = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(0, 440, 0, 160), Position = UDim2.new(0.5, 0, 1, -16), AnchorPoint = Vector2.new(0.5, 1), Visible = false, Parent = gui }, {
-	corner(20),
-	gradient(Color3.fromRGB(20, 60, 90), Color3.fromRGB(14, 12, 40), 90),
-	stroke(CYAN, 3),
-})
-local comboLabel = label({ Parent = tread, Font = TITLE, Size = UDim2.new(1, -20, 0, 32), Position = UDim2.fromOffset(10, 6), TextColor3 = CYAN })
-local bar = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -40, 0, 28), Position = UDim2.fromOffset(20, 44), Parent = tread }, { corner(14), gradient(Color3.fromRGB(50, 40, 90), Color3.fromRGB(30, 26, 60), 0) })
-local target = new("Frame", { BackgroundColor3 = GREEN, Size = UDim2.new(0.18, 0, 1, 0), Parent = bar }, { corner(14), stroke(WHITE, 2, 0.4) })
-local marker = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(0, 10, 1, 12), Position = UDim2.new(0, 0, 0, -6), Parent = bar }, { corner(5), stroke(DARK, 2) })
-local targetCenter, targetWidth = 0.5, 0.18
-local tapButton = button({ Parent = tread, Text = t("tap") .. (UserInputService.KeyboardEnabled and not UserInputService.TouchEnabled and "  [E]" or (UserInputService.GamepadEnabled and "  (R2)" or "")), Size = UDim2.new(1, -40, 0, 60), Position = UDim2.fromOffset(20, 84), Color = CYAN })
-tapButton.Font = TITLE
 local Combo = Remotes:WaitForChild("Combo")
-local function markerPos()
-	return (math.sin(workspace:GetServerTimeNow() * 2.6) + 1) / 2
-end
+local TapRemote = Remotes:WaitForChild("Tap")
+local shake -- temblor de cámara: se define más abajo (apertura de sobres); aquí solo se usa dentro de funciones
 local function floatText(text, color, parent, pos)
 	local l = label({ Parent = parent or gui, Font = TITLE, Text = text, TextColor3 = color, Size = UDim2.fromOffset(200, 44), Position = pos or UDim2.new(0.5, -100, 1, -200), ZIndex = 25 })
 	TweenService:Create(l, TweenInfo.new(0.8, Enum.EasingStyle.Quad), { Position = l.Position - UDim2.fromOffset(0, 70), TextTransparency = 1 }):Play()
@@ -1083,34 +1071,165 @@ local function floatText(text, color, parent, pos)
 		l:Destroy()
 	end)
 end
-local function doTap()
-	local m = markerPos()
-	-- el cliente siempre avisa; el servidor decide si fue acierto
-	Combo:FireServer()
-	if math.abs(m - targetCenter) <= targetWidth / 2 + 0.02 then
-		play("reward", 1 + (state.combo or 1) * 0.12)
-		bump(target, 1.4)
-		target.BackgroundColor3 = WHITE
-		floatText("+COMBO!", GREEN, tread, UDim2.new(0.5, -100, 0, -10))
-		task.delay(0.12, function()
-			target.BackgroundColor3 = GREEN
+
+-- Panel compacto abajo en el centro: combo, toques seguidos, barra hasta el siguiente nivel y cómo bajar
+local tread = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(0, 460, 0, 96), Position = UDim2.new(0.5, 0, 1, -16), AnchorPoint = Vector2.new(0.5, 1), Visible = false, Parent = gui }, {
+	corner(20),
+	gradient(Color3.fromRGB(20, 60, 90), Color3.fromRGB(14, 12, 40), 90),
+	stroke(CYAN, 3),
+})
+local comboLabel = heavy({ Parent = tread, Size = UDim2.new(1, -24, 0, 34), Position = UDim2.fromOffset(12, 6), TextColor3 = CYAN, StrokeThickness = 2.5 })
+local tierBack = new("Frame", { BackgroundColor3 = Color3.fromRGB(40, 34, 80), Size = UDim2.new(1, -24, 0, 12), Position = UDim2.fromOffset(12, 44), Parent = tread }, { corner(6) })
+local tierFill = new("Frame", { BackgroundColor3 = GOLD, Size = UDim2.new(0, 0, 1, 0), Parent = tierBack }, { corner(6), gradient(GOLD, Color3.fromRGB(255, 120, 60), 0) })
+local leaveLabel = label({ Parent = tread, Font = BTN, Size = UDim2.new(1, -24, 0, 26), Position = UDim2.fromOffset(12, 62), TextColor3 = Color3.fromRGB(205, 225, 255) })
+new("UITextSizeConstraint", { MaxTextSize = 20, Parent = leaveLabel })
+local tapButton = tread -- el tutorial resalta este panel en el paso del combo
+
+-- Texto de la tecla según el aparato
+local function deviceKey(kind)
+	local pad = UserInputService.GamepadEnabled and not UserInputService.KeyboardEnabled
+	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	if kind == "jump" then
+		return pad and "A / ✕" or (touch and t("jumpButton") or t("spaceKey"))
+	end
+	return pad and "R2" or (touch and "" or "E / Click")
+end
+
+-- Capa de los toques (no bloquea el resto de la pantalla: solo los botones reciben el toque)
+local tapLayer = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 18, Parent = gui })
+local activeTap = nil
+
+local function sparkBurst(pos, color, n)
+	for k = 1, n do
+		local sz = math.random(10, 20)
+		local p = new("Frame", { BackgroundColor3 = k % 3 == 0 and WHITE or color, Size = UDim2.fromOffset(sz, sz), Position = pos, AnchorPoint = Vector2.new(0.5, 0.5), Rotation = 45, ZIndex = 20, Parent = tapLayer }, { corner(4) })
+		local a = math.random() * math.pi * 2
+		local d = math.random(60, 160)
+		TweenService:Create(p, TweenInfo.new(0.5 + math.random() * 0.3, Enum.EasingStyle.Quint), { Position = pos + UDim2.fromOffset(math.cos(a) * d, math.sin(a) * d), Rotation = math.random(-200, 200), BackgroundTransparency = 1 }):Play()
+		task.delay(0.9, function()
+			p:Destroy()
 		end)
-	else
-		bump(tread, 0.95)
-		floatText("MISS", Color3.fromRGB(255, 90, 100), tread, UDim2.new(0.5, -100, 0, -10))
 	end
 end
-tapButton.Activated:Connect(doTap)
+
+local function removeTap(tp)
+	if activeTap == tp then
+		activeTap = nil
+	end
+	if tp and tp.button and tp.button.Parent then
+		local sc = tp.button:FindFirstChildOfClass("UIScale")
+		if sc then
+			TweenService:Create(sc, TweenInfo.new(0.12), { Scale = 0 }):Play()
+		end
+		local b = tp.button
+		task.delay(0.13, function()
+			b:Destroy()
+		end)
+	end
+end
+
+-- Toca el toque activo (botón, tecla E / clic, gatillo R2 del mando)
+local function doTap()
+	local tp = activeTap
+	if not tp then
+		return false
+	end
+	Combo:FireServer(tp.id)
+	sparkBurst(tp.button.Position, tp.color, 14)
+	play("reward", 1 + math.min(30, tp.number) * 0.03)
+	removeTap(tp)
+	return true
+end
+
+local function showTap(data)
+	if activeTap then
+		removeTap(activeTap)
+	end
+	local number = (tonumber(data.hits) or 0) + 1
+	local mult = Config.tapMult(number)
+	local tierColors = { [2] = CYAN, [3] = GREEN, [4] = PURPLE, [5] = GOLD }
+	local color = tierColors[mult] or CYAN
+	local size = 132
+	local b = new("TextButton", {
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundColor3 = WHITE,
+		Size = UDim2.fromOffset(size, size),
+		Position = UDim2.fromScale(tonumber(data.x) or 0.5, tonumber(data.y) or 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		ZIndex = 19,
+		Parent = tapLayer,
+	}, {
+		corner(size),
+		gradient(color:Lerp(WHITE, 0.25), darker(color, 0.45), 90),
+		stroke(WHITE, 5),
+	})
+	-- aro dorado que se cierra: cuando llega al botón, el toque caduca
+	local ring = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(2, 2), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 19, Parent = b }, { corner(999), stroke(GOLD, 6) })
+	TweenService:Create(ring, TweenInfo.new(tonumber(data.life) or 1.8, Enum.EasingStyle.Linear), { Size = UDim2.fromScale(1.04, 1.04) }):Play()
+	local glow = new("ImageLabel", { BackgroundTransparency = 1, Image = Config.VFX.glow, ImageColor3 = color, ImageTransparency = 0.35, Size = UDim2.fromScale(2.2, 2.2), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 18, Parent = b })
+	TweenService:Create(glow, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { ImageTransparency = 0.7 }):Play()
+	heavy({ Parent = b, Text = tostring(number), Size = UDim2.new(1, -20, 0.5, 0), Position = UDim2.new(0, 10, 0.12, 0), ZIndex = 20, StrokeThickness = 4 })
+	heavy({ Parent = b, Text = "x" .. mult, Size = UDim2.new(1, -30, 0.28, 0), Position = UDim2.new(0, 15, 0.6, 0), TextColor3 = GOLD, ZIndex = 20, StrokeThickness = 3 })
+	local key = deviceKey("tap")
+	if key ~= "" then
+		label({ Parent = b, Font = BTN, Text = key, Size = UDim2.new(1, 0, 0, 22), Position = UDim2.new(0, 0, 1, 6), ZIndex = 20, StrokeThickness = 2 })
+	end
+	local sc = new("UIScale", { Scale = 0.2, Parent = b })
+	TweenService:Create(sc, TweenInfo.new(0.28, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	local tp = { id = data.id, button = b, color = color, number = number }
+	b.Activated:Connect(function()
+		if activeTap == tp then
+			doTap()
+		end
+	end)
+	activeTap = tp
+	play("pop", 1.3)
+end
+
+TapRemote.OnClientEvent:Connect(function(data)
+	if type(data) ~= "table" then
+		return
+	end
+	if data.hit then
+		local mult = tonumber(data.mult) or 1
+		if data.up then
+			-- sube de nivel: cartel grande en el centro
+			floatText("🔥 COMBO x" .. mult .. "!", GOLD, gui, UDim2.new(0.5, -100, 0.42, 0))
+			bump(tread, 1.25)
+			shake(0.25, 0.25)
+		else
+			floatText("+1  ·  x" .. mult, GREEN, tread, UDim2.new(0.5, -100, 0, -16))
+		end
+	elseif data.missed or data.reset then
+		if activeTap and (data.reset or activeTap.id == data.missed) then
+			removeTap(activeTap)
+		end
+		if data.lost then
+			floatText(t("comboLost"), Color3.fromRGB(255, 80, 90), gui, UDim2.new(0.5, -100, 0.42, 0))
+			bump(tread, 0.85)
+			play("whoosh", 0.6)
+		end
+	elseif data.id then
+		showTap(data)
+	end
+end)
+
+-- Saltar baja de la cinta (y sale del modo AFK)
+local lastLeave = 0
+UserInputService.JumpRequest:Connect(function()
+	if (state.onTreadmill or state.afk) and os.clock() - lastLeave > 0.6 then
+		lastLeave = os.clock()
+		Action:FireServer("leaveTreadmill")
+	end
+end)
 
 -- Teclas y botones del mando. Van aquí, DESPUÉS de declarar `tread` y `doTap`: una función que
 -- nombra un local declarado más abajo no lo captura (leería un global nil).
 bind("SAG_Tap", function()
-	if tread.Visible then
-		doTap()
-		return true
-	end
-	return false
-end, Enum.KeyCode.E, Enum.KeyCode.ButtonR2, Enum.KeyCode.ButtonX)
+	-- solo si hay un toque en pantalla; si no, la tecla sigue su camino (avisos de robar, abrir, hablar)
+	return doTap()
+end, Enum.KeyCode.E, Enum.KeyCode.ButtonR2)
 bind("SAG_Drop", function()
 	if state.carrying then
 		Action:FireServer("dropPack")
@@ -1188,7 +1307,7 @@ local revealing = false
 local spinModel = nil
 local queueReveal = {}
 
-local function shake(power, duration)
+function shake(power, duration)
 	if not opt("shake") then
 		return
 	end
@@ -1439,9 +1558,6 @@ Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 	end
 	state = s
 	stateAt = os.clock()
-	if s.comboTarget then
-		targetCenter = s.comboTarget
-	end
 	-- el panel abierto se repinta en cuanto cambia algo suyo (compras, dinero suficiente…)
 	render(false)
 	if hooks.state then
@@ -1566,10 +1682,6 @@ RunService.RenderStepped:Connect(function(dt)
 		local v = Vector3.new(hrp.AssemblyLinearVelocity.X, 0, hrp.AssemblyLinearVelocity.Z).Magnitude
 		local goal = 70 + math.clamp((v - 16) / 3, 0, 28)
 		cam.FieldOfView += (goal - cam.FieldOfView) * math.min(1, dt * 4)
-	end
-	if tread.Visible then
-		marker.Position = UDim2.new(markerPos(), -5, 0, -6)
-		target.Position = UDim2.fromScale(targetCenter - targetWidth / 2, 0)
 	end
 	local now = os.clock()
 	for _, f in ipairs(floaters) do
@@ -2130,8 +2242,21 @@ task.spawn(function()
 			bump(tread, 0.7)
 		end
 		tread.Visible = showTread
-		comboLabel.Text = string.format("%s x%.1f  ·  ⚡ +%s/s", t("combo"), state.combo or 1, Format.num((state.treadmillGain or 0) * (state.combo or 1) * (state.night and Config.NIGHT_TREADMILL_MULT or 1)))
-		comboLabel.TextColor3 = (state.combo or 1) >= Config.COMBO_MAX and GOLD or CYAN
+		local hits = tonumber(state.tapHits) or 0
+		local mult = state.combo or 1
+		comboLabel.Text = string.format('🔥 %s x%d  <font size="20" color="#C8E6FF">· %d %s · ⚡ +%s/s</font>', t("combo"), mult, hits, t("taps"), Format.num((state.treadmillGain or 0) * mult * (state.night and Config.NIGHT_TREADMILL_MULT or 1)))
+		comboLabel.TextColor3 = mult >= Config.COMBO_MAX and GOLD or CYAN
+		-- barra hasta el siguiente nivel de combo
+		local prevHits, nextHits = 0, nil
+		for _, tier in ipairs(Config.TAP_TIERS) do
+			if hits >= tier.hits then
+				prevHits = tier.hits
+			elseif not nextHits then
+				nextHits = tier.hits
+			end
+		end
+		tierFill.Size = UDim2.new(nextHits and math.clamp((hits - prevHits) / (nextHits - prevHits), 0, 1) or 1, 0, 1, 0)
+		leaveLabel.Text = t("jumpToLeave", deviceKey("jump"))
 		afkButton:FindFirstChildOfClass("UIStroke").Color = state.afk and GREEN or darker(PURPLE, 0.3)
 		for _, bb in ipairs(CollectionService:GetTagged("Loc")) do
 			locLabel(bb)

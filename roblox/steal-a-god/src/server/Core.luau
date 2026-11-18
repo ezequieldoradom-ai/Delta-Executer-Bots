@@ -461,6 +461,10 @@ function actions.settings(player, tbl)
 	end
 end
 
+function actions.leaveTreadmill(player)
+	Core.leaveTreadmill(player)
+end
+
 function actions.afk(player, on)
 	Core.setAfk(player, on == true)
 end
@@ -545,13 +549,116 @@ function Core.setAfk(player, on)
 			if s.carrying then
 				G.Packs.dropCarried(player, false)
 			end
-			hrp.CFrame = CFrame.new(s.plot.treadmill.Position + Vector3.new(0, 3.5, 0))
+			s.locked = false
+			s.tap = nil
+			hrp.CFrame = Core.treadmillCF(s.plot)
 			hrp.Anchored = true
 		else
 			hrp.Anchored = false
+			s.leftAt = os.clock()
 		end
 	end
 	G.Net.toast(player, on and "afkOn" or "afkOff")
+end
+
+---------------------------------------------------------------------
+-- Cinta: al subirte te quedas bloqueado corriendo; para bajar, salta
+---------------------------------------------------------------------
+-- Postura del corredor encima de la banda (mira hacia el +Z de la cinta: la banda se mueve hacia -Z)
+function Core.treadmillCF(plot)
+	local t = plot.treadmill
+	local dir = t.CFrame:VectorToWorldSpace(Vector3.new(0, 0, 1))
+	local pos = t.Position + Vector3.new(0, t.Size.Y / 2 + 3, 0)
+	return CFrame.lookAt(pos, pos + dir)
+end
+
+local function fireTap(player, payload)
+	if typeof(player) == "Instance" then
+		G.Net.Tap:FireClient(player, payload)
+	end
+end
+
+function Core.lockTreadmill(player)
+	local s = Core.sessions[player]
+	if not s or s.locked or s.afk or not s.plot or s.carrying then
+		return false
+	end
+	s.locked = true
+	s.onTreadmill = true
+	s.tapHits, s.combo, s.tap = 0, 1, nil
+	s.nextTapAt = os.clock() + 1
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		hrp.CFrame = Core.treadmillCF(s.plot)
+		hrp.Anchored = true
+	end
+	return true
+end
+
+function Core.leaveTreadmill(player)
+	local s = Core.sessions[player]
+	if not s then
+		return false
+	end
+	if s.afk then
+		Core.setAfk(player, false)
+	end
+	if not s.locked then
+		return false
+	end
+	s.locked = false
+	s.onTreadmill = false
+	s.tap = nil
+	s.tapHits, s.combo = 0, 1
+	s.leftAt = os.clock()
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp and s.plot then
+		-- baja por detrás de la cinta, mirando hacia ella
+		local t = s.plot.treadmill
+		local dir = t.CFrame:VectorToWorldSpace(Vector3.new(0, 0, 1))
+		local pos = t.Position - dir * (t.Size.Z / 2 + 3) + Vector3.new(0, 3, 0)
+		hrp.Anchored = false
+		hrp.CFrame = CFrame.lookAt(pos, pos + dir)
+		hrp.AssemblyLinearVelocity = Vector3.new(0, 25, 0)
+	end
+	fireTap(player, { lost = false, reset = true })
+	return true
+end
+
+-- Toques de combo: el servidor decide cuándo y dónde sale cada uno y si se acertó a tiempo
+function Core.spawnTap(player)
+	local s = Core.sessions[player]
+	if not s then
+		return nil
+	end
+	local now = os.clock()
+	s.tapId = (s.tapId or 0) + 1
+	s.tap = {
+		id = s.tapId,
+		x = 0.2 + math.random() * 0.6,
+		y = 0.24 + math.random() * 0.44,
+		expires = now + C.TAP_LIFE,
+	}
+	s.nextTapAt = now + C.TAP_EVERY[1] + math.random() * (C.TAP_EVERY[2] - C.TAP_EVERY[1])
+	fireTap(player, { id = s.tap.id, x = s.tap.x, y = s.tap.y, life = C.TAP_LIFE, hits = s.tapHits or 0, mult = s.combo or 1 })
+	return s.tap
+end
+
+-- Se llama en cada fotograma: saca toques nuevos y castiga los que caducan sin tocar
+function Core.tapTick(player, s, now)
+	if not s.locked or s.afk then
+		return
+	end
+	local tap = s.tap
+	if tap and now > tap.expires + 0.35 then
+		s.tap = nil
+		local had = (s.tapHits or 0) > 0
+		s.tapHits, s.combo = 0, 1
+		fireTap(player, { lost = had, missed = tap.id })
+	end
+	if not s.tap and now >= (s.nextTapAt or 0) then
+		Core.spawnTap(player)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -601,6 +708,8 @@ local function onCharacter(player, char)
 	if not hrp or not hum then
 		return
 	end
+	-- personaje nuevo: ya no está en la cinta
+	s.locked, s.onTreadmill, s.tap, s.tapHits, s.combo = false, false, nil, 0, 1
 	if s.plot then
 		task.wait(0.1)
 		hrp.CFrame = s.plot.spawnCF
@@ -644,7 +753,11 @@ local function onJoin(player)
 		joinedAt = os.clock(),
 		carrying = nil,
 		actionTimes = {},
-		comboTarget = 0.5,
+		locked = false, -- bloqueado corriendo en la cinta
+		tapId = 0,
+		tapHits = 0,
+		nextTapAt = 0,
+		leftAt = 0,
 	}
 	Core.sessions[player] = s
 	-- misiones del día y tutorial: antes de cualquier espera, así el primer estado ya los lleva
@@ -753,39 +866,27 @@ function Core.handleAction(player, name, a, b)
 	return ok
 end
 
--- Combo de la cinta: el servidor sabe dónde está el marcador (tiempo del servidor compartido)
--- y dónde está la zona verde; el cliente solo dice "he pulsado".
-function Core.markerPos(t)
-	return (math.sin(t * 2.6) + 1) / 2
-end
-Core.COMBO_WIDTH = 0.18
-function Core.handleCombo(player, serverTime)
+-- Acierto en un toque de combo: solo vale el toque pendiente, por su id y antes de caducar
+-- (con un pequeño margen por el ping)
+function Core.handleCombo(player, id)
 	local s = Core.sessions[player]
-	if not s or not s.onTreadmill or s.afk then
+	if not s or not s.locked or s.afk then
 		return false
 	end
-	local now = os.clock()
-	if now - s.lastTap < 0.3 then
+	local tap = s.tap
+	if not tap or type(id) ~= "number" or id ~= tap.id or os.clock() > tap.expires + 0.35 then
 		return false
 	end
-	s.lastTap = now
-	-- se acepta si el marcador estuvo en la zona verde en los últimos 0,35 s (margen de ping)
-	local hit = false
-	for k = 0, 7 do
-		local m = Core.markerPos(serverTime - k * 0.05)
-		if math.abs(m - s.comboTarget) <= Core.COMBO_WIDTH / 2 + 0.03 then
-			hit = true
-			break
-		end
+	s.tap = nil
+	s.lastTap = os.clock()
+	s.tapHits = (s.tapHits or 0) + 1
+	local before = s.combo or 1
+	s.combo = math.min(C.COMBO_MAX, C.tapMult(s.tapHits))
+	fireTap(player, { hit = id, hits = s.tapHits, mult = s.combo, up = s.combo > before })
+	if G.Quests then
+		G.Quests.event(player, "combo", 1)
 	end
-	if hit then
-		s.combo = math.min(C.COMBO_MAX, s.combo + 0.5)
-		s.comboTarget = 0.15 + math.random() * 0.7
-		if G.Quests then
-			G.Quests.event(player, "combo", 1)
-		end
-	end
-	return hit
+	return true
 end
 
 ---------------------------------------------------------------------
@@ -858,7 +959,7 @@ function Core.sendState(player)
 		zone = s.zone or 0,
 		shieldLeft = math.max(0, (d.boosts.shield or 0) - os.time()),
 		boostLeft = math.max(0, (d.boosts.speed or 0) - os.time()),
-		comboTarget = s.comboTarget,
+		tapHits = s.tapHits or 0,
 		openTokens = d.openTokens,
 		protectedLeft = math.max(0, C.NEWBIE_PROTECTION - d.playtime),
 	})
@@ -875,16 +976,18 @@ local function tick(dt)
 			local char = player.Character
 			local hrp = char and char:FindFirstChild("HumanoidRootPart")
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
-			s.onTreadmill = onTreadmill(s, hrp)
-			if os.clock() - s.lastTap > C.COMBO_DECAY then
-				s.combo = 1
+			-- subirse a la cinta te bloquea en ella (para bajar hay que saltar)
+			if not s.locked and not s.afk and not s.carrying and onTreadmill(s, hrp)
+				and os.clock() - (s.leftAt or 0) > C.TREADMILL_RELOCK then
+				Core.lockTreadmill(player)
 			end
+			s.onTreadmill = s.locked == true
+			Core.tapTick(player, s, os.clock())
 			local speedMult = Core.mults(player)
-			local onBelt = s.onTreadmill or s.afk
-			local auto = false
+			local onBelt = s.locked or s.afk
 			if onBelt then
-				local combo = s.onTreadmill and not s.afk and s.combo or 1
-				local gain = C.treadmillGain(d.treadmill) * combo * speedMult * (night and C.NIGHT_TREADMILL_MULT or 1) * (auto and 0.5 or 1)
+				local combo = s.locked and not s.afk and (s.combo or 1) or 1
+				local gain = C.treadmillGain(d.treadmill) * combo * speedMult * (night and C.NIGHT_TREADMILL_MULT or 1)
 				d.speed += gain * dt
 				if d.speed > d.bestSpeed then
 					d.bestSpeed = d.speed
@@ -965,8 +1068,8 @@ function Core.init(g)
 	G.Net.Action.OnServerEvent:Connect(function(player, name, a, b)
 		Core.handleAction(player, name, a, b)
 	end)
-	G.Net.Combo.OnServerEvent:Connect(function(player)
-		Core.handleCombo(player, workspace:GetServerTimeNow())
+	G.Net.Combo.OnServerEvent:Connect(function(player, id)
+		Core.handleCombo(player, tonumber(id))
 	end)
 	Players.PlayerAdded:Connect(onJoin)
 	Players.PlayerRemoving:Connect(onLeave)

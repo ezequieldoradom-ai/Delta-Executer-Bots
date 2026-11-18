@@ -263,12 +263,12 @@ end)
 -- PRUEBAS DE SEGURIDAD, DATOS Y COMPRAS (jugadores simulados)
 ---------------------------------------------------------------------
 local noop = { FireClient = function() end, FireAllClients = function() end }
-G.Net.State, G.Net.Toast, G.Net.Offer, G.Net.Reveal, G.Net.Announce, G.Net.Knock = noop, noop, noop, noop, noop, noop
+G.Net.State, G.Net.Toast, G.Net.Offer, G.Net.Reveal, G.Net.Announce, G.Net.Knock, G.Net.Tap = noop, noop, noop, noop, noop, noop, noop
 local C = G.Config
 local function fakePlayer(id)
 	local fp = { UserId = id, DisplayName = "Test" .. math.abs(id), Name = "Test" .. math.abs(id), Character = nil }
 	G.Data.profiles[fp] = G.Data.sanitize(nil, C)
-	G.Core.sessions[fp] = { passes = {}, combo = 1, lastTap = 0, lastHit = 0, invulnUntil = 0, afk = false, joinedAt = os.clock(), actionTimes = {}, comboTarget = 0.5 }
+	G.Core.sessions[fp] = { passes = {}, combo = 1, lastTap = 0, lastHit = 0, invulnUntil = 0, afk = false, joinedAt = os.clock(), actionTimes = {}, locked = false, tapId = 0, tapHits = 0, nextTapAt = 0, leftAt = 0 }
 	return fp, G.Data.profiles[fp], G.Core.sessions[fp]
 end
 
@@ -391,21 +391,39 @@ step("Límite de peticiones: un tramposo no puede spamear acciones", function()
 	assert(G.Core.handleAction(fp, "noexiste") == false, "acción inventada")
 end)
 
-step("Combo: el servidor decide el acierto", function()
+step("Combo: toques en pantalla decididos por el servidor (x2, x3, x4, x5)", function()
 	local fp, _, s = fakePlayer(-106)
-	s.onTreadmill = true
-	s.comboTarget = 0.5
-	-- marcador en el extremo (1.0): fallo aunque el cliente diga que acertó
-	local tMiss = (math.pi / 2) / 2.6
-	assert(G.Core.handleCombo(fp, tMiss) == false and s.combo == 1, "aceptó un fallo")
-	s.lastTap = 0
-	-- marcador en el centro (0.5): acierto
-	assert(G.Core.handleCombo(fp, 0) == true and s.combo == 1.5, "rechazó un acierto")
-	-- demasiado rápido: ignorado
-	assert(G.Core.handleCombo(fp, 0) == false, "aceptó toques demasiado seguidos")
-	-- fuera de la cinta: ignorado
-	s.lastTap, s.onTreadmill = 0, false
-	assert(G.Core.handleCombo(fp, 0) == false, "aceptó combo fuera de la cinta")
+	-- fuera de la cinta no cuenta nada
+	assert(G.Core.handleCombo(fp, 1) == false, "aceptó combo fuera de la cinta")
+	s.locked, s.onTreadmill = true, true
+	local tap = G.Core.spawnTap(fp)
+	assert(tap and tap.x >= 0.2 and tap.x <= 0.8 and tap.y >= 0.24 and tap.y <= 0.68, "toque fuera de la zona segura")
+	assert(G.Core.handleCombo(fp, tap.id + 1) == false, "aceptó un toque que no existe")
+	assert(G.Core.handleCombo(fp, tap.id) == true and s.combo == 2 and s.tapHits == 1, "el primer toque debe dar x2")
+	assert(G.Core.handleCombo(fp, tap.id) == false, "aceptó el mismo toque dos veces")
+	local expect = { [5] = 3, [15] = 4, [30] = 5, [45] = 5 }
+	for n = 2, 45 do
+		local t2 = G.Core.spawnTap(fp)
+		assert(G.Core.handleCombo(fp, t2.id), "toque " .. n)
+		if expect[n] then
+			assert(s.combo == expect[n], "toque " .. n .. ": x" .. s.combo)
+		end
+	end
+	-- un toque caducado sin tocar hace perder el combo
+	local late = G.Core.spawnTap(fp)
+	late.expires = os.clock() - 1
+	G.Core.tapTick(fp, s, os.clock())
+	assert(s.combo == 1 and s.tapHits == 0, "no se perdió el combo al caducar")
+	assert(G.Core.handleCombo(fp, late.id) == false, "aceptó un toque caducado")
+	-- en AFK no hay toques
+	s.afk = true
+	assert(G.Core.handleCombo(fp, (G.Core.spawnTap(fp)).id) == false, "aceptó toques en AFK")
+	s.afk = false
+	-- bajar de la cinta lo reinicia todo
+	G.Core.spawnTap(fp)
+	G.Core.handleCombo(fp, s.tap.id)
+	assert(G.Core.leaveTreadmill(fp) == true and not s.locked and s.combo == 1 and s.tapHits == 0 and s.tap == nil, "bajar de la cinta")
+	assert(G.Core.leaveTreadmill(fp) == false, "bajar dos veces")
 end)
 
 step("Colección enorme: se recorta sin tocar el índice", function()
@@ -933,9 +951,9 @@ step("Misiones: robar, escapar, abrir, combo, dios nuevo y golpe suman (sin pasa
 	assert(progressOf(d, "open") == 1, "abrir no sumó")
 	-- combo acertado, dios nuevo (uno repetido no cuenta) y golpe en el pasillo
 	setMissions(d, { "combo", "newgod", "hit" })
-	s.onTreadmill, s.lastTap = true, 0
-	assert(G.Core.handleCombo(fp, 0) == true and progressOf(d, "combo") == 1, "combo no sumó")
-	s.onTreadmill = false
+	s.onTreadmill, s.locked = true, true
+	assert(G.Core.handleCombo(fp, G.Core.spawnTap(fp).id) == true and progressOf(d, "combo") == 1, "combo no sumó")
+	s.onTreadmill, s.locked = false, false
 	G.Core.addGod(fp, C.GOD_BY_ID.ouroboros, 100)
 	G.Core.addGod(fp, C.GOD_BY_ID.ouroboros, 100)
 	assert(progressOf(d, "newgod") == 1, "dios nuevo: " .. progressOf(d, "newgod"))
@@ -1073,10 +1091,10 @@ step("Tutorial: avanza con lo que hace el jugador, vuelve atrás si pierde el so
 	d.speed = C.ZONES[1].guardian.speed
 	Quests.tick(fp, s, d)
 	assert(d.tutorial == 2, "paso 1 (cinta)")
-	s.lastTap = 0
-	G.Core.handleCombo(fp, 0)
+	s.locked = true
+	G.Core.handleCombo(fp, G.Core.spawnTap(fp).id)
 	assert(d.tutorial == 3, "paso 2 (combo): " .. d.tutorial)
-	s.onTreadmill = false
+	s.onTreadmill, s.locked = false, false
 	Quests.event(fp, "steal", 1)
 	assert(d.tutorial == 4, "paso 3 (robar)")
 	Quests.tick(fp, s, d) -- no lleva nada: lo perdió

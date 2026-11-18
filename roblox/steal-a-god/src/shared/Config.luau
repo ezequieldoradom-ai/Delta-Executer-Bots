@@ -291,7 +291,21 @@ function Config.treadmillCost(level) -- precio para llegar a ese nivel
 	return 20 * 4 ^ (level - 2)
 end
 Config.COMBO_MAX = 5
-Config.COMBO_DECAY = 2.2 -- segundos sin acertar antes de perder el combo
+-- Combo de la cinta: aparecen toques en la pantalla cada 2-3 s; cada acierto suma.
+-- Multiplicador según los aciertos seguidos: 1 → x2, 5 → x3, 15 → x4, 30 → x5 (se mantiene hasta perderlo)
+Config.TAP_TIERS = { { hits = 1, mult = 2 }, { hits = 5, mult = 3 }, { hits = 15, mult = 4 }, { hits = 30, mult = 5 } }
+Config.TAP_EVERY = { 2, 3 } -- segundos entre toques (al azar)
+Config.TAP_LIFE = 1.8 -- segundos que dura cada toque en pantalla
+Config.TREADMILL_RELOCK = 1.5 -- segundos tras bajar de la cinta antes de que vuelva a bloquearte
+function Config.tapMult(hits)
+	local m = 1
+	for _, t in ipairs(Config.TAP_TIERS) do
+		if hits >= t.hits then
+			m = t.mult
+		end
+	end
+	return m
+end
 
 function Config.walkSpeedFor(speed)
 	return math.clamp(16 + 9 * math.log10(1 + speed), 16, 110)

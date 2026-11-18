@@ -11,7 +11,8 @@ local EVENTS = {
 	"Knock", -- servidor -> cliente: empujón por un golpe
 	"Offer", -- servidor -> cliente: ofrecer una compra (p. ej. salvar el sobre)
 	"Action", -- cliente -> servidor: comprar, equipar, AFK...
-	"Combo", -- cliente -> servidor: acierto en la cinta
+	"Combo", -- cliente -> servidor: toque acertado en la cinta (id del toque)
+	"Tap", -- servidor -> cliente: aparece un toque de combo, acierto o combo perdido
 }
 
 function Net.init()
