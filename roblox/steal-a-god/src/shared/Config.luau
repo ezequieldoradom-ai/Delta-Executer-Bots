@@ -327,6 +327,22 @@ Config.OBBY = {
 }
 
 ---------------------------------------------------------------------
+-- RENACIMIENTOS: vuelves a 0 dinero, velocidad, cinta y suerte a cambio de x1,5 de dinero y velocidad
+-- por cada renacimiento, para siempre (y una ⭐ junto a tu nombre). Te quedas tus dioses, parcela, altares,
+-- entrenadores, auras, arma, obby y misiones. n = renacimientos que ya tienes.
+---------------------------------------------------------------------
+Config.REBIRTH = { MAX = 30, PER = 0.5 }
+function Config.rebirthCost(n) -- dinero que hace falta para el siguiente
+	return 5e7 * 12 ^ n
+end
+function Config.rebirthSpeed(n) -- velocidad que hace falta para el siguiente
+	return 2e6 * 5 ^ n
+end
+function Config.rebirthMult(n) -- multiplicador de dinero y velocidad con n renacimientos
+	return 1 + Config.REBIRTH.PER * (n or 0)
+end
+
+---------------------------------------------------------------------
 -- REGALOS GRATIS por tiempo jugado (en esta partida: se reinician al volver a entrar)
 -- y BONUS DE AMIGOS (+10 % de dinero por cada amigo en el servidor, máximo 5)
 ---------------------------------------------------------------------

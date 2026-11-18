@@ -701,10 +701,14 @@ end
 ---------------------------------------------------------------------
 -- Tienda (solo mejoras: las auras y los entrenadores los venden Hécate y Quirón)
 ---------------------------------------------------------------------
+-- Renacer pide un segundo toque en 3 s ("¿Seguro?") para no hacerlo sin querer
+local shopRebirthArmed = nil
 signatures.shop = function()
 	local money = state.money or 0
 	local tm, pl, al = state.treadmill or 1, state.plot or 1, state.altarsBought or Config.ALTARS_BASE
-	return table.concat({ tm, pl, al, state.queue or 0, tostring(money >= Config.treadmillCost(tm + 1)), tostring(money >= Config.plotCost(pl + 1)), tostring(money >= Config.altarCost(al + 1)) }, "|")
+	local rb = state.rebirths or 0
+	local rbOk = Config.REBIRTH and money >= Config.rebirthCost(rb) and (state.speed or 0) >= Config.rebirthSpeed(rb)
+	return table.concat({ tm, pl, al, state.queue or 0, tostring(money >= Config.treadmillCost(tm + 1)), tostring(money >= Config.plotCost(pl + 1)), tostring(money >= Config.altarCost(al + 1)), rb, tostring(rbOk), tostring(shopRebirthArmed and os.clock() < shopRebirthArmed) }, "|")
 end
 
 renderers.shop = function()
@@ -723,8 +727,30 @@ renderers.shop = function()
 	row(3, "🔮", string.format("%s · %d / %d", t("altar"), al, Config.ALTARS_MAX), string.format("%s: %d", t("queue"), state.queue or 0), alMax and t("max") or ("💰 " .. Format.num(alCost)), PURPLE, not alMax and money >= alCost, function()
 		Action:FireServer("buyAltar")
 	end, PURPLE)
+	-- renacer: dinero y velocidad que pide, multiplicador que da; pide confirmación
+	if Config.REBIRTH then
+		local rb = state.rebirths or 0
+		local rbMax = rb >= Config.REBIRTH.MAX
+		local cost, need = Config.rebirthCost(rb), Config.rebirthSpeed(rb)
+		local ready = not rbMax and money >= cost and (state.speed or 0) >= need
+		local armed = shopRebirthArmed and os.clock() < shopRebirthArmed
+		local btn = rbMax and t("max") or (armed and t("rebirthSure") or string.format("💰 %s · ⚡ %s", Format.num(cost), Format.num(need)))
+		row(4, "🔄", string.format("%s · ⭐%d", t("rebirth"), rb), string.format(t("rebirthSub"), Format.mult(Config.rebirthMult(rb + 1))), btn, ready and (armed and Color3.fromRGB(255, 90, 90) or Color3.fromRGB(255, 200, 60)) or Color3.fromRGB(90, 88, 110), ready, function()
+			if shopRebirthArmed and os.clock() < shopRebirthArmed then
+				shopRebirthArmed = nil
+				Action:FireServer("rebirth")
+				play("reward", 0.7)
+			else
+				shopRebirthArmed = os.clock() + 3
+				task.delay(3.05, function()
+					render()
+				end)
+			end
+			render(true)
+		end, Color3.fromRGB(255, 200, 60))
+	end
 	-- aviso: dónde se compran ahora las auras y los entrenadores
-	local info = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -14, 0, 110), LayoutOrder = 4, ZIndex = 11, Parent = content }, {
+	local info = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -14, 0, 110), LayoutOrder = 5, ZIndex = 11, Parent = content }, {
 		corner(16),
 		gradient(Color3.fromRGB(58, 40, 112), Color3.fromRGB(26, 18, 50), 0),
 		stroke(Config.VENDORS.aura.color, 2, 0.35),
@@ -2218,7 +2244,8 @@ local function locLabel(bb)
 	end
 	if bb:GetAttribute("Overhead") then
 		l.FontFace = HEAVY
-		l.Text = string.format('<font color="#FFB347">[%s]</font>\n<font color="#7CFF8A">$%s/s</font>', t("title" .. (bb:GetAttribute("Title") or 1)), Format.num(bb:GetAttribute("Income") or 0))
+		local reb = bb:GetAttribute("Rebirths") or 0
+		l.Text = string.format('%s<font color="#FFB347">[%s]</font>\n<font color="#7CFF8A">$%s/s</font>', reb > 0 and string.format('<font color="#FFE066">⭐%d</font> ', reb) or "", t("title" .. (bb:GetAttribute("Title") or 1)), Format.num(bb:GetAttribute("Income") or 0))
 		return
 	end
 	if bb:GetAttribute("Altar") then

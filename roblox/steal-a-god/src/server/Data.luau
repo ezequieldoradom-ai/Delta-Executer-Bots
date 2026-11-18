@@ -44,6 +44,7 @@ local function defaults()
 		playtime = 0,
 		treadmill = 1,
 		luckLevel = 1, -- nivel de suerte propia (cartel de la parcela)
+		rebirths = 0, -- renacimientos
 		obby = { stage = 0, wins = 0, best = 0, day = 0, secs = {}, top = 0 }, -- Ascenso al Olimpo
 		plot = 1,
 		altars = 3,
@@ -114,6 +115,7 @@ function Data.sanitize(raw, C)
 	d.playtime = num(raw.playtime, 0, 0)
 	d.treadmill = math.floor(num(raw.treadmill, 1, 1, C.TREADMILL_MAX))
 	d.luckLevel = math.floor(num(raw.luckLevel, 1, 1, C.LUCK_MAX))
+	d.rebirths = math.floor(num(raw.rebirths, 0, 0, C.REBIRTH and C.REBIRTH.MAX or 0))
 	if type(raw.obby) == "table" and C.OBBY then
 		local o = raw.obby
 		d.obby.stage = math.floor(num(o.stage, 0, 0, C.OBBY.STAGES))

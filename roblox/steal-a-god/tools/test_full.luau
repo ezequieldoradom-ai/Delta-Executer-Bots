@@ -964,6 +964,37 @@ step("Ascenso al Olimpo: entrar, puntos de control seguidos, premios por tramo y
 	assert(G.Obby.spawnCF(0).Position.Y > O.CENTER.Y + O.START_UP and G.Obby.summit, "aparecer")
 end)
 
+step("Renacer: pide dinero y velocidad, reinicia lo justo y multiplica para siempre", function()
+	local fp, d, s = fakePlayer(-129)
+	G.Core.addGod(fp, C.GOD_BY_ID.zeus, 300)
+	d.plot, d.altars, d.treadmill, d.luckLevel = 7, 5, 12, 9
+	local _, money0 = G.Core.mults(fp)
+	local speed0 = G.Core.mults(fp)
+	d.money, d.speed = C.rebirthCost(0) - 1, C.rebirthSpeed(0)
+	G.Core.handleAction(fp, "rebirth")
+	assert(d.rebirths == 0 and d.money == C.rebirthCost(0) - 1, "renació sin dinero suficiente")
+	d.money, d.speed = C.rebirthCost(0), C.rebirthSpeed(0) - 1
+	G.Core.handleAction(fp, "rebirth")
+	assert(d.rebirths == 0, "renació sin velocidad suficiente")
+	d.speed = C.rebirthSpeed(0)
+	G.Core.handleAction(fp, "rebirth")
+	assert(d.rebirths == 1, "no renació")
+	assert(d.money == 0 and d.speed == 0 and d.treadmill == 1 and d.luckLevel == 1, "no reinició dinero, velocidad, cinta y suerte")
+	assert(d.plot == 7 and d.altars == 5 and d.gods.zeus == 1 and #d.godList >= 1, "perdió dioses, parcela o altares")
+	G.Core.invalidate(fp)
+	local speed1, money1 = G.Core.mults(fp)
+	assert(math.abs(money1 / money0 - C.rebirthMult(1)) < 1e-6 and math.abs(speed1 / speed0 - C.rebirthMult(1)) < 1e-6, "el multiplicador no se aplica")
+	-- el siguiente cuesta más; y hay un máximo
+	assert(C.rebirthCost(1) > C.rebirthCost(0) and C.rebirthSpeed(1) > C.rebirthSpeed(0), "el siguiente no cuesta más")
+	d.rebirths = C.REBIRTH.MAX
+	d.money, d.speed = math.huge / 2, math.huge / 2
+	s.actionTimes = {}
+	G.Core.handleAction(fp, "rebirth")
+	assert(d.rebirths == C.REBIRTH.MAX, "pasó del máximo")
+	assert(G.Data.sanitize({ rebirths = 999 }, C).rebirths == C.REBIRTH.MAX and G.Data.sanitize({}, C).rebirths == 0, "datos de renacimientos")
+	add(string.format("   1º: 💰 %s + ⚡ %s · 5º: 💰 %s + ⚡ %s · x%s con 5", G.Format.num(C.rebirthCost(0)), G.Format.num(C.rebirthSpeed(0)), G.Format.num(C.rebirthCost(4)), G.Format.num(C.rebirthSpeed(4)), G.Format.mult(C.rebirthMult(5))))
+end)
+
 step("Colección enorme: se recorta sin tocar el índice", function()
 	local fp, d = fakePlayer(-107)
 	for i = 1, 700 do

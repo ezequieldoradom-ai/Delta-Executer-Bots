@@ -152,6 +152,11 @@ function Core.computeMults(player, d, s)
 	end
 	-- jugar con amigos: +10 % de dinero por amigo en el servidor (máximo 5)
 	moneyAdd += C.FRIEND_BONUS * Core.friendCount(player)
+	-- renacimientos: x1,5 de dinero y velocidad por cada uno
+	if C.REBIRTH then
+		speedMul *= C.rebirthMult(d.rebirths)
+		moneyMul *= C.rebirthMult(d.rebirths)
+	end
 	if s.passes.speed2x then
 		speedMul *= 2
 	end
@@ -583,6 +588,44 @@ function actions.settings(player, tbl)
 	if changed then
 		G.Shop.checkPasses(player)
 		Core.refreshPlot(player)
+	end
+end
+
+-- Renacer: con el dinero y la velocidad que pide, vuelves a empezar con un multiplicador permanente
+function actions.rebirth(player)
+	local d = G.Data.profiles[player]
+	local s = Core.sessions[player]
+	local n = d.rebirths or 0
+	if not C.REBIRTH or n >= C.REBIRTH.MAX then
+		return
+	end
+	if d.money < C.rebirthCost(n) or d.speed < C.rebirthSpeed(n) then
+		G.Net.toast(player, "rebirthNotYet")
+		return
+	end
+	if s.carrying then
+		G.Packs.dropCarried(player, false)
+	end
+	if s.locked then
+		Core.leaveTreadmill(player)
+	end
+	d.rebirths = n + 1
+	d.money = 0
+	d.speed = 0
+	d.treadmill = 1
+	d.luckLevel = 1
+	Core.invalidate(player)
+	Core.refreshSigns(player)
+	local mult = G.Format.mult(C.rebirthMult(d.rebirths))
+	G.Net.toast(player, "rebirthDone", d.rebirths, mult)
+	G.Net.announce("all", "rebirthAnnounce", { player.DisplayName, d.rebirths }, { color = "#FFD86B", big = d.rebirths % 5 == 0 })
+	local head = typeof(player) == "Instance" and player.Character and player.Character:FindFirstChild("Head")
+	local bb = head and head:FindFirstChild("Overhead")
+	if bb then
+		bb:SetAttribute("Rebirths", d.rebirths)
+	end
+	if G.Quests then
+		G.Quests.event(player, "rebirth", 1)
 	end
 end
 
@@ -1116,6 +1159,7 @@ function Core.sendState(player)
 		treadmill = d.treadmill,
 		treadmillGain = C.treadmillGain(d.treadmill) * speedMult,
 		luckLevel = d.luckLevel or 1,
+		rebirths = d.rebirths or 0,
 		obby = d.obby and {
 			on = s.inObby == true,
 			stage = d.obby.stage,
@@ -1228,6 +1272,7 @@ function Core.start()
 					local bb = head and head:FindFirstChild("Overhead")
 					if bb then
 						bb:SetAttribute("Title", titleIndex(d.bestSpeed))
+						bb:SetAttribute("Rebirths", d.rebirths or 0)
 						bb:SetAttribute("Income", Core.income(player))
 					end
 					if s.plot then
