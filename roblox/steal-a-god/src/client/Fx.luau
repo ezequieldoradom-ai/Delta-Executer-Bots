@@ -1042,6 +1042,13 @@ function Fx.start(context)
 			watchPlayer(plr)
 		end
 	end)
+	safely("zonesky", function()
+		-- cielos y suelos animados de cada zona (módulo hermano, opcional)
+		local m = script.Parent and script.Parent:FindFirstChild("ZoneSky")
+		if m and RunService:IsClient() then
+			require(m).start(ctx)
+		end
+	end)
 	safely("frame", function()
 		-- RenderStepped solo existe en el cliente (justo antes de dibujar: el movimiento sale suave)
 		local signal = RunService:IsClient() and RunService.RenderStepped or RunService.Heartbeat

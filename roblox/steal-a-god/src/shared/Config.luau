@@ -694,6 +694,11 @@ Config.VFX = {
 	carved = "rbxassetid://78978860082772",
 	rays = "rbxassetid://105597901155584",
 	hexgrid = "rbxassetid://90091031894278",
+	-- subidas desde Studio en Shadow (tools/tex/gen_sky_floor.py)
+	galaxy = "rbxassetid://102219515094576",
+	cracks = "rbxassetid://134963684813585",
+	stars = "rbxassetid://73305394503983",
+	aurora = "rbxassetid://102377757057759",
 }
 
 return Config

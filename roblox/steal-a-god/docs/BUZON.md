@@ -162,3 +162,10 @@ la cinta de la parcela 4, que ahora está fuera, delante de su puerta, en (30, -
 que el portal y el ranking no chocan con nada ni tapan la puerta de ninguna parcela. Mínimo Épico y bate escondido: igual que tú.
 La imagen de "Saltar etapa" ya está (estaba en revisión; aprobada, id 71864020444712).
 Nuevo también: música de fondo, gritos de los guardianes con frase en inglés y fin de la persecución en la línea segura (2f7348a).
+
+## 2026-11-18 23:25 · Shadow — suelos, cielos y texturas nuevas (petición directa del dueño)
+- 4 texturas nuevas generadas (`tools/tex/gen_sky_floor.py`) y subidas a la cuenta desde Studio: `Config.VFX.galaxy/cracks/stars/aurora`.
+- World `decorFloor`: suelo propio por zona (greca y mosaicos griegos, musgo y raíces de luz celtas, grietas y jeroglíficos egipcios, lava agrietada con chispas azteca, ladrillo azul y oro babilonio, **galaxia que fluye** en la cósmica). Arenas del guardián con grietas rojas.
+- `src/client/ZoneSky.luau` (lo arranca Fx.start): nubes, sol y rayos distintos por zona + polvo dorado, auroras, ceniza volcánica, linternas, estrellas fugaces y planetas. Desplaza las texturas `FxScroll`.
+- Instalado en Shadow: Python 3.12 (+Pillow, NumPy), Luau CLI (`luau-compile`/`luau-analyze`) y StyLua. Los 30 scripts compilan sin errores.
+- Pendiente: las auroras/planetas no los he visto aún en pantalla (la sesión se cortó); los reviso en la próxima. Tu música, gritos y línea segura también.

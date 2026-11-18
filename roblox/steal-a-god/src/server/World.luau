@@ -982,6 +982,124 @@ local function buildRamparts()
 	tower(Vector3.new(CW + 4, 0, ZF + 4), t, H + 22)
 end
 
+-- SUELOS CON CARÁCTER (petición del dueño: "más texturas en los suelos: grietas, galaxia…").
+-- Capas de textura sobre la pista, grietas hechas de piezas finas (de neón donde brillan) y bordes decorados.
+-- Todo plano y sin colisión: no cambia por dónde se corre.
+local function decorFloor(i, z0, zone, runway)
+	local C = G.Config
+	local L, W = C.ZONE_LENGTH, C.CORRIDOR_HALF_WIDTH
+	local rng = Random.new(900 + i)
+	local function flat(props)
+		props.CanCollide, props.CanQuery, props.CanTouch, props.CastShadow = false, false, false, false
+		return part(props)
+	end
+	local function layer(key, tile, color, transparency, scroll)
+		local t = Instance.new("Texture")
+		t.Name = "Floor_" .. key
+		t.Texture = C.VFX[key]
+		t.Face = Enum.NormalId.Top
+		t.StudsPerTileU = tile
+		t.StudsPerTileV = tile
+		t.Color3 = color
+		t.Transparency = transparency
+		t.Parent = runway
+		if scroll then
+			-- el cliente la desplaza despacio (ZoneSky.luau): la galaxia "fluye" bajo los pies
+			t:SetAttribute("ScrollU", scroll.X)
+			t:SetAttribute("ScrollV", scroll.Y)
+			CollectionService:AddTag(t, "FxScroll")
+		end
+		return t
+	end
+	-- grietas: ramas en zigzag de piezas finas tumbadas en el suelo
+	local function cracks(count, color, neon, width)
+		for _ = 1, count do
+			local p = Vector3.new(rng:NextNumber(-W + 6, W - 6), 0.23, z0 + rng:NextNumber(8, L - 8))
+			local ang = rng:NextNumber(0, math.pi * 2)
+			local w = width or 0.5
+			for s = 1, rng:NextInteger(4, 7) do
+				ang += rng:NextNumber(-0.9, 0.9)
+				local len = rng:NextNumber(3, 7)
+				local q = p + Vector3.new(math.cos(ang), 0, math.sin(ang)) * len
+				if math.abs(q.X) > W - 3 then
+					break
+				end
+				flat({ Name = "FloorCrack", Size = Vector3.new(w, 0.06, len + w), CFrame = CFrame.lookAt((p + q) / 2, q), Color = color, Material = neon and Enum.Material.Neon or Enum.Material.Slate, Transparency = neon and 0.05 or 0.15 })
+				p = q
+				w = math.max(0.18, w * 0.82)
+			end
+		end
+	end
+	-- borde dorado con greca a los dos lados de la pista
+	local function border(color, key)
+		for _, sx in ipairs({ -1, 1 }) do
+			local b = flat({ Name = "FloorBorder", Size = Vector3.new(3, 0.08, L), CFrame = CFrame.new(sx * (W - 2.5), 0.24, z0 + L / 2), Color = color, Material = Enum.Material.Foil })
+			skin(b, key or "meander", 3, Color3.new(1, 1, 1), 0.1, FACES_TOP)
+		end
+	end
+	if i == 1 then -- griega: mármol gastado, greca dorada y mosaicos circulares
+		layer("grime", 26, Color3.fromRGB(150, 140, 120), 0.55)
+		border(Color3.fromRGB(240, 196, 92))
+		for _, dz in ipairs({ 30, 160 }) do
+			local m = flat({ Name = "FloorMosaic", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.08, 16, 16), CFrame = CFrame.new(0, 0.25, z0 + dz) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(70, 120, 210), Material = Enum.Material.Glass })
+			local d = Instance.new("Decal")
+			d.Texture = C.VFX.meander
+			d.Face = Enum.NormalId.Right
+			d.Color3 = Color3.fromRGB(255, 225, 140)
+			d.Parent = m
+		end
+	elseif i == 2 then -- celta: musgo, hierba que asoma y raíces de luz verde
+		layer("grass", 18, Color3.fromRGB(80, 160, 70), 0.35)
+		layer("grime", 30, Color3.fromRGB(60, 80, 50), 0.6)
+		layer("cracks", 34, Color3.fromRGB(40, 90, 40), 0.35)
+		cracks(14, Color3.fromRGB(90, 255, 150), true, 0.35)
+	elseif i == 3 then -- egipcia: jeroglíficos tallados y tierra agrietada por el sol
+		layer("carved", 16, Color3.fromRGB(150, 110, 60), 0.55)
+		layer("grime", 22, Color3.fromRGB(150, 100, 50), 0.5)
+		layer("cracks", 26, Color3.fromRGB(90, 55, 25), 0.15)
+		cracks(22, Color3.fromRGB(110, 70, 35), false, 0.6)
+		border(Color3.fromRGB(240, 196, 92), "carved")
+	elseif i == 4 then -- azteca: roca volcánica con grietas de lava
+		runway.Material = Enum.Material.CrackedLava
+		runway.Color = Color3.fromRGB(120, 60, 40)
+		layer("grime", 20, Color3.fromRGB(40, 20, 15), 0.45)
+		layer("cracks", 30, Color3.fromRGB(255, 110, 25), 0)
+		layer("cracks", 47, Color3.fromRGB(255, 200, 80), 0.3)
+		cracks(26, Color3.fromRGB(255, 120, 30), true, 0.6)
+		for _ = 1, 6 do
+			local e = flat({ Name = "LavaVent", Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(rng:NextNumber(-W + 8, W - 8), 0.3, z0 + rng:NextNumber(15, L - 15)), Transparency = 1 })
+			local pe = Instance.new("ParticleEmitter")
+			pe.Texture = C.VFX.sparkle
+			pe.Rate = 5
+			pe.Lifetime = NumberRange.new(1, 1.8)
+			pe.Speed = NumberRange.new(3, 6)
+			pe.SpreadAngle = Vector2.new(20, 20)
+			pe.Acceleration = Vector3.new(0, 3, 0)
+			pe.LightEmission = 1
+			pe.Color = ColorSequence.new(Color3.fromRGB(255, 220, 120), Color3.fromRGB(255, 70, 20))
+			pe.Size = NumberSequence.new(0.6, 0)
+			pe.Parent = e
+		end
+	elseif i == 5 then -- babilonia: ladrillo vidriado azul con incrustaciones de oro
+		layer("ashlar", 12, Color3.fromRGB(120, 160, 255), 0.45)
+		border(Color3.fromRGB(245, 205, 80))
+		cracks(10, Color3.fromRGB(255, 215, 90), true, 0.3)
+	elseif i == 6 then -- cósmica: una galaxia bajo los pies (estrellas y nebulosa que fluyen) con grietas de luz
+		runway.Material = Enum.Material.Glass
+		runway.Color = Color3.fromRGB(14, 10, 40)
+		-- quita la rejilla hexagonal: aquí manda la galaxia
+		for _, tx in ipairs(runway:GetChildren()) do
+			if tx:IsA("Texture") and tx.Name:find("^Skin_") then
+				tx:Destroy()
+			end
+		end
+		layer("galaxy", 64, Color3.new(1, 1, 1), 0, Vector2.new(1.2, 0.5))
+		layer("stars", 23, Color3.fromRGB(190, 230, 255), 0.1, Vector2.new(-0.6, 1))
+		layer("stars", 41, Color3.fromRGB(255, 200, 255), 0.2, Vector2.new(0.4, -0.7))
+		cracks(18, Color3.fromRGB(120, 230, 255), true, 0.35)
+	end
+end
+
 local function decorZone(i, z0, zone)
 	local L = G.Config.ZONE_LENGTH
 	local function side(fn)
@@ -1116,7 +1234,7 @@ local function decorZone(i, z0, zone)
 	local RED = Color3.fromRGB(255, 60, 40)
 	local R = 22
 	local FLAT = CFrame.Angles(0, 0, math.rad(90)) -- cilindro tumbado (su eje X pasa a ser la vertical)
-	nc({ Name = "ArenaFloor", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, R * 2, R * 2), CFrame = CFrame.new(home + Vector3.new(0, 0.3, 0)) * FLAT, Color = t.panel:Lerp(Color3.new(0, 0, 0), 0.35), Material = t.floorMat })
+	local arenaFloor = nc({ Name = "ArenaFloor", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, R * 2, R * 2), CFrame = CFrame.new(home + Vector3.new(0, 0.3, 0)) * FLAT, Color = t.panel:Lerp(Color3.new(0, 0, 0), 0.35), Material = t.floorMat })
 	nc({ Name = "ArenaRim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.25, R * 2 + 2.4, R * 2 + 2.4), CFrame = CFrame.new(home + Vector3.new(0, 0.26, 0)) * FLAT, Color = t.glow, Material = Enum.Material.Neon, Transparency = 0.1 })
 	nc({ Name = "ArenaRimInner", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.32, R * 2 - 9, R * 2 - 9), CFrame = CFrame.new(home + Vector3.new(0, 0.31, 0)) * FLAT, Color = RED, Material = Enum.Material.Neon, Transparency = 0.45 })
 	-- círculo de runas que gira despacio bajo el guardián
@@ -1129,6 +1247,14 @@ local function decorZone(i, z0, zone)
 	runes:SetAttribute("SpinSpeed", 0.25)
 	runes:SetAttribute("SpinAxis", "X")
 	CollectionService:AddTag(runes, "FxSpin")
+	-- suelo de la arena agrietado con luz roja
+	local crackTex = Instance.new("Texture")
+	crackTex.Texture = G.Config.VFX.cracks
+	crackTex.Face = Enum.NormalId.Right
+	crackTex.StudsPerTileU = 22
+	crackTex.StudsPerTileV = 22
+	crackTex.Color3 = RED
+	crackTex.Parent = arenaFloor
 	-- ascuas que suben de toda la arena y onda roja que se abre en el suelo
 	local emit = nc({ Name = "ArenaEmbers", Size = Vector3.new(R * 1.6, 0.2, R * 1.6), CFrame = CFrame.new(home + Vector3.new(0, 0.6, 0)), Transparency = 1 })
 	local em = Instance.new("ParticleEmitter")
@@ -1422,6 +1548,7 @@ local function buildCorridor()
 		-- pista central más clara
 		World.zoneRunway = part({ Name = "Runway", Size = Vector3.new(W * 2, 0.2, L), Position = Vector3.new(0, 0.1, z0 + L / 2), Color = zone.ground:Lerp(Color3.new(1, 1, 1), 0.18), Material = (WALL_THEMES[i] or WALL_THEMES[1]).floorMat })
 		skin(World.zoneRunway, i == 6 and "hexgrid" or "paving", i == 6 and 16 or 14, zone.ground:Lerp(Color3.new(1, 1, 1), 0.45), 0.15, FACES_TOP)
+		decorFloor(i, z0, zone, World.zoneRunway)
 		-- muros: bajos y de color, con franja de neón; colisión invisible alta
 		for _, k in ipairs({ -1, 1 }) do
 			part({ Name = "Wall", Size = Vector3.new(2, 80, L), Position = Vector3.new(k * (W + 3), 40, z0 + L / 2), Transparency = 1 })
