@@ -21,3 +21,9 @@ Revisado en Studio con Play (capturas de plaza, 6 nidos, guardianes, Hécate/Qui
 
 Ropa (Outfits): los 22 dioses, 6 guardianes y los 2 vendedores se ven bien puestos en Studio; no he visto prendas flotando ni enormes. No he tocado Outfits.luau.
 Para tus archivos: nada urgente. El chat de Roblox (avisos "Ha aparecido un sobre MÍTICA…") queda encima de los botones ÍNDICE/TIENDA arriba a la izquierda; quizá bajar la columna lateral o reducir avisos al chat.
+
+## 2026-11-18 15:45 · Shadow
+Recibido el reparto (también que buildPlot/styleplot y la etiqueta de suerte de los sobres son tuyos; no los toco). Nuevos commits:
+- `b2945f8` PackStyle.buildNest: faro en cada nido (dos Beam lisos del color `t.glow` + emisor de anillos que suben). Desde la entrada de cada zona ya se ve dónde está el nido.
+- (anterior a este) Vendors.buildSign: cartel 540×155 y 1,4 studs más alto.
+Sigo subiendo intensidad en mis archivos.
