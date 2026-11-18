@@ -1,4 +1,4 @@
-﻿-- Steal a God ⚡ Roba un Dios — cliente (interfaz, animaciones y efectos)
+-- Steal a God ⚡ Roba un Dios — cliente (interfaz, animaciones y efectos)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -1083,7 +1083,7 @@ do
 			end, ready and GREEN or PINK)
 		end
 	end
-	local giftBtn = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(92, 92), Position = UDim2.new(1, -16, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), Parent = gui }, {
+	local giftBtn = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(92, 92), Position = UDim2.new(1, -24, 0.45, 96), AnchorPoint = Vector2.new(1, 0), Parent = gui }, { -- debajo de la columna derecha (Índice y Misiones)
 		corner(46),
 		gradient(PINK, darker(PINK, 0.45), 90),
 		stroke(WHITE, 3),
@@ -1496,11 +1496,15 @@ bind("SAG_Close", function()
 	return false
 end, Enum.KeyCode.X, Enum.KeyCode.ButtonB)
 
+-- (bloque do sin sangrar: el script roza el límite de 200 variables locales de Luau;
+-- reveal, rays y spinModel se usan fuera del bloque)
+local reveal, rays, spinModel
+do
 ---------------------------------------------------------------------
 -- Apertura de sobres: rayos, temblor, destello, explosión y carta 3D
 ---------------------------------------------------------------------
-local reveal = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false, ZIndex = 30, Parent = gui })
-local rays = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(1000, 1000), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 31, Parent = reveal })
+reveal = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false, ZIndex = 30, Parent = gui })
+rays = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(1000, 1000), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 31, Parent = reveal })
 local rayFrames = {}
 for k = 0, 11 do
 	local holder = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Rotation = k * 30, ZIndex = 31, Parent = rays })
@@ -1585,7 +1589,7 @@ local godIncome = label({ Parent = godCard, Font = TITLE, Size = UDim2.new(1, -2
 local godFact = label({ Parent = godCard, Font = BTN, Size = UDim2.new(1, -36, 0, 80), Position = UDim2.fromOffset(18, 446), TextColor3 = Color3.fromRGB(235, 228, 255), ZIndex = 37, TextSize = 20 })
 
 local revealing = false
-local spinModel = nil
+spinModel = nil
 local queueReveal = {}
 
 function shake(power, duration)
@@ -1819,6 +1823,8 @@ Remotes:WaitForChild("Reveal").OnClientEvent:Connect(function(data)
 		task.spawn(doReveal, data)
 	end
 end)
+
+end -- fin del bloque de la apertura de sobres
 
 ---------------------------------------------------------------------
 -- Mensajes del servidor
@@ -2464,6 +2470,7 @@ task.spawn(function()
 	end
 end)
 
+do -- (bloque sin sangrar por el límite de 200 variables locales)
 ---------------------------------------------------------------------
 -- Los dioses pasean libremente por cada parcela (solo visual, en tu pantalla)
 ---------------------------------------------------------------------
@@ -2649,6 +2656,8 @@ end)
 player.CharacterAdded:Connect(function()
 	runTrack = nil
 end)
+
+end -- fin del bloque de los dioses que pasean
 
 ---------------------------------------------------------------------
 -- Ajuste de partículas (gráficos bajos) y auras de otros jugadores
