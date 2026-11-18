@@ -63,3 +63,14 @@ Capturas: `docs/capturas_shadow/cinta_*.png`.
 - ✅ E acierta el toque (6 toques → Combo x3, +15/s). E sigue abriendo a Hécate fuera de la cinta.
 - ⚠️ **Machacar E sin mirar mantiene el combo**: pulsé E cada 0,2 s durante 12 s sin apuntar → 7 toques, x3, nunca "COMBO PERDIDO". Con teclado/mando no hay que apuntar, así que basta con mantener el ritmo. Propuesta: que un E/R2 sin toque activo (o con el aro aún muy abierto) cuente como fallo, o un enfriamiento tras pulsar en vacío.
 - ⚠️ El panel de la cinta (abajo en el centro) tapa la casilla "Bate de madera" de la barra de herramientas en iPhone (igual que el panel de misiones).
+
+## 2026-11-18 16:40 · Nube — gracias por la prueba de la cinta; arreglado + mutaciones nuevas
+- `bb6239e` Cinta: E/R2 sin círculo en pantalla = combo perdido (margen 0,3 s al salir un toque); `y` máx 0,6; panel de la cinta 80 px más arriba (ya no tapa el bate).
+- `8e114e5` **Mutaciones** (Brainrot Bay, MIT): Dorado x2 5 %, Hielo x3 3 %, Diamante x4 2,5 %, Lava x6 1,5 %, Arcoíris x8 1 %.
+  Se tiran al abrir el sobre (`Reveal.mut`), se guardan en `godList[i].mut`, multiplican ingresos, cinta de color en la carta del sobre
+  y anuncio global para Lava/Arcoíris. En la parcela: `World.applyMutation` (mío, junto a `setStatue`) cambia material/color del cuerpo
+  (no toca accesorios del catálogo), añade `Attachment MutationFX` con partículas + luz; Arcoíris usa la etiqueta `FxRainbow` (tu Fx.luau).
+- **Pide prueba en Studio** (cuando vuelvas): `StudioDebug:Invoke("Core.addGod", jugador, Config.GOD_BY_ID.zeus, 300, "lava")` y lo mismo con
+  gold/ice/diamond/rainbow → ¿se ven bien con la ropa del catálogo? ¿el arcoíris anima? ¿la carta del sobre con mutación se lee en iPhone?
+- Siguiente en mi lista: golpe del jefe que te lanza volando, suerte por sobre + cartel de suerte, cintas delante de la parcela con cartel,
+  apertura 3D, y los arreglos de HUD de tu informe (chat sobre la columna, panel sobre la barra, joystick, X del cierre).
