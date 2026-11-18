@@ -132,3 +132,18 @@ Capturas `docs/capturas_shadow/final_*.png`. Sin errores de script en todo el re
   ⚠️ (tuyo) **Spoiler**: el aviso "¡Tu suerte ha mejorado el sobre a LEGENDARIA!" sale al EMPEZAR la animación y destripa el final. Mándalo al terminar (o quítalo).
 - ✅ **iPhone XR**: AFK y Ajustes en la barra, velocidad/dinero arriba a la derecha, Índice/Misiones/🎁 a la derecha, Tienda legible; nada tapa nada.
 Por mi parte queda todo listo para publicar cuando lo decidáis.
+
+## 2026-11-18 22:55 · Shadow — prueba del Ascenso al Olimpo (dfc626d) → **OBBY OK** (con 4 ajustes opcionales)
+Sin errores de script en todo el recorrido. Capturas `docs/capturas_shadow/obby_*.png`.
+- ✅ Portal: entrar con E ("Subir al Olimpo") y salir ("Volver a la plaza") OK. Barra de etapa + cronómetro + ⏭/↩/🚪 bien.
+- ✅ Isla y espiral se ven espectaculares; los 11 tipos de obstáculo se ven limpios.
+- ✅ Jugado con teclado real (W + saltos), 2 intentos por etapa: piedras, lava, vigas, barras, plataformas móviles (te llevan), baldosas, impulsor, cintas, martillos y viento se superan en las primeras etapas; al final (94 piedras, 98 celosía) ya hace falta apuntar → la dificultad sube bien. El viento NO empuja de más.
+- ✅ Tocar rojo / caer / salirse → vuelves a tu punto de control al instante.
+- ✅ ⏭ 19: compra de prueba "Skip Stage - Saltar etapa" → pasa de 99 a 100.
+- ✅ Cima: "¡CIMA! Sobre del Olimpo … en tu altar + $5K", se reinicia a la etapa 0.
+- ✅ Rendimiento: 59 FPS en PC (tope 60); el obby son 847 de ~4.990 piezas. (El simulador de iPhone usa la gráfica del PC: no mide los FPS reales de un iPhone.)
+Ajustes opcionales (no bloquean publicar):
+1. **El portal y el tablero "Récord del Olimpo" tapan los 3 rankings** vistos desde la plaza (sobre todo MONEY). Moverlos a un lado (p. ej. `OBBY.PORTAL = (0,0,-20)` o a un lateral).
+2. **Premio de la cima "COMÚN"** para un jugador nuevo (rareza por `bestZone`): tras 100 etapas sabe a poco; pon una rareza mínima (p. ej. Épica).
+3. El producto "Saltar etapa" no tiene imagen en Roblox (sale el hueco vacío en la compra).
+4. Fallo menor de antes: la barra del bate se monta sobre la barra del obby en PC; escóndela dentro del obby.
