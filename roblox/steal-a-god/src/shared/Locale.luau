@@ -179,6 +179,8 @@ local T = {
 	treadSignBody = { es = "Nv %d · ⚡ +%s/s → +%s/s", en = "Lv %d · ⚡ +%s/s → +%s/s" },
 	signFree = { es = "Parcela libre", en = "Free plot" },
 	signsHint = { es = "🍀 Tu suerte y 🏃 tu cinta se mejoran en los carteles de tu parcela.", en = "🍀 Your luck and 🏃 your treadmill are upgraded at the signs on your plot." },
+	rarityQ = { es = "¿%s?", en = "%s?" },
+	rarityBang = { es = "¡%s!", en = "%s!" },
 	upgraded = { es = "🍀 ¡MEJORADO! %s → %s", en = "🍀 UPGRADED! %s → %s" },
 	packLuck = { es = "🍀 Suerte del sobre x%s", en = "🍀 Pack luck x%s" },
 	luckUpgrade = { es = "🍀 ¡Tu suerte ha mejorado el sobre a %s!", en = "🍀 Your luck upgraded the pack to %s!" },
@@ -235,6 +237,16 @@ function Locale.t(key: string, ...): string
 		if ok then
 			return res
 		end
+	end
+	return s
+end
+
+-- Mayúsculas que respetan las tildes (string.upper deja "COMúN"): á é í ó ú ü ñ → Á É Í Ó Ú Ü Ñ
+local ACCENTS = { ["á"] = "Á", ["é"] = "É", ["í"] = "Í", ["ó"] = "Ó", ["ú"] = "Ú", ["ü"] = "Ü", ["ñ"] = "Ñ" }
+function Locale.upper(s: string): string
+	s = string.upper(s or "")
+	for lower, up in pairs(ACCENTS) do
+		s = string.gsub(s, lower, up)
 	end
 	return s
 end
