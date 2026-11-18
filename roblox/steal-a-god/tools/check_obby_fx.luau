@@ -137,16 +137,24 @@ end)
 step("Barras que giran, plataformas y martillos se mueven cerca de ti", function()
 	local moved = { spin = false, move = false, swing = false }
 	-- ponerse junto a una etapa de cada tipo y ver que se mueve
+	-- el jugador "está" en el punto de control de la etapa de esa pieza (si no, cuenta como caída y vuelve)
+	local function stageOf(inst)
+		local f = inst:FindFirstAncestorWhichIsA("Folder")
+		local n = f and tonumber(f.Name:match("^Stage(%d+)$"))
+		return n and n - 1 or 0
+	end
 	for _, info in ipairs({ { "ObbySpin", "spin" }, { "ObbyMove", "move" } }) do
 		local p = CS:GetTagged(info[1])[1]
-		hrp.CFrame = p.CFrame + Vector3.new(0, 30, 0)
+		state.obby.stage = stageOf(p)
+		hrp.CFrame = p.CFrame + Vector3.new(0, 6, 0)
 		local before = p.CFrame
 		task.wait(0.4)
 		moved[info[2]] = (p.CFrame.Position - before.Position).Magnitude > 0.01 or p.CFrame.LookVector:Dot(before.LookVector) < 0.9999
 	end
 	local m = CS:GetTagged("ObbySwing")[1]
 	local head = m:FindFirstChild("Hammer")
-	hrp.CFrame = head.CFrame + Vector3.new(0, 30, 0)
+	state.obby.stage = stageOf(m)
+	hrp.CFrame = head.CFrame + Vector3.new(0, 6, 0)
 	local hb = head.Position
 	task.wait(0.4)
 	moved.swing = (head.Position - hb).Magnitude > 0.01
@@ -154,6 +162,7 @@ step("Barras que giran, plataformas y martillos se mueven cerca de ti", function
 end)
 
 step("Tocar algo rojo o caerse te devuelve a tu punto de control", function()
+	state.obby.stage = 5
 	local p0 = padTop(5)
 	local kill = CS:GetTagged("ObbyKill")[1]
 	hrp.CFrame = kill.CFrame
