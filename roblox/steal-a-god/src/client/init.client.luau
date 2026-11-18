@@ -1076,7 +1076,7 @@ local function floatText(text, color, parent, pos)
 end
 
 -- Panel compacto abajo en el centro: combo, toques seguidos, barra hasta el siguiente nivel y cómo bajar
-local tread = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(0, 460, 0, 96), Position = UDim2.new(0.5, 0, 1, -16), AnchorPoint = Vector2.new(0.5, 1), Visible = false, Parent = gui }, {
+local tread = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(0, 460, 0, 96), Position = UDim2.new(0.5, 0, 1, -96), AnchorPoint = Vector2.new(0.5, 1), Visible = false, Parent = gui }, {
 	corner(20),
 	gradient(Color3.fromRGB(20, 60, 90), Color3.fromRGB(14, 12, 40), 90),
 	stroke(CYAN, 3),
@@ -1132,9 +1132,18 @@ local function removeTap(tp)
 end
 
 -- Toca el toque activo (botón, tecla E / clic, gatillo R2 del mando)
-local function doTap()
+local lastEmptyTap = 0
+local function doTap(fromKey)
 	local tp = activeTap
 	if not tp then
+		-- Con teclado o mando, pulsar sin círculo en la cinta cuenta como fallo (no vale machacar a ciegas)
+		if fromKey and state.onTreadmill and not state.afk then
+			if os.clock() - lastEmptyTap > 0.25 then
+				lastEmptyTap = os.clock()
+				Combo:FireServer(0)
+			end
+			return true
+		end
 		return false
 	end
 	Combo:FireServer(tp.id)
@@ -1230,8 +1239,8 @@ end)
 -- Teclas y botones del mando. Van aquí, DESPUÉS de declarar `tread` y `doTap`: una función que
 -- nombra un local declarado más abajo no lo captura (leería un global nil).
 bind("SAG_Tap", function()
-	-- solo si hay un toque en pantalla; si no, la tecla sigue su camino (avisos de robar, abrir, hablar)
-	return doTap()
+	-- En la cinta la tecla es del combo (sin círculo = fallo); fuera, sigue su camino (robar, abrir, hablar)
+	return doTap(true)
 end, Enum.KeyCode.E, Enum.KeyCode.ButtonR2)
 bind("SAG_Drop", function()
 	if state.carrying then

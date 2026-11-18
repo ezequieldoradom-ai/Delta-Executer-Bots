@@ -639,7 +639,8 @@ function Core.spawnTap(player)
 	s.tap = {
 		id = s.tapId,
 		x = 0.2 + math.random() * 0.6,
-		y = 0.24 + math.random() * 0.44,
+		y = 0.24 + math.random() * 0.36, -- hasta 0,6: más abajo pisaría el panel de la cinta en móvil
+		born = now,
 		expires = now + C.TAP_LIFE,
 	}
 	s.nextTapAt = now + C.TAP_EVERY[1] + math.random() * (C.TAP_EVERY[2] - C.TAP_EVERY[1])
@@ -877,6 +878,15 @@ function Core.handleCombo(player, id)
 		return false
 	end
 	local tap = s.tap
+	-- Pulsar E/R2 sin círculo en pantalla (id 0) es fallar: machacar la tecla a ciegas ya no mantiene el combo.
+	-- Margen de 0,3 s tras salir un toque: el cliente aún puede no haberlo recibido.
+	if id == 0 then
+		if (s.tapHits or 0) > 0 and not (tap and os.clock() - (tap.born or 0) < 0.3) then
+			s.tapHits, s.combo = 0, 1
+			fireTap(player, { lost = true, empty = true })
+		end
+		return false
+	end
 	if not tap or type(id) ~= "number" or id ~= tap.id or os.clock() > tap.expires + 0.35 then
 		return false
 	end

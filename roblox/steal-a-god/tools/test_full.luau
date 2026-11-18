@@ -447,6 +447,21 @@ step("Combo: toques en pantalla decididos por el servidor (x2, x3, x4, x5)", fun
 	s.afk = true
 	assert(G.Core.handleCombo(fp, (G.Core.spawnTap(fp)).id) == false, "aceptó toques en AFK")
 	s.afk = false
+	-- pulsar E/R2 sin círculo (id 0) hace perder el combo; justo al salir un toque hay 0,3 s de margen
+	s.tap = nil
+	G.Core.handleCombo(fp, G.Core.spawnTap(fp).id)
+	G.Core.handleCombo(fp, G.Core.spawnTap(fp).id)
+	assert(s.tapHits == 2, "no sumó antes del fallo")
+	local fresh = G.Core.spawnTap(fp)
+	G.Core.handleCombo(fp, 0)
+	assert(s.tapHits == 2, "castigó un toque recién salido")
+	fresh.born = os.clock() - 1
+	G.Core.handleCombo(fp, 0)
+	assert(s.tapHits == 0 and s.combo == 1, "machacar sin círculo mantuvo el combo")
+	for _ = 1, 200 do
+		local tp = G.Core.spawnTap(fp)
+		assert(tp.y >= 0.24 and tp.y <= 0.6 and tp.x >= 0.2 and tp.x <= 0.8, "toque fuera de la zona")
+	end
 	-- bajar de la cinta lo reinicia todo
 	G.Core.spawnTap(fp)
 	G.Core.handleCombo(fp, s.tap.id)
