@@ -1,4 +1,4 @@
--- Ciclo: 5 min de día, 15 s de noche. Al amanecer se renuevan los sobres.
+-- Ciclo: 5 min de día, 20 s de noche. Al amanecer se renuevan los sobres.
 local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
 

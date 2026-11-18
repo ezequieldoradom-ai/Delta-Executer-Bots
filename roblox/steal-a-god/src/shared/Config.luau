@@ -7,7 +7,7 @@ local Config = {}
 -- CICLO DE DÍA Y NOCHE
 ---------------------------------------------------------------------
 Config.DAY_SECONDS = 300 -- 5 minutos de día
-Config.NIGHT_SECONDS = 15 -- 15 segundos de noche
+Config.NIGHT_SECONDS = 20 -- 20 segundos de noche
 Config.NIGHT_WARNING = 10 -- aviso antes de que anochezca
 Config.NIGHT_TREADMILL_MULT = 3 -- la cinta da x3 de noche
 Config.NIGHT_OPEN_MULT = 10 -- los sobres se abren x10 más rápido de noche
