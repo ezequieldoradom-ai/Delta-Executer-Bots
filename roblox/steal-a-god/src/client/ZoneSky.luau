@@ -171,6 +171,155 @@ local function setZoneFx(i, on)
 	end
 end
 
+---------------------------------------------------------------------
+-- AIRE MÍSTICO (petición del dueño: "efectos compatibles con cada bioma, muy épico y místico").
+-- Un volumen invisible que sigue a la cámara y suelta las partículas del bioma alrededor del jugador
+-- (así se ven siempre, en cualquier punto de la zona, con pocos emisores). Y columnas de luz que bajan del cielo.
+---------------------------------------------------------------------
+local AIR = {
+	[1] = { -- griega: motas doradas y plumas de luz que caen despacio
+		{ tex = "sparkle", rate = 18, life = { 4, 7 }, speed = { 0.3, 1 }, size = 0.45, colors = { rgb(255, 250, 220), rgb(255, 205, 90) }, up = 0.4 },
+		{ tex = "glow", rate = 4, life = { 6, 9 }, speed = { 0.5, 1.2 }, size = 1.4, colors = { rgb(255, 240, 190), rgb(255, 255, 255) }, up = -0.6, alpha = 0.45 },
+	},
+	[2] = { -- celta: luciérnagas y fuegos fatuos verdes que bailan
+		{ tex = "glow", rate = 16, life = { 3, 6 }, speed = { 0.6, 1.6 }, size = 0.55, colors = { rgb(200, 255, 120), rgb(90, 255, 150) }, up = 0.3, twinkle = true },
+		{ tex = "glow", rate = 2, life = { 6, 9 }, speed = { 1, 2 }, size = 2.4, colors = { rgb(120, 255, 200), rgb(60, 200, 255) }, up = 0.6, alpha = 0.35 },
+		{ tex = "smoke", rate = 3, life = { 6, 9 }, speed = { 0.3, 0.8 }, size = 9, colors = { rgb(170, 255, 210), rgb(120, 200, 170) }, up = 0.1, alpha = 0.85, emission = 0.3, low = true },
+	},
+	[3] = { -- egipcia: arena que vuela con el viento y jeroglíficos dorados que flotan
+		{ tex = "smoke", rate = 6, life = { 3, 5 }, speed = { 8, 14 }, size = 5, colors = { rgb(255, 215, 150), rgb(220, 170, 100) }, wind = Vector3.new(14, 1, 4), alpha = 0.75, emission = 0.1, low = true },
+		{ tex = "sparkle", rate = 14, life = { 3, 5 }, speed = { 6, 10 }, size = 0.3, colors = { rgb(255, 235, 170), rgb(255, 190, 80) }, wind = Vector3.new(12, 0, 3) },
+		{ tex = "runes", rate = 1.2, life = { 6, 8 }, speed = { 0.4, 1 }, size = 3, colors = { rgb(255, 215, 110), rgb(255, 170, 60) }, up = 0.5, alpha = 0.35, spin = 25 },
+	},
+	[4] = { -- azteca: ascuas, espíritus de jade y ceniza
+		{ tex = "sparkle", rate = 20, life = { 3, 5 }, speed = { 1.5, 3.5 }, size = 0.45, colors = { rgb(255, 210, 110), rgb(255, 70, 20) }, up = 2.2 },
+		{ tex = "glow", rate = 3, life = { 5, 8 }, speed = { 1, 2 }, size = 1.8, colors = { rgb(90, 255, 210), rgb(40, 180, 140) }, up = 1, alpha = 0.4, twinkle = true },
+	},
+	[5] = { -- babilonia: runas doradas que giran y polvo de estrellas rosado
+		{ tex = "runes", rate = 1.5, life = { 6, 9 }, speed = { 0.3, 0.9 }, size = 3.6, colors = { rgb(255, 225, 120), rgb(255, 160, 210) }, up = 0.4, alpha = 0.3, spin = 35 },
+		{ tex = "sparkle", rate = 16, life = { 4, 6 }, speed = { 0.4, 1.2 }, size = 0.4, colors = { rgb(255, 210, 240), rgb(255, 220, 120) }, up = 0.5 },
+	},
+	[6] = { -- cósmica: polvo estelar, nebulosa y destellos de energía
+		{ tex = "sparkle", rate = 26, life = { 3, 6 }, speed = { 0.3, 1.2 }, size = 0.5, colors = { rgb(200, 240, 255), rgb(200, 120, 255) }, up = 0.2, twinkle = true },
+		{ tex = "smoke", rate = 3, life = { 7, 10 }, speed = { 0.4, 1 }, size = 14, colors = { rgb(160, 80, 255), rgb(60, 200, 255) }, up = 0.2, alpha = 0.82, emission = 0.8 },
+		{ tex = "streak", rate = 4, life = { 0.4, 0.7 }, speed = { 18, 28 }, size = 1.6, colors = { rgb(255, 255, 255), rgb(120, 230, 255) }, parallel = true },
+	},
+}
+-- columnas de luz que bajan del cielo en cada zona (color del bioma)
+local PILLARS = {
+	[1] = rgb(255, 225, 140), [2] = rgb(120, 255, 170), [3] = rgb(255, 205, 110),
+	[4] = rgb(90, 255, 210), [5] = rgb(255, 200, 120), [6] = rgb(180, 110, 255),
+}
+
+local airPart -- sigue a la cámara
+local airByZone = {}
+
+local function buildAir()
+	airPart = Instance.new("Part")
+	airPart.Name = "MysticAir"
+	airPart.Anchored, airPart.CanCollide, airPart.CanQuery, airPart.CanTouch, airPart.CastShadow = true, false, false, false, false
+	airPart.Transparency = 1
+	airPart.Size = Vector3.new(70, 26, 70)
+	airPart.Parent = folder
+	local low = Instance.new("Attachment") -- para la niebla y la arena: pegadas al suelo
+	low.Name = "Low"
+	low.Position = Vector3.new(0, -10, 0)
+	low.Parent = airPart
+	for i, list in pairs(AIR) do
+		airByZone[i] = {}
+		for _, a in ipairs(list) do
+			local e = Instance.new("ParticleEmitter")
+			e.Texture = Config.VFX[a.tex]
+			e.Rate = a.rate
+			e.Lifetime = NumberRange.new(a.life[1], a.life[2])
+			e.Speed = NumberRange.new(a.speed[1], a.speed[2])
+			e.SpreadAngle = Vector2.new(180, 180)
+			e.Shape = Enum.ParticleEmitterShape.Box
+			e.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+			e.Acceleration = a.wind or Vector3.new(0, a.up or 0, 0)
+			e.Drag = a.wind and 0 or 0.4
+			e.Rotation = NumberRange.new(0, 360)
+			e.RotSpeed = NumberRange.new(-(a.spin or 40), a.spin or 40)
+			e.LightEmission = a.emission or 1
+			e.LightInfluence = 0
+			local kp = {}
+			for k, c in ipairs(a.colors) do
+				kp[k] = ColorSequenceKeypoint.new((k - 1) / math.max(1, #a.colors - 1), c)
+			end
+			e.Color = ColorSequence.new(kp)
+			local base = a.alpha or 0.1
+			if a.twinkle then
+				e.Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.15, base), NumberSequenceKeypoint.new(0.3, 0.7),
+					NumberSequenceKeypoint.new(0.45, base), NumberSequenceKeypoint.new(0.65, 0.75), NumberSequenceKeypoint.new(0.8, base), NumberSequenceKeypoint.new(1, 1),
+				})
+			else
+				e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.2, base), NumberSequenceKeypoint.new(0.8, base), NumberSequenceKeypoint.new(1, 1) })
+			end
+			e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, a.size * 0.5), NumberSequenceKeypoint.new(0.5, a.size), NumberSequenceKeypoint.new(1, a.size * 0.6) })
+			if a.parallel then
+				e.Orientation = Enum.ParticleOrientation.VelocityParallel
+			end
+			e.Enabled = false
+			e.Parent = a.low and low or airPart
+			table.insert(airByZone[i], e)
+		end
+	end
+end
+
+local function buildPillars(i)
+	fxByZone[i] = fxByZone[i] or {}
+	local cz = zoneCenterZ(i)
+	local W = Config.CORRIDOR_HALF_WIDTH
+	local color = PILLARS[i]
+	local rng = Random.new(77 + i)
+	for k = 1, 5 do
+		local x = rng:NextNumber(-W + 10, W - 10)
+		local z = cz + rng:NextNumber(-80, 80)
+		local top = anchorPart("LightPillar", CFrame.new(x, 260, z))
+		local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
+		a0.Parent = top
+		a1.Position = Vector3.new(0, -258, 0)
+		a1.Parent = top
+		local b = Instance.new("Beam")
+		b.Attachment0, b.Attachment1 = a0, a1
+		b.FaceCamera = true
+		b.Width0, b.Width1 = 18, 6
+		b.LightEmission = 0.6
+		b.LightInfluence = 0
+		b.Color = ColorSequence.new(color)
+		b.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.4, 0.8), NumberSequenceKeypoint.new(1, 0.55) })
+		b.Segments = 1
+		b.Enabled = false
+		b:SetAttribute("Phase", k * 1.3)
+		b.Parent = top
+		table.insert(fxByZone[i], b)
+		-- destellos que bajan por la columna
+		local e = emitter(top, {
+			Texture = Config.VFX.sparkle, Rate = 6, Lifetime = NumberRange.new(4, 5), Speed = NumberRange.new(55, 65),
+			EmissionDirection = Enum.NormalId.Bottom, SpreadAngle = Vector2.new(2, 2), LightEmission = 1,
+			Color = ColorSequence.new(Color3.new(1, 1, 1), color), Size = NumberSequence.new(1.2, 0.4),
+		})
+		table.insert(fxByZone[i], e)
+		-- círculo de luz donde toca el suelo
+		local base = anchorPart("PillarBase", CFrame.new(x, 0.35, z))
+		local ring = Instance.new("Attachment")
+		ring.Parent = base
+		table.insert(fxByZone[i], emitter(ring, {
+			Texture = Config.VFX.ring, Rate = 0.6, Lifetime = NumberRange.new(2.5), Speed = NumberRange.new(0.01),
+			Orientation = Enum.ParticleOrientation.VelocityPerpendicular, EmissionDirection = Enum.NormalId.Top, SpreadAngle = Vector2.new(0, 0),
+			LightEmission = 1, Color = ColorSequence.new(color), Size = NumberSequence.new(3, 16),
+			Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) }),
+		}))
+	end
+end
+
+local function setAir(i, on)
+	for _, e in ipairs(airByZone[i] or {}) do
+		e.Enabled = on
+	end
+end
+
 local function apply(i)
 	local look = LOOKS[i] or LOOKS[0]
 	local info = TweenInfo.new(2, Enum.EasingStyle.Sine)
@@ -188,8 +337,10 @@ local function apply(i)
 	end
 	if current >= 0 then
 		setZoneFx(current, false)
+		setAir(current, false)
 	end
 	setZoneFx(i, true)
+	setAir(i, true)
 	current = i
 end
 
@@ -213,6 +364,14 @@ function ZoneSky.start(ctx)
 		if not ok then
 			warn("[SAG] ZoneSky zona " .. i .. ": " .. tostring(err))
 		end
+		local okP, errP = pcall(buildPillars, i)
+		if not okP then
+			warn("[SAG] ZoneSky columnas " .. i .. ": " .. tostring(errP))
+		end
+	end
+	local okA, errA = pcall(buildAir)
+	if not okA then
+		warn("[SAG] ZoneSky aire: " .. tostring(errA))
 	end
 	for _, t in ipairs(CollectionService:GetTagged("FxScroll")) do
 		trackScroll(t)
@@ -228,6 +387,23 @@ function ZoneSky.start(ctx)
 				t.OffsetStudsV = (t.OffsetStudsV + (t:GetAttribute("ScrollV") or 0) * dt) % t.StudsPerTileV
 			else
 				table.remove(scrollers, k)
+			end
+		end
+		-- el aire místico va delante de la cámara; las columnas de luz respiran
+		local camNow = workspace.CurrentCamera
+		if airPart and camNow then
+			local p = camNow.CFrame.Position + camNow.CFrame.LookVector * 22
+			airPart.CFrame = CFrame.new(p.X, math.max(p.Y, 13), p.Z)
+		end
+		if current > 0 then
+			local now = os.clock()
+			for _, b in ipairs(fxByZone[current] or {}) do
+				local ph = b:IsA("Beam") and b:GetAttribute("Phase")
+				if ph then
+					local k = 0.5 + 0.5 * math.sin(now * 0.9 + ph)
+					b.Width0 = 12 + 10 * k
+					b.Width1 = 4 + 4 * k
+				end
 			end
 		end
 		acc += dt
