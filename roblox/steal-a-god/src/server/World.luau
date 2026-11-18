@@ -576,6 +576,15 @@ local MUTATION_LOOK = {
 	diamond = { material = Enum.Material.Glass, color = Color3.fromRGB(200, 245, 255), particle = "sparkle", rate = 10 },
 	lava = { material = Enum.Material.CrackedLava, color = Color3.fromRGB(255, 110, 40), particle = "flame", rate = 9 },
 	rainbow = { material = Enum.Material.Neon, color = Color3.fromRGB(255, 120, 200), particle = "sparkle", rate = 12, rainbow = true },
+	-- mitológicas: segundo emisor (extra) para que se distingan de un vistazo
+	storm = { material = Enum.Material.Glass, color = Color3.fromRGB(150, 210, 255), particle = "sparkle", rate = 10,
+		extra = { tex = "streak", rate = 14, life = 0.25, speed = 14, size = 2.2, parallel = true, colors = { Color3.new(1, 1, 1), Color3.fromRGB(90, 170, 255) } } },
+	underworld = { material = Enum.Material.Basalt, color = Color3.fromRGB(45, 40, 55), particle = "flame", rate = 12,
+		extra = { tex = "smoke", rate = 5, life = 1.8, speed = 2, size = 3.5, emission = 0.2, colors = { Color3.fromRGB(60, 255, 120), Color3.fromRGB(20, 40, 30) } } },
+	cosmic = { material = Enum.Material.ForceField, color = Color3.fromRGB(150, 90, 255), particle = "sparkle", rate = 16,
+		extra = { tex = "glow", rate = 4, life = 2.5, speed = 0.6, size = 4, emission = 0.6, colors = { Color3.fromRGB(80, 220, 255), Color3.fromRGB(190, 80, 255), Color3.fromRGB(255, 90, 200) } } },
+	divine = { material = Enum.Material.Foil, color = Color3.fromRGB(255, 240, 190), particle = "sparkle", rate = 18,
+		extra = { tex = "rays", rate = 1.2, life = 2.6, speed = 0, size = 7, emission = 0.55, locked = true, colors = { Color3.fromRGB(255, 250, 220), Color3.fromRGB(255, 200, 80) } } },
 }
 function World.applyMutation(m, mut)
 	local def = mut and G.Config.MUTATION_BY_ID[mut]
@@ -616,6 +625,33 @@ function World.applyMutation(m, mut)
 	pe.Parent = att
 	if look.rainbow then
 		CollectionService:AddTag(pe, "FxRainbow")
+	end
+	local x = look.extra
+	if x then
+		local kp = {}
+		for k, c in ipairs(x.colors) do
+			kp[k] = ColorSequenceKeypoint.new((k - 1) / math.max(1, #x.colors - 1), c)
+		end
+		local e = Instance.new("ParticleEmitter")
+		e.Name = "MutationExtra"
+		e.Texture = G.Config.VFX[x.tex]
+		e.Rate = x.rate
+		e.Lifetime = NumberRange.new(x.life * 0.8, x.life)
+		e.Speed = NumberRange.new(x.speed * 0.7, x.speed)
+		e.SpreadAngle = Vector2.new(180, 180)
+		e.Rotation = NumberRange.new(0, 360)
+		e.RotSpeed = NumberRange.new(-30, 30)
+		e.LightEmission = x.emission or 1
+		e.LightInfluence = 0
+		e.LockedToPart = x.locked == true
+		e.ZOffset = x.locked and -1.5 or 0
+		if x.parallel then
+			e.Orientation = Enum.ParticleOrientation.VelocityParallel
+		end
+		e.Color = #kp > 1 and ColorSequence.new(kp) or ColorSequence.new(x.colors[1])
+		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, x.size * 0.6), NumberSequenceKeypoint.new(0.5, x.size), NumberSequenceKeypoint.new(1, x.size * 0.4) })
+		e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.2, 0.35), NumberSequenceKeypoint.new(0.75, 0.55), NumberSequenceKeypoint.new(1, 1) })
+		e.Parent = att
 	end
 	local light = Instance.new("PointLight")
 	light.Color = def.color

@@ -638,7 +638,7 @@ step("Mutaciones: probabilidades, guardado y multiplicador de ingresos", functio
 		assert(C.mutMult(m.id) == m.mult, "multiplicador " .. m.id)
 		total += m.chance
 	end
-	assert(math.abs(total - 0.13) < 1e-9, "total de mutaciones")
+	assert(math.abs(total - 0.1435) < 1e-9, "total de mutaciones")
 	assert(C.mutMult(nil) == 1 and C.mutMult("falsa") == 1, "sin mutación = x1")
 	-- Datos: guarda una mutación válida y quita una inventada
 	local d = G.Data.sanitize({ godList = { { id = "zeus", kg = 100, mut = "lava" }, { id = "hera", kg = 100, mut = "hackeada" } } }, C)
