@@ -442,6 +442,114 @@ hint.chip = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(0.28, 0, 1
 hint.money = heavy({ Parent = hint.chip, Size = UDim2.new(1, -16, 1, -8), Position = UDim2.fromOffset(8, 4), TextColor3 = Color3.fromRGB(190, 255, 200), ZIndex = 12, StrokeThickness = 2 })
 local content = new("ScrollingFrame", { BackgroundTransparency = 1, Size = UDim2.new(1, -36, 1, -122), Position = UDim2.fromOffset(18, 112), ScrollBarThickness = 8, ScrollBarImageColor3 = GOLD, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ZIndex = 11, Parent = panel })
 
+---------------------------------------------------------------------
+-- Fondo vivo de los menús (petición del dueño: "más detallados y animados, con fondos en movimiento").
+-- Todas las capas van por DEBAJO del contenido (ZIndex 10) y se tiñen con el color del menú que se abre.
+-- (Una sola variable en el nivel superior: el bloque principal está al límite de 200 locales.)
+---------------------------------------------------------------------
+local panelFx = { stars = {}, rowShines = {} }
+do
+	local VFX = Config.VFX
+	local inner = new("Frame", { Name = "LiveBackground", BackgroundTransparency = 1, Size = UDim2.new(1, -8, 1, -8), Position = UDim2.fromOffset(4, 4), ClipsDescendants = true, ZIndex = 10, Parent = panel })
+	-- degradado del fondo del marco: se desplaza despacio
+	panelFx.bodyGrad = panel:FindFirstChildOfClass("UIGradient")
+	-- rayos de luz gigantes que giran detrás del título y runas que giran al revés abajo a la derecha
+	panelFx.rays = new("ImageLabel", { BackgroundTransparency = 1, Image = VFX.rays, ImageTransparency = 0.7, Size = UDim2.fromScale(1.6, 1.6), SizeConstraint = Enum.SizeConstraint.RelativeXX, Position = UDim2.fromScale(0.5, 0.05), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 10, Parent = inner })
+	panelFx.runes = new("ImageLabel", { BackgroundTransparency = 1, Image = VFX.runes, ImageTransparency = 0.78, Size = UDim2.fromScale(0.75, 0.75), SizeConstraint = Enum.SizeConstraint.RelativeXX, Position = UDim2.fromScale(0.92, 0.95), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 10, Parent = inner })
+	-- velo oscuro abajo para que el contenido se lea sobre las capas
+	new("Frame", { BackgroundColor3 = Color3.fromRGB(8, 6, 20), Size = UDim2.fromScale(1, 1), ZIndex = 10, Parent = inner }, {
+		new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.4, 0.85), NumberSequenceKeypoint.new(1, 0.55) }) }),
+	})
+	-- estrellitas que suben y titilan
+	local rng = Random.new(7)
+	for _ = 1, 20 do
+		local s = new("ImageLabel", { BackgroundTransparency = 1, Image = VFX.sparkle, ImageTransparency = 0.3, Size = UDim2.fromOffset(18, 18), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 10, Parent = inner })
+		table.insert(panelFx.stars, { gui = s, x = rng:NextNumber(0.04, 0.96), speed = rng:NextNumber(0.05, 0.12), phase = rng:NextNumber(0, 1), size = rng:NextNumber(16, 34) })
+	end
+	-- cabecera: franja con brillo que cruza de vez en cuando
+	local header = new("Frame", { BackgroundColor3 = WHITE, BackgroundTransparency = 0.82, Size = UDim2.new(1, -8, 0, 60), Position = UDim2.fromOffset(4, 4), ZIndex = 10, Parent = panel }, { corner(20) })
+	panelFx.headerShine = new("UIGradient", {
+		Rotation = 15,
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.4, 1), NumberSequenceKeypoint.new(0.5, 0.2), NumberSequenceKeypoint.new(0.6, 1), NumberSequenceKeypoint.new(1, 1) }),
+		Offset = Vector2.new(-1, 0),
+		Parent = header,
+	})
+	-- borde arcoíris que gira (como los botones laterales)
+	local rainbow = {}
+	for i, c in ipairs({ Color3.fromRGB(255, 70, 90), Color3.fromRGB(255, 170, 40), Color3.fromRGB(255, 240, 80), Color3.fromRGB(80, 235, 110), Color3.fromRGB(60, 210, 255), Color3.fromRGB(150, 100, 255), Color3.fromRGB(255, 90, 220), Color3.fromRGB(255, 70, 90) }) do
+		rainbow[i] = ColorSequenceKeypoint.new((i - 1) / 7, c)
+	end
+	panelFx.rim = new("UIGradient", { Color = ColorSequence.new(rainbow), Parent = panelStroke })
+
+	-- Tiñe el fondo vivo con el color del menú (se llama al abrir)
+	function panelFx.theme(color)
+		color = color or GOLD
+		local deep = darker(color, 0.32)
+		if panelFx.bodyGrad then
+			panelFx.bodyGrad.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, deep:Lerp(Color3.fromRGB(70, 40, 140), 0.4)),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(24, 14, 52)),
+				ColorSequenceKeypoint.new(1, deep:Lerp(Color3.fromRGB(10, 6, 24), 0.5)),
+			})
+		end
+		panelFx.rays.ImageColor3 = color:Lerp(WHITE, 0.3)
+		panelFx.runes.ImageColor3 = color
+		for _, s in ipairs(panelFx.stars) do
+			s.gui.ImageColor3 = color:Lerp(WHITE, 0.5)
+		end
+	end
+
+	-- Entrada en cascada de las filas al abrir un menú (cada fila crece con rebote, una tras otra)
+	function panelFx.cascade()
+		local items = {}
+		for _, c in ipairs(content:GetChildren()) do
+			if c:IsA("GuiObject") then
+				table.insert(items, c)
+			end
+		end
+		table.sort(items, function(a, b)
+			return a.LayoutOrder < b.LayoutOrder
+		end)
+		for i, c in ipairs(items) do
+			if i > 14 then
+				break
+			end
+			local sc = c:FindFirstChildOfClass("UIScale") or new("UIScale", { Parent = c })
+			sc.Scale = 0.75
+			TweenService:Create(sc, TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, 0.04 * i), { Scale = 1 }):Play()
+		end
+	end
+
+	RunService.RenderStepped:Connect(function()
+		if not panel.Visible then
+			return
+		end
+		local now = os.clock()
+		panelFx.rays.Rotation = (now * 10) % 360
+		panelFx.runes.Rotation = -(now * 14) % 360
+		if panelFx.bodyGrad then
+			panelFx.bodyGrad.Rotation = 90 + math.sin(now * 0.5) * 25
+			panelFx.bodyGrad.Offset = Vector2.new(0, math.sin(now * 0.7) * 0.12)
+		end
+		panelFx.rim.Rotation = (now * 90) % 360
+		local p = (now % 3.5) / 0.9
+		panelFx.headerShine.Offset = Vector2.new(p < 1 and (-1 + p * 2) or 1, 0)
+		for _, s in ipairs(panelFx.stars) do
+			local t01 = (now * s.speed + s.phase) % 1
+			s.gui.Position = UDim2.fromScale(s.x + math.sin(now + s.phase * 6) * 0.015, 1.05 - t01 * 1.1)
+			local tw = 0.5 + 0.5 * math.sin(now * 3 + s.phase * 10)
+			s.gui.Size = UDim2.fromOffset(s.size * (0.6 + tw * 0.5), s.size * (0.6 + tw * 0.5))
+			s.gui.ImageTransparency = 0.25 + (1 - math.sin(t01 * math.pi)) * 0.75
+			s.gui.Rotation = now * 40 + s.phase * 360
+		end
+		-- destello que recorre cada fila, en cascada
+		for i, sh in ipairs(panelFx.rowShines) do
+			local q = ((now + i * 0.25) % 5) / 1.1
+			sh.Offset = Vector2.new(q < 1 and (-1 + q * 2) or 1, 0)
+		end
+	end)
+end
+
 -- closing = se está cerrando (animación) · token = para que un cierre antiguo no esconda un panel recién abierto
 local panelState = { closing = false, token = 0 }
 local function closePanel()
@@ -469,6 +577,7 @@ local auraPreviews = {}
 
 local function clearContent()
 	table.clear(auraPreviews)
+	table.clear(panelFx.rowShines)
 	for _, c in ipairs(content:GetChildren()) do
 		c:Destroy()
 	end
@@ -532,12 +641,16 @@ local function openPanel(name, title, list, color, tip, keepOpen)
 	hint.money.Text = string.format("%s 💰 %s", t("youHave"), Format.num(state.money or 0))
 	content.Position = UDim2.fromOffset(18, top)
 	content.Size = UDim2.new(1, -36, 1, -(top + 10))
+	panelFx.theme(color)
 	panel.Visible = true
 	panelScale.Scale = 0.6
+	panel.Rotation = -4
 	TweenService:Create(panelScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	TweenService:Create(panel, TweenInfo.new(0.45, Enum.EasingStyle.Back), { Rotation = 0 }):Play()
 	play("pop")
 	content.CanvasPosition = Vector2.zero
 	render(true)
+	panelFx.cascade()
 end
 
 local function listLayout()
@@ -553,6 +666,18 @@ local function row(order, icon, title, subtitle, btnText, btnColor, enabled, onC
 		gradient(darker(accent, 0.45), Color3.fromRGB(26, 18, 50), 0),
 		stroke(accent, 2.5),
 	})
+	-- brillo de cristal arriba y destello que cruza la fila (lo mueve el fondo vivo del menú)
+	new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -8, 0.4, 0), Position = UDim2.fromOffset(4, 3), ZIndex = 11, Parent = f }, {
+		corner(13),
+		new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.82), NumberSequenceKeypoint.new(1, 1) }) }),
+	})
+	local rowShine = new("UIGradient", {
+		Rotation = 20,
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.44, 1), NumberSequenceKeypoint.new(0.5, 0.55), NumberSequenceKeypoint.new(0.56, 1), NumberSequenceKeypoint.new(1, 1) }),
+		Offset = Vector2.new(-1, 0),
+	})
+	new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromScale(1, 1), ZIndex = 11, Parent = f }, { corner(16), rowShine })
+	table.insert(panelFx.rowShines, rowShine)
 	local ic = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(62, 62), Position = UDim2.fromOffset(10, 10), ZIndex = 12, Parent = f }, { corner(14), gradient(accent, darker(accent, 0.5), 90) })
 	label({ Parent = ic, Text = icon, Font = TITLE, Size = UDim2.new(1, -10, 1, -10), Position = UDim2.fromOffset(5, 5), ZIndex = 13, Stroke = false })
 	label({ Parent = f, Font = TITLE, Text = title, Size = UDim2.new(0.6, -90, 0, 36), Position = UDim2.fromOffset(84, 8), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = WHITE, ZIndex = 12 })
