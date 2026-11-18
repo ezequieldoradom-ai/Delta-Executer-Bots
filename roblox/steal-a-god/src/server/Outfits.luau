@@ -1,9 +1,67 @@
 -- Ropa real del catálogo de Roblox para cada personaje (dioses, guardianes y vendedores).
--- Clave = id del personaje (Config.GODS[i].id, "g_<guardián>", "v_<vendedor>").
--- Campos (todos opcionales):
---   hat, hair, face, neck, shoulders, front, back, waist = { ids }   accesorios rígidos
---   layered = { { type = "Jacket", id = ... }, ... }                ropa 3D (Shirt, Pants, Jacket, Sweater, Shorts, DressSkirt, TShirt, LeftShoe, RightShoe)
---   shirt, pants = id                                               ropa clásica 2D
---   keep = { "item", "head", "wings" }                              piezas propias que se conservan (por defecto { "item" })
--- Si un personaje no está aquí, se viste como antes (piezas propias).
-return {}
+-- Generado con tools/merge_outfits.py a partir de los conjuntos elegidos mirando las miniaturas
+-- y comprobados en un servidor real con tools/catalog.py check.
+-- Campos: hat, hair, face, neck, shoulders, front, back, waist = { ids } · layered = { { type, id } }
+--         shirt, pants = id · keep = { "item", "head", "wings" } (piezas propias que se conservan)
+return {
+	-- Jackal god of the dead: black jackal head with tall gold-trimmed ears and striped gold nemes, black & gold usekh collar with arm cuffs, white & gold pleated kilt, gold cobra arm br
+	anubis = { hat = { 18771070251 }, shoulders = { 121449950582368, 93731780936710 }, back = { 135548017189725, 106351739654530 }, waist = { 137556673904686 }, layered = { { type = "Jacket", id = 120237372511518 }, { type = "Pants", id = 123415319890912 } }, keep = { "item" } },
+	-- Goddess of wisdom and war: golden crested Greek helmet, long wavy brown hair, white & gold goddess gown, white-gold winged armour collar, snowy owl on the shoulder, gold arm cuff a
+	atenea = { hat = { 95506950953943 }, hair = { 91236028672328 }, shoulders = { 108587604765349, 110021088061152 }, front = { 101999747968430 }, back = { 138682749900557 }, layered = { { type = "DressSkirt", id = 97145004642533 } }, keep = { "item" } },
+	-- Titan of time: long white hair and long white wizard beard, spiked bronze ornate crown with a glowing gold Roman-numeral time halo around the head, winged bronze heroic pauldrons a
+	cronos = { hat = { 114705111344140, 121471253574918 }, hair = { 126795757748952 }, face = { 89670557352751 }, shoulders = { 111825422439757, 130567745977886 }, front = { 107114658929121 }, back = { 12376054386, 98204860134089 }, layered = { { type = "Jacket", id = 17295390719 } }, keep = { "item" } },
+	-- Keeper of the winds (common, clean): white wind-swept long hair, white laurel, icy sky-blue draped Greek tunic, a floating white wind-sash around the shoulders, little clouds drift
+	eolo = { hat = { 6378301036 }, hair = { 120333447791979 }, shoulders = { 123872960004873 }, back = { 119925016199495 }, waist = { 99820599431747 }, layered = { { type = "DressSkirt", id = 140177046199076 } }, keep = { "item" } },
+	-- Rosy-fingered dawn: long wavy hair fading from night-black to glowing peach, crown of red roses with gold rays and a blazing sun disk behind the head, gold spiral sun pendant, saff
+	eos = { hat = { 7847494456, 133254339316338 }, hair = { 114530733029450 }, neck = { 125812108581086 }, back = { 94527872226718, 135142168385381 }, layered = { { type = "DressSkirt", id = 138587417354165 } }, keep = { "item" } },
+	-- Primordial darkness: black-and-violet hair, emissive purple glowing eyes, horned black/violet crystal void crown, spiked void pauldrons, amethyst pendant, long black sorcerer robe,
+	erebo = { hat = { 96917476474822 }, hair = { 101363403361472 }, face = { 101318466063661 }, neck = { 90849790758292 }, shoulders = { 75077955209507, 79534836202525 }, back = { 133327439931912, 9134224241 }, waist = { 137224351148158 }, layered = { { type = "DressSkirt", id = 121422417313605 } }, keep = { "item" } },
+	-- First-born god of light (max rarity): long golden angelic hair, star-and-diamond golden crown, emissive golden eyes, TWO pairs of wings (huge gold wings plus glowing emissive wings
+	fanes = { hat = { 14009052615 }, hair = { 139703982348719 }, face = { 112184887731747 }, back = { 109534557778507, 109862076953100, 17761047856, 97315500027359 }, layered = { { type = "DressSkirt", id = 113121962653421 }, { type = "Jacket", id = 94982210892070 } }, keep = { "item" } },
+	-- Headless read: black hood with an empty void face above ghostly green flames rising from the neck; spiked black dragon-knight armour (top + legs), huge tattered black hooded cloak;
+	g_dullahan = { hat = { 86278272678239 }, neck = { 14608479579 }, back = { 112333687663079 }, layered = { { type = "Shirt", id = 70957451601440 }, { type = "Pants", id = 71158005580633 } }, keep = { "item" } },
+	-- Feral dark-grey wolf head with icy glowing blue eyes, full shaggy black werewolf fur body, iron prisoner collar with a broken chain, broken chains bursting across the chest, floati
+	g_fenrir = { hat = { 88908149249810 }, neck = { 107233557962683 }, front = { 100736570647065 }, back = { 91240449705463 }, waist = { 140702024260573 }, layered = { { type = "Pants", id = 9808610775 } }, keep = {  } },
+	-- Aztec jaguar-warrior helmet (roaring jaguar head with gold ear disc) with a green quetzal-feather fan rising behind it, jade bead necklace, spotted jaguar-fur suit (shaggy pelt jac
+	g_jaguar = { hat = { 83916557079997, 5357055013 }, neck = { 376527115 }, back = { 80620773542394 }, waist = { 17412164015 }, layered = { { type = "Pants", id = 91850367827428 }, { type = "Jacket", id = 18252759126 } }, keep = { "item" } },
+	-- Tall gold Persian-style crown with a gold horned tiara (bull horns), long curly black hair, braided dark beard with gold clasps (Assyrian style), big golden eagle wings, ornate gol
+	g_lamassu = { hat = { 103294546796601, 13840364180 }, hair = { 92894582409774 }, face = { 133261490525084 }, back = { 126074449096086 }, waist = { 116502113763525 }, layered = { { type = "Jacket", id = 9437838033 } }, keep = { "item" } },
+	-- Snarling realistic bull head with horns, red eyes and nose ring; bronze ornate gladiator cuirass, spiked bronze pauldrons with chains, leather war skirt with red pteruges, brown bu
+	g_minotaur = { hat = { 10987851341 }, shoulders = { 88118901498558, 110216654938825 }, front = { 94935357777870 }, back = { 114973557807912 }, waist = { 96281836647422, 89936225159129 }, keep = { "item" } },
+	-- Gold & lapis pharaoh nemes headdress over a golden lioness (Sekhmet) face mask, lapis-blue royal kilt with gold sandals, blue/gold pharaoh collar-mantle and arm cuffs, lion tail, g
+	g_sphinx = { hat = { 133808366137778 }, face = { 117572842810215 }, back = { 77014260592947 }, waist = { 78621008225630 }, layered = { { type = "Pants", id = 92807948027220 }, { type = "Jacket", id = 91752082423556 } }, keep = { "item" } },
+	-- Mother Earth: long wavy brown hair with a flower circlet, antler-and-leaf nature crown with jewels and a teal plume, leafy shoulder wraps, earthy stone-and-bead spirit amulet, deep
+	gaia = { hat = { 106212650097068 }, hair = { 118455267910463 }, neck = { 124482072673922 }, shoulders = { 6901638605, 6901664086 }, back = { 101376124245293, 110562560392324 }, waist = { 132254976217412 }, layered = { { type = "DressSkirt", id = 81902472327547 } }, keep = { "item" } },
+	-- King of the underworld: slicked-back black hair and black beard, glowing blue-flame eyes, spiked black crown with a blue gem, tattered midnight-blue robes over a black tunic, black
+	hades = { hat = { 105712487764126 }, hair = { 131498193431761 }, face = { 96132423952733, 124663145756377 }, neck = { 13915441424 }, shoulders = { 117849371461401, 85212731967810 }, back = { 94560165162753 }, layered = { { type = "DressSkirt", id = 86401989612624 }, { type = "Jacket", id = 72582412113057 } }, keep = { "item" } },
+	-- Divine blacksmith of Olympus: messy dark-brown hair and a full brown beard, spiked black lava crown with glowing magma cracks, rugged blacksmith leather armour under a long leather
+	hefesto = { hat = { 137807517172441 }, hair = { 125003507199720 }, face = { 75064057337639 }, neck = { 98781918164006 }, shoulders = { 131397051610345, 107590111113944 }, back = { 123075328553075 }, waist = { 128855834539688, 133627666175204 }, layered = { { type = "Jacket", id = 100286891109667 }, { type = "Jacket", id = 9125090129 } }, shirt = 123582753978954, pants = 128181645354310, keep = { "item" } },
+	-- Queen of the gods: long black-and-violet goddess waves crowned by a gold peacock-feather showgirl headdress, royal gold-and-amethyst necklace, purple-and-gold twilight gown with a 
+	hera = { hat = { 139086306210739 }, hair = { 101604760809460 }, neck = { 78882775107274 }, back = { 129913829039644, 136895184813215 }, waist = { 4848381417, 108634288337148 }, layered = { { type = "DressSkirt", id = 134650623143367 } }, keep = { "item" } },
+	-- Fastest god and messenger: golden curly hair with little white-and-gold head wings (winged helmet look), white tunic with gold emblem and brown leather sleeves plus painted winged 
+	hermes = { hat = { 109602874783925 }, hair = { 97761743779267 }, neck = { 82004385954529 }, front = { 111358887794027 }, back = { 131236310166629, 79087826898264 }, layered = { { type = "Jacket", id = 115268423377265 } }, shirt = 9141781356, pants = 9141784372, keep = { "item" } },
+	-- Titan of light (Divine): long golden hair, stylised golden beard and glowing yellow eyes, ornate gold sun-ray crown, white-and-gold lord robe with sculpted gold shoulders and an or
+	hiperion = { hat = { 79741458815274 }, hair = { 91232962039229 }, face = { 85935375319582, 92892772635358 }, neck = { 138126765479000 }, front = { 101815318885597 }, back = { 120814113937765, 117191506215845, 132117681714021 }, layered = { { type = "Jacket", id = 76430574228671 } }, keep = { "item" } },
+	-- Rainbow messenger (simple but clean): long pastel-rainbow goddess waves under a softly glowing rainbow halo, iridescent pink-and-gold goddess gown, a fluffy cloud scarf trailing a 
+	iris = { hat = { 94802318546729 }, hair = { 99331973939490 }, neck = { 104634775312203 }, back = { 105937589495934, 105326907366008 }, layered = { { type = "DressSkirt", id = 88386318952795 } }, keep = { "item" } },
+	-- Trickster god: long sleek black hair, golden chained horns, glowing green slit (cat) eyes, dark-green & gold embroidered royal coat, black leather pants, green & gold spiked should
+	loki = { hat = { 133893948138954 }, hair = { 13317143256 }, face = { 16755612836 }, neck = { 117435650316390 }, shoulders = { 133219983287287, 108383169908188 }, back = { 16571522137 }, waist = { 119022845206634 }, layered = { { type = "Jacket", id = 90117421938103 }, { type = "Pants", id = 131424618007274 } }, keep = { "item" } },
+	-- Primordial goddess of night (Secret): long violet-and-black moon-goddess hair with crescent ornaments, black Night crown with a towering purple crystal spike, spiked galaxy moon ha
+	nyx = { hat = { 82352715185058, 87791345643511 }, hair = { 82692637994572 }, face = { 140641055667463 }, neck = { 83373158589137 }, shoulders = { 86291628959457, 124525985041283 }, back = { 70949057215782, 122672977823615 }, layered = { { type = "DressSkirt", id = 70880489459117 } }, keep = { "item" } },
+	-- One-eyed All-Father as the Wanderer: weathered grey wide-brimmed hat, silver braided hair, long grey wizard beard, black eyepatch, two ravens (Huginn and Muninn) on his shoulders, 
+	odin = { hat = { 131914022524247 }, hair = { 83385849387108 }, face = { 110068260566739, 87102101940375 }, shoulders = { 90302327500542, 103948388190191 }, back = { 122550688076466, 103440471130023 }, layered = { { type = "Jacket", id = 17295403303 } }, keep = { "item" } },
+	-- God of the sea: long dark-teal hair and full teal beard, gold-and-shell sea crown with a teal gem, deep-teal speckled tunic, teal & gold pauldrons, shell-pearl necklace, a crashing
+	poseidon = { hat = { 83977361741261 }, hair = { 112747864466675 }, face = { 90278762458469 }, neck = { 18796867549 }, shoulders = { 117684920843538, 136582070031264 }, back = { 112924726372415 }, waist = { 10929835236 }, layered = { { type = "DressSkirt", id = 140177046199076 } }, keep = { "item" } },
+	-- The feathered serpent: huge emerald Aztec feather headdress with a gold skull crest, long black hair, green tribal face markings, jade serpent earrings, jade dragon-serpent skull p
+	quetzalcoatl = { hat = { 80157388272906 }, hair = { 114686307013024 }, face = { 71083916449726, 136815048695505 }, shoulders = { 85011337160128, 132962254792338 }, front = { 136435063847357 }, back = { 90695278401021 }, waist = { 117110375976260, 15081298958 }, layered = { { type = "DressSkirt", id = 102673967850843 } }, keep = { "item" } },
+	-- Falcon-headed sun god: golden falcon mask with nemes and sun-disc ring crown, white & gold royal usekh mantle, white & gold kilt with gold sandals, winged-scarab and Eye of Horus a
+	ra = { hat = { 123389723580805 }, shoulders = { 70449324671954, 128987106389623 }, back = { 130620708846035, 81217989026515 }, layered = { { type = "Jacket", id = 75393076078202 }, { type = "Pants", id = 97017864737394 } }, keep = { "item" } },
+	-- God of thunder: braided fiery-red Viking hair and big red beard, iron winged Viking helmet, chainmail shirt, black leggings with gold Norse knotwork, carved leather Viking pauldron
+	thor = { hat = { 140446359532391 }, hair = { 121751468132122 }, face = { 118456082908503 }, neck = { 8082675404 }, shoulders = { 72663465354631, 122595975511798 }, back = { 4708682240, 13634187408 }, waist = { 98178730898319 }, layered = { { type = "Shirt", id = 15298206900 }, { type = "Pants", id = 135574103443171 } }, keep = { "item" } },
+	-- Goddess of magic and the moon: long wavy black hair, obsidian crescent-moon crown, silver crescent earrings, glowing violet eyes, dark violet sorcerer's robe with a moon emblem, si
+	v_hecate = { hat = { 73080310046887, 81861500395304 }, hair = { 115363153936560 }, face = { 133747585504139 }, neck = { 130185659956594 }, back = { 17184579687 }, waist = { 87357383029193 }, layered = { { type = "DressSkirt", id = 107911825383670 } }, keep = { "item" } },
+	-- Wise centaur mentor: curly brown hair and beard, green laurel wreath, chestnut centaur horse body, bronze-leather muscle cuirass, green cloak, gold laurel arm cuff and a leather ar
+	v_quiron = { hat = { 124345476094314 }, hair = { 107089302420737 }, face = { 108705374974944 }, shoulders = { 124557417591405 }, front = { 135093713581151 }, back = { 114400943065747, 75855165698007 }, layered = { { type = "Pants", id = 15407771840 } }, keep = { "item" } },
+	-- King of the gods: long white hair + big white beard, golden lightning-bolt crown, gold cuirass over white skirt, gold pauldrons, white & gold royal cape, golden lightning-bolt wing
+	zeus = { hat = { 103631738479448 }, hair = { 126795757748952 }, face = { 83727794341050 }, shoulders = { 71356323186387, 103584095456918 }, back = { 81676657333296, 112977728846519 }, waist = { 18796636731 }, layered = { { type = "DressSkirt", id = 102129002730179 } }, keep = { "item" } },
+}
