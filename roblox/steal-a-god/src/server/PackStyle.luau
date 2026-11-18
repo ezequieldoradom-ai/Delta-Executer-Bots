@@ -1477,6 +1477,52 @@ function PackStyle.buildNest(i, centre)
 	sparks.RotSpeed = NumberRange.new(-60, 60)
 	sparks.Parent = lining -- salen de todo el lecho, sin salirse del nido
 
+	-- Faro: columna de luz del color de la zona y anillos que suben despacio. Visto en Studio, el nido
+	-- apenas se distinguía desde la entrada de la zona; así se ve desde el fondo del pasillo.
+	-- Sin piezas: un haz (Beam) entre dos puntos del disco y un emisor de anillos tumbados.
+	local beaconBottom = Instance.new("Attachment")
+	beaconBottom.Name = "BeaconBottom"
+	beaconBottom.Position = Vector3.new(0.1, 0, 0) -- X local del disco = vertical
+	beaconBottom.Parent = disc
+	local beaconTop = Instance.new("Attachment")
+	beaconTop.Name = "BeaconTop"
+	beaconTop.Position = Vector3.new(70, 0, 0)
+	beaconTop.Parent = disc
+	-- haz liso (sin textura: una textura redonda estirada 70 studs quedaba casi invisible contra el cielo)
+	local function beam(name, w0, w1, color, transparency, emission)
+		local b = Instance.new("Beam")
+		b.Name = name
+		b.Attachment0 = beaconBottom
+		b.Attachment1 = beaconTop
+		b.FaceCamera = true
+		b.Width0 = w0
+		b.Width1 = w1
+		b.LightEmission = emission
+		b.LightInfluence = 0
+		b.Color = color
+		b.Transparency = transparency
+		b.Segments = 1
+		b.Parent = disc
+		return b
+	end
+	beam("NestBeacon", 5, 2, ColorSequence.new(t.glow), seq({ { 0, 0.3 }, { 0.5, 0.6 }, { 1, 1 } }), 0.35)
+	beam("NestBeaconCore", 1.4, 0.5, ColorSequence.new(WHITE), seq({ { 0, 0.2 }, { 0.6, 0.7 }, { 1, 1 } }), 0.6)
+	local rings = Instance.new("ParticleEmitter")
+	rings.Name = "BeaconRings"
+	rings.Texture = C.VFX.ring
+	rings.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
+	rings.EmissionDirection = Enum.NormalId.Right -- hacia arriba
+	rings.SpreadAngle = Vector2.new(0, 0)
+	rings.Speed = NumberRange.new(6)
+	rings.Rate = 0.7
+	rings.Lifetime = NumberRange.new(5)
+	rings.LightEmission = 0.8
+	rings.LightInfluence = 0
+	rings.Color = colors(WHITE, t.glow)
+	rings.Size = seq({ { 0, 9 }, { 1, 4 } })
+	rings.Transparency = seq({ { 0, 1 }, { 0.1, 0.3 }, { 0.7, 0.6 }, { 1, 1 } })
+	rings.Parent = glowAt
+
 	-- cuenco: doce bloques en corro, con el labio hacia fuera
 	local bowlA, bowlAMat = N.bowlA or t.body, N.bowlAMat or t.bodyMat
 	local bowlB, bowlBMat = N.bowlB or t.panel, N.bowlBMat or t.bodyMat
