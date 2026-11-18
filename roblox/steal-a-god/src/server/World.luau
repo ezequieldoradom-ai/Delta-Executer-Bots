@@ -924,7 +924,9 @@ function World.makeGuardian(i)
 		m:ScaleTo(k)
 		local h = (m:GetAttribute("PivotH") or 3) * k
 		local rp = m.PrimaryPart
-		local ring = part({ Name = "Scorch", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 12 * k / 4, 12 * k / 4), CFrame = rp.CFrame * CFrame.new(0, -h + 0.08, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(255, 50, 30), Material = Enum.Material.Neon, Transparency = 0.6, CanCollide = false, Parent = m })
+		-- Marca de fuego bajo los pies. Va FUERA del modelo (soldada a la raíz): dentro del avatar
+		-- se reescalaba con él y acababa siendo un disco rojo de 70-120 studs que tapaba el suelo.
+		local ring = part({ Name = "Scorch" .. i, Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 3.2 * k, 3.2 * k), CFrame = rp.CFrame * CFrame.new(0, -h + 0.08, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(255, 50, 30), Material = Enum.Material.Neon, Transparency = 0.7, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Parent = root })
 		local dec = Instance.new("Decal")
 		dec.Face = Enum.NormalId.Right
 		dec.Texture = G.Config.VFX.runes
