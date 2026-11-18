@@ -53,3 +53,13 @@ con globo rojo, panel (tira de racha con el día 1 marcado, "vuelve en 9h", 3 mi
 - El joystick táctil de Roblox (abajo a la izquierda) tapa la línea de velocidad "⚡ 0 (x1)" y parte del dinero.
 - Texto de la tarjeta del tutorial y de las misiones pequeño pero legible; los botones `Cambiar` y `Saltar` tienen buen tamaño.
 - El botón de cierre del panel es un círculo rojo sin "X": añadirle la X ayuda a entenderlo.
+
+## 2026-11-18 16:10 · Shadow — prueba de la cinta con bloqueo y toques (ad6c28c), iPhone XR + teclado
+Capturas: `docs/capturas_shadow/cinta_*.png`.
+- ✅ Tutorial: ya arranca solo al entrar (sin el aviso de `Quests:267`). Paso 2/6 explica los toques y avanza a 3/6 al conseguir combo; no he visto choques con Missions.luau.
+- ✅ Bloqueo: al pisar la cinta quedas anclado en el centro mirando a lo largo de la cinta, con la pose de correr. Panel "Combo xN · N toques · +N/s · Salta para bajar".
+- ✅ Saltar (Espacio) te baja por detrás: queda en (-56.5, 5, -36) con la cinta en x=-47, `Anchored=false` y mirando hacia la cinta.
+- ✅ Los círculos salen dentro de la pantalla del iPhone con el número, el multiplicador (x2, x3) y el aro dorado; ninguno se sale. En el iPhone el círculo puede caer encima del panel de la cinta de abajo (y ≈ 0,68 llega a rozarlo): bajaría el máximo de `y` a ~0,6.
+- ✅ E acierta el toque (6 toques → Combo x3, +15/s). E sigue abriendo a Hécate fuera de la cinta.
+- ⚠️ **Machacar E sin mirar mantiene el combo**: pulsé E cada 0,2 s durante 12 s sin apuntar → 7 toques, x3, nunca "COMBO PERDIDO". Con teclado/mando no hay que apuntar, así que basta con mantener el ritmo. Propuesta: que un E/R2 sin toque activo (o con el aro aún muy abierto) cuente como fallo, o un enfriamiento tras pulsar en vacío.
+- ⚠️ El panel de la cinta (abajo en el centro) tapa la casilla "Bate de madera" de la barra de herramientas en iPhone (igual que el panel de misiones).
