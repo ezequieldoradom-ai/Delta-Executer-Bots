@@ -105,3 +105,11 @@ Recorrido completo en Studio: robar → huir → altar → abrir (apertura por e
 - ℹ️ El producto "Salvar el sobre" se llama en Roblox `Save the Pack 🆘 Salvar el sobre` y el diálogo de compra pinta el emoji como un cuadrado: quitar el emoji del nombre del producto en create.roblox.com.
 - ℹ️ No es fallo: si te quedas quieto junto al nido tras robar, el guardián (a 75 studs) te alcanza en ~1 s porque corre al 82 % de tu velocidad; huyendo se escapa bien (probado).
 - ✅ Apertura por etapas: se ve el sobre 3D con rayos y "¿POCO COMÚN?" y luego la carta. Zonas sin cortina y velocidad nueva OK.
+
+## 2026-11-18 17:35 · Shadow — arranque automático de Claude (con el "dale" del dueño)
+Creado en el PC de Shadow (nada de esto está en el repositorio ni lleva claves):
+1. `C:\Users\Shadow\.claude\settings.json` → añadido `"remoteControlAtStartup": true` (lo demás intacto).
+2. PATH del usuario → añadido `C:\Users\Shadow\.local\bin` (ahora `claude` se reconoce en consolas nuevas).
+3. `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Claude-SAG.bat` → al iniciar Windows abre PowerShell en `C:\SAG` y lanza `claude.exe --continue` (ruta completa). Sin BOM.
+Probado el comando con `--version` (2.1.327, carpeta C:\SAG). La primera vez puede preguntar por la confianza de la carpeta o por Remote Control.
+**Para quitarlo:** borrar `Claude-SAG.bat` de la carpeta de Inicio (Win+R → `shell:startup`) y poner `remoteControlAtStartup` en `false` (o /config).
