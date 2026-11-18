@@ -1326,6 +1326,56 @@ local packStroke = stroke(WHITE, 5)
 packStroke.Parent = packCard
 local packScale = new("UIScale", { Parent = packCard })
 local packLabel = label({ Parent = packCard, Font = TITLE, Size = UDim2.new(1, -20, 0, 60), Position = UDim2.new(0, 10, 0.5, -30), ZIndex = 34 })
+-- Sobre en 3D (el de verdad, de ReplicatedStorage.PackTemplates): gira, se carga, sube de rareza y se rompe
+local packVP = new("ViewportFrame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1.7, 1.35), Position = UDim2.fromScale(0.5, 0.45), AnchorPoint = Vector2.new(0.5, 0.5), Ambient = Color3.fromRGB(175, 170, 195), LightColor = WHITE, LightDirection = Vector3.new(-0.6, -1, 0.8), ZIndex = 33, Parent = packCard })
+local packCam = new("Camera", { FieldOfView = 30, Parent = packVP })
+packVP.CurrentCamera = packCam
+local packModel = nil
+local packRevealToken = 0 -- para que el cierre retrasado de un sobre no esconda el siguiente
+local function setPackModel(r)
+	if packModel then
+		packModel:Destroy()
+		packModel = nil
+	end
+	local folder = ReplicatedStorage:FindFirstChild("PackTemplates")
+	local tpl = folder and folder:FindFirstChild("R" .. tostring(r))
+	if not tpl then
+		return false
+	end
+	packModel = tpl:Clone()
+	packModel.Parent = packVP
+	local _, size = packModel:GetBoundingBox()
+	local dim = math.max(size.X, size.Y, 4)
+	packCam.CFrame = CFrame.lookAt(Vector3.new(0, 0.3, -dim * 2.9), Vector3.new(0, 0.1, 0))
+	return true
+end
+-- Las dos mitades del sobre salen volando al romperse
+local function packHalves(color)
+	if packModel then
+		packModel:Destroy()
+		packModel = nil
+	end
+	local halves = {}
+	for s = -1, 1, 2 do
+		local h = new("Part", { Anchored = true, Size = Vector3.new(1.5, 4, 0.5), Color = color, Material = Enum.Material.Foil, CFrame = CFrame.new(s * 0.75, 0, 0), Parent = packVP })
+		table.insert(halves, { part = h, s = s })
+	end
+	local t0 = os.clock()
+	local conn
+	conn = RunService.RenderStepped:Connect(function()
+		local e = os.clock() - t0
+		for _, it in ipairs(halves) do
+			it.part.CFrame = CFrame.new(it.s * (0.75 + e * 11), e * 5 - e * e * 14, e * 2) * CFrame.Angles(e * 7, it.s * e * 3, it.s * e * 6)
+			it.part.Transparency = math.clamp(e / 0.55, 0, 1)
+		end
+		if e > 0.6 then
+			conn:Disconnect()
+			for _, it in ipairs(halves) do
+				it.part:Destroy()
+			end
+		end
+	end)
+end
 local flash = new("Frame", { BackgroundColor3 = WHITE, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 40, Parent = reveal })
 local godCard = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(380, 540), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 35, Parent = reveal }, { corner(26) })
 local godGrad = gradient(WHITE, WHITE, 90)
@@ -1390,30 +1440,76 @@ local function doReveal(data)
 	reveal.Visible = true
 	reveal.BackgroundTransparency = 1
 	godCard.Visible = false
+	packRevealToken += 1
 	packCard.Visible = true
 	rays.Visible = true
 	for _, r in ipairs(rayFrames) do
 		r.BackgroundColor3 = rc
 	end
 	TweenService:Create(reveal, TweenInfo.new(0.4), { BackgroundTransparency = 0.15 }):Play()
-	packGrad.Color = ColorSequence.new(rc, darker(rc, 0.35))
+	-- el sobre empieza con SU rareza; la suerte puede subirlo durante la carga (fromR → toR)
+	local fromR = math.clamp(tonumber(data.fromR) or g.r, 1, #Config.RARITIES)
+	local toR = math.clamp(tonumber(data.toR) or g.r, fromR, #Config.RARITIES)
+	local rcFrom = rcolor(fromR)
+	for _, r in ipairs(rayFrames) do
+		r.BackgroundColor3 = rcFrom
+	end
+	local has3D = setPackModel(fromR)
+	packCard.BackgroundTransparency = has3D and 1 or 0
+	packStroke.Transparency = has3D and 1 or 0
+	packLabel.Position = has3D and UDim2.new(0, 10, 1, -14) or UDim2.new(0, 10, 0.5, -30)
+	packGrad.Color = ColorSequence.new(rcFrom, darker(rcFrom, 0.35))
 	packStroke.Color = WHITE
-	packLabel.Text = string.upper(Locale.name(rarity))
-	packLabel.TextColor3 = WHITE
+	packLabel.Text = string.upper(Locale.name(Config.RARITIES[fromR]))
+	packLabel.TextColor3 = has3D and rcFrom:Lerp(WHITE, 0.35) or WHITE
 	packScale.Scale = 0
 	TweenService:Create(packScale, TweenInfo.new(0.45, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	play("pop")
-	-- 2) carga con temblor que aumenta
-	local charge = 1.1 + math.min(g.r, 10) * 0.14
+	-- 2) carga con temblor que aumenta (más larga si sube de rareza: un salto por rareza)
+	local ups = {}
+	local nUp = toR - fromR
+	local charge = 1.1 + math.min(g.r, 10) * 0.14 + nUp * 0.4
+	for i = 1, nUp do
+		ups[i] = { r = fromR + i, at = charge * (0.3 + 0.55 * i / nUp) }
+	end
+	local nextUp = 1
+	local angle = math.pi
 	local t0 = os.clock()
 	local conn
 	conn = RunService.RenderStepped:Connect(function(dt)
 		local e = os.clock() - t0
 		local k = math.clamp(e / charge, 0, 1)
 		rays.Rotation += dt * (30 + k * 260)
-		packCard.Rotation = (math.random() - 0.5) * 14 * k
+		if packModel then
+			-- gira cada vez más rápido, tiembla y se inclina
+			angle += dt * (1.4 + k * k * 18)
+			local j = 0.18 * k
+			packModel:PivotTo(CFrame.new((math.random() - 0.5) * j, (math.random() - 0.5) * j, 0) * CFrame.Angles(math.sin(e * 3) * 0.12, angle, math.sin(e * 22) * 0.1 * k))
+		else
+			packCard.Rotation = (math.random() - 0.5) * 14 * k
+		end
 		packCard.Position = UDim2.new(0.5, (math.random() - 0.5) * 18 * k, 0.5, (math.random() - 0.5) * 18 * k)
 		packScale.Scale = 1 + 0.12 * k + math.sin(e * 18) * 0.03 * k
+		-- ¡sube de rareza! cambia el sobre, los rayos y el nombre con un destello
+		local up = ups[nextUp]
+		if up and e >= up.at then
+			nextUp += 1
+			local c = rcolor(up.r)
+			if has3D then
+				setPackModel(up.r)
+			end
+			packGrad.Color = ColorSequence.new(c, darker(c, 0.35))
+			packLabel.Text = "⬆️ " .. string.upper(Locale.name(Config.RARITIES[up.r]))
+			packLabel.TextColor3 = has3D and c:Lerp(WHITE, 0.35) or WHITE
+			for _, r in ipairs(rayFrames) do
+				r.BackgroundColor3 = c
+			end
+			flash.BackgroundTransparency = 0.45
+			TweenService:Create(flash, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+			burst(c, 14)
+			play("reward", 0.9 + nextUp * 0.12)
+			shake(0.35, 0.2)
+		end
 		if rarity.rainbow or rarity.sparkle then
 			local hue = (os.clock() * 0.5) % 1
 			packStroke.Color = Color3.fromHSV(hue, 0.7, 1)
@@ -1423,8 +1519,23 @@ local function doReveal(data)
 		end
 	end)
 	task.wait(charge)
-	-- 3) destello + explosión
-	packCard.Visible = false
+	-- 3) destello + explosión (el sobre 3D se parte en dos)
+	for _, r in ipairs(rayFrames) do
+		r.BackgroundColor3 = rc
+	end
+	if has3D then
+		packHalves(rc)
+		packLabel.Text = ""
+		packRevealToken += 1
+		local my = packRevealToken
+		task.delay(0.6, function()
+			if my == packRevealToken then
+				packCard.Visible = false
+			end
+		end)
+	else
+		packCard.Visible = false
+	end
 	packCard.Rotation = 0
 	flash.BackgroundTransparency = 0
 	TweenService:Create(flash, TweenInfo.new(0.5), { BackgroundTransparency = 1 }):Play()

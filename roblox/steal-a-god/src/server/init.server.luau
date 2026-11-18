@@ -28,6 +28,7 @@ end
 G.AuraFx = optional("AuraFx") -- efectos de las auras de los jugadores
 G.PackStyle = optional("PackStyle") -- diseño de los sobres por rareza y nidos
 G.Vendors = optional("Vendors") -- dioses que venden auras y entrenadores
+G.PackTemplates = optional("PackTemplates") -- un sobre de muestra por rareza para la apertura en 3D
 
 G.Net.init()
 require(script.Models).load(G.Config)
@@ -38,6 +39,9 @@ if G.AuraFx and G.AuraFx.init then
 end
 if G.PackStyle and G.PackStyle.init then
 	G.PackStyle.init(G)
+end
+if G.PackTemplates then
+	G.PackTemplates.init(G)
 end
 G.World.init(G)
 if G.Vendors then

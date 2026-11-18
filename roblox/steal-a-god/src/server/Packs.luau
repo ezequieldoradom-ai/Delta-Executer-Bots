@@ -772,6 +772,27 @@ function Packs.openAltar(player, i)
 		light.Brightness = 6
 		light.Parent = att
 		game:GetService("Debris"):AddItem(att, 2)
+		-- columna de luz que sube del altar y onda de choque en el suelo (la ven todos)
+		local base = altar.part.Position + Vector3.new(0, altar.part.Size.Y / 2, 0)
+		local pillar = Instance.new("Part")
+		pillar.Name = "OpenPillar"
+		pillar.Shape = Enum.PartType.Cylinder
+		pillar.Anchored, pillar.CanCollide, pillar.CanQuery, pillar.CanTouch, pillar.CastShadow = true, false, false, false, false
+		pillar.Material = Enum.Material.Neon
+		pillar.Color = color
+		pillar.Transparency = 0.2
+		local width = 2 + math.min(god.r, 12) * 0.25
+		pillar.Size = Vector3.new(1, width, width)
+		pillar.CFrame = CFrame.new(base + Vector3.new(0, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		pillar.Parent = workspace
+		local height = 14 + god.r * 3
+		local TS = game:GetService("TweenService")
+		TS:Create(pillar, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Size = Vector3.new(height, width, width), CFrame = CFrame.new(base + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)) }):Play()
+		task.delay(0.35, function()
+			TS:Create(pillar, TweenInfo.new(0.9, Enum.EasingStyle.Quad), { Transparency = 1, Size = Vector3.new(height, width * 0.2, width * 0.2) }):Play()
+		end)
+		game:GetService("Debris"):AddItem(pillar, 1.4)
+		shockwave(base + Vector3.new(0, 2.5, 0), color)
 	end
 	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew, kg = kg, mut = mut, fromR = fromR, toR = toR, luck = p.luck or 1 })
 	if toR > fromR then

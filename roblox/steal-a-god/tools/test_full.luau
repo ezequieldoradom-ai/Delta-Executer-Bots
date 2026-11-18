@@ -44,6 +44,7 @@ step("Cargar módulos", function()
 	G.AuraFx = optional("AuraFx")
 	G.PackStyle = optional("PackStyle")
 	G.Vendors = optional("Vendors")
+	G.PackTemplates = optional("PackTemplates")
 end)
 step("Red", function() G.Net.init() end)
 step("Avatares", function() G.Avatars = require(Server.Avatars); G.Avatars.init(G) end)
@@ -51,6 +52,7 @@ step("Modelos 3D", function() require(Server.Models).load(G.Config); assert(game
 step("Construir mundo", function()
 	if G.AuraFx and G.AuraFx.init then G.AuraFx.init(G) end
 	if G.PackStyle and G.PackStyle.init then G.PackStyle.init(G) end
+	if G.PackTemplates then G.PackTemplates.init(G) end
 	G.World.init(G)
 	if G.Vendors then G.Vendors.init(G) end
 end)
@@ -487,6 +489,41 @@ step("Golpe del jefe: te lanza volando hacia atrás sin salir del pasillo", func
 			end
 		end
 	end
+end)
+
+step("Apertura 3D: un sobre de muestra por rareza y columna de luz en el altar", function()
+	local folder = game.ReplicatedStorage:FindFirstChild("PackTemplates")
+	assert(folder, "sin PackTemplates")
+	local CS = game:GetService("CollectionService")
+	local counts = {}
+	for r = 1, #C.RARITIES do
+		local m = folder:FindFirstChild("R" .. r)
+		assert(m and m:IsA("Model") and m.PrimaryPart, "falta la muestra de la rareza " .. r)
+		local n = 0
+		for _, d in ipairs(m:GetDescendants()) do
+			assert(not (d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Light") or d:IsA("LayerCollector") or d:IsA("ProximityPrompt") or d:IsA("Script")), "muestra " .. r .. " con " .. d.ClassName)
+			assert(#CS:GetTags(d) == 0, "muestra " .. r .. " con etiquetas: " .. d:GetFullName())
+			if d:IsA("BasePart") then
+				assert(d.Anchored, "pieza suelta en la muestra " .. r)
+				n += 1
+			end
+		end
+		local _, size = m:GetBoundingBox()
+		assert(size.Magnitude < 20, "muestra " .. r .. " demasiado grande")
+		counts[#counts + 1] = r .. ":" .. n
+	end
+	add("   piezas por muestra: " .. table.concat(counts, " "))
+	-- abrir en el altar: columna de luz y onda de choque que se limpian solas
+	local fp, d, s = fakePlayer(-125)
+	local plot = G.World.plots[3]
+	s.plot = plot
+	table.insert(d.altarPacks, { r = 8, rem = 0, dawn = false, kg = 100, luck = 50 })
+	G.Packs.openAltar(fp, 1)
+	task.wait(0.1)
+	assert(workspace:FindFirstChild("OpenPillar") and workspace:FindFirstChild("Shockwave"), "sin columna de luz u onda")
+	task.wait(1.6)
+	assert(not workspace:FindFirstChild("OpenPillar") and not workspace:FindFirstChild("Shockwave"), "la columna de luz no se limpia")
+	s.plot = nil
 end)
 
 step("Suerte de cada sobre: según zona, rareza y amanecer", function()
