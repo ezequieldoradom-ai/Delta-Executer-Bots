@@ -32,6 +32,33 @@ function Format.num(n: number): string
 	return s .. SUFFIXES[tier + 1]
 end
 
+-- Multiplicador con decimales cuando es pequeño: 1.35, 12.6, 840, 6.04K
+function Format.mult(x: number): string
+	if x ~= x then
+		return "1"
+	end
+	local s
+	if x < 10 then
+		s = string.format("%.2f", math.floor(x * 100 + 0.5) / 100)
+	elseif x < 100 then
+		s = string.format("%.1f", math.floor(x * 10 + 0.5) / 10)
+	else
+		return Format.num(x)
+	end
+	s = s:gsub("0+$", ""):gsub("%.$", "")
+	return s
+end
+
+-- Número entero con separador de miles: 93.754 (es) o 93,754 (en)
+function Format.group(n: number, sep: string?): string
+	local s = tostring(math.floor(math.max(0, n or 0)))
+	local out = s:reverse():gsub("(%d%d%d)", "%1" .. (sep or ".")):reverse()
+	if out:sub(1, 1) == (sep or ".") then
+		out = out:sub(2)
+	end
+	return out
+end
+
 function Format.time(sec: number): string
 	sec = math.max(0, math.floor(sec))
 	local d = math.floor(sec / 86400)

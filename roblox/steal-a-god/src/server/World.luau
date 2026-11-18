@@ -273,6 +273,71 @@ local PLOT_SPOTS = {
 	{ x = 66, z = 58, yaw = -90 },
 }
 
+-- Cartel de mejora (suerte en la parcela, cinta delante): tablero con marco brillante, dos postes,
+-- emblema que flota y un aviso para mejorar. El cliente escribe el texto en su idioma (etiqueta UpgradeSign)
+-- y solo el dueño de la parcela ve el aviso (atributo Owner del ProximityPrompt).
+local function upgradeSign(plot, kind, cf, color)
+	local folder = plot.folder
+	local wood = Color3.fromRGB(58, 40, 30)
+	local board = part({ Name = kind == "luck" and "LuckSign" or "TreadSign", Size = Vector3.new(7.2, 4.6, 0.5), CFrame = cf * CFrame.new(0, 5, 0), Color = Color3.fromRGB(34, 26, 48), Material = Enum.Material.Slate, Parent = folder })
+	part({ Name = "SignFrame", Size = Vector3.new(7.9, 5.3, 0.3), CFrame = cf * CFrame.new(0, 5, -0.25), Color = color, Material = Enum.Material.Neon, CanCollide = false, Parent = folder })
+	part({ Name = "SignCrest", Size = Vector3.new(8.4, 0.6, 0.9), CFrame = cf * CFrame.new(0, 7.75, 0), Color = Color3.fromRGB(240, 196, 92), Material = Enum.Material.Foil, Parent = folder })
+	for k = -1, 1, 2 do
+		local post = part({ Name = "SignPost", Size = Vector3.new(0.6, 7.6, 0.6), CFrame = cf * CFrame.new(k * 3.7, 3.8, -0.1), Color = wood, Material = Enum.Material.Wood, Parent = folder })
+		skin(post, "planks", 2, Color3.new(1, 1, 1), 0.2)
+	end
+	local emblem = part({ Name = "SignEmblem", Shape = Enum.PartType.Ball, Size = Vector3.new(1.3, 1.3, 1.3), CFrame = cf * CFrame.new(0, 9, 0), Color = color, Material = Enum.Material.Neon, CanCollide = false, Parent = folder })
+	emblem:SetAttribute("BobAmp", 0.35)
+	CollectionService:AddTag(emblem, "FxBob")
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = 12
+	light.Brightness = 1.2
+	light.Shadows = false
+	light.Parent = emblem
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "SignGui"
+	gui.Face = Enum.NormalId.Back -- mira hacia +Z del cartel (hacia quien llega)
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 60
+	gui.LightInfluence = 0
+	gui.MaxDistance = 90
+	gui:SetAttribute("Kind", kind)
+	local function line(name, y, h, textColor)
+		local l = Instance.new("TextLabel")
+		l.Name = name
+		l.BackgroundTransparency = 1
+		l.Size = UDim2.new(0.92, 0, h, 0)
+		l.Position = UDim2.new(0.04, 0, y, 0)
+		l.TextScaled = true
+		l.RichText = true
+		l.Font = Enum.Font.FredokaOne
+		l.TextColor3 = textColor
+		l.TextStrokeTransparency = 0.3
+		l.Text = ""
+		l.Parent = gui
+		return l
+	end
+	line("Title", 0.05, 0.26, color:Lerp(Color3.new(1, 1, 1), 0.35))
+	line("Body", 0.36, 0.34, Color3.new(1, 1, 1))
+	line("Cost", 0.73, 0.22, Color3.fromRGB(110, 255, 140))
+	gui.Parent = board
+	CollectionService:AddTag(gui, "UpgradeSign")
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Upgrade"
+	prompt.ObjectText = ""
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 11
+	prompt.RequiresLineOfSight = false
+	prompt:SetAttribute("Kind", kind == "luck" and "upgradeLuck" or "upgradeTreadmill")
+	CollectionService:AddTag(prompt, "LocPrompt")
+	prompt.Parent = board
+	prompt.Triggered:Connect(function(player)
+		G.Core.useSign(player, plot, kind)
+	end)
+	return { part = board, gui = gui, prompt = prompt }
+end
+
 local function buildPlot(index)
 	local spot = PLOT_SPOTS[index]
 	local cf = CFrame.new(spot.x, 0, spot.z) * CFrame.Angles(0, math.rad(spot.yaw), 0)
@@ -293,8 +358,11 @@ local function buildPlot(index)
 	plot.spawn = at(0, 4, S / 2 - 6).Position
 	plot.spawnCF = CFrame.lookAt(plot.spawn, at(0, 4, 0).Position)
 
-	-- Cinta de correr (esquina delantera)
-	plot.treadmill = part({ Name = "Treadmill", Size = Vector3.new(7, 1, 13), CFrame = at(-S / 2 + 6, 1.4, S / 2 - 9), Color = Color3.fromRGB(35, 35, 45), Material = Enum.Material.SmoothPlastic, Parent = folder })
+	-- Cinta de correr: FUERA de la parcela, justo delante y a un lado de la entrada, paralela a la fachada
+	-- (corres mirando hacia la puerta). Delante, hacia la plaza, su cartel para mejorarla.
+	local treadAt = at(-17, 1.4, S / 2 + 8) * CFrame.Angles(0, math.rad(90), 0)
+	part({ Name = "TreadBase", Size = Vector3.new(9.4, 1.4, 15.4), CFrame = treadAt * CFrame.new(0, -0.75, 0), Color = Color3.fromRGB(205, 195, 175), Material = Enum.Material.Marble, Parent = folder })
+	plot.treadmill = part({ Name = "Treadmill", Size = Vector3.new(7, 1, 13), CFrame = treadAt, Color = Color3.fromRGB(35, 35, 45), Material = Enum.Material.SmoothPlastic, Parent = folder })
 	for k = -1, 1, 2 do
 		part({ Name = "Rail", Size = Vector3.new(0.5, 3, 13), CFrame = plot.treadmill.CFrame * CFrame.new(k * 3.8, 1.5, 0), Color = Color3.fromRGB(90, 230, 255), Material = Enum.Material.Neon, Parent = folder })
 	end
@@ -307,6 +375,9 @@ local function buildPlot(index)
 	end
 	local console = part({ Name = "TreadConsole", Size = Vector3.new(7.4, 1.6, 1.4), CFrame = tcf * CFrame.new(0, 4.6, 6.3) * CFrame.Angles(math.rad(25), 0, 0), Color = Color3.fromRGB(45, 48, 60), Material = Enum.Material.Metal, Parent = folder })
 	part({ Name = "TreadScreen", Size = Vector3.new(5, 0.9, 0.1), CFrame = console.CFrame * CFrame.new(0, 0, -0.72), Color = Color3.fromRGB(90, 230, 255), Material = Enum.Material.Neon, Parent = folder })
+	plot.treadSign = upgradeSign(plot, "treadmill", at(-17, 0.4, S / 2 + 14.5), Color3.fromRGB(90, 230, 255))
+	-- Cartel de la suerte: dentro de la parcela, en la esquina delantera (donde antes estaba la cinta)
+	plot.luckSign = upgradeSign(plot, "luck", at(-20, 1, S / 2 - 9) * CFrame.Angles(0, math.rad(20), 0), Color3.fromRGB(90, 255, 120))
 
 	-- Pedestales (hasta 36): sin colisión para poder pasar entre ellos
 	for i = 1, 36 do

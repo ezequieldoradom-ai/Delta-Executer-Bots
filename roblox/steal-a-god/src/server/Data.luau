@@ -43,6 +43,7 @@ local function defaults()
 		bestSpeed = 0,
 		playtime = 0,
 		treadmill = 1,
+		luckLevel = 1, -- nivel de suerte propia (cartel de la parcela)
 		plot = 1,
 		altars = 3,
 		altarPacks = {},
@@ -88,7 +89,9 @@ local function packList(list, C, max)
 	end
 	for _, p in ipairs(list) do
 		if type(p) == "table" and C.RARITIES[p.r] then
-			table.insert(out, { r = p.r, rem = num(p.rem, 0, 0, 7 * 86400), dawn = p.dawn == true, kg = num(p.kg, 100, 1, 5000) })
+			-- luck: suerte del sobre (los sobres guardados antes de que existiera no la tienen: abren con suerte 1)
+			local luck = type(p.luck) == "number" and math.floor(num(p.luck, 1, 1, 1e7)) or nil
+			table.insert(out, { r = p.r, rem = num(p.rem, 0, 0, 7 * 86400), dawn = p.dawn == true, kg = num(p.kg, 100, 1, 5000), luck = luck })
 			if #out >= max then
 				break
 			end
@@ -109,6 +112,7 @@ function Data.sanitize(raw, C)
 	d.bestSpeed = math.max(num(raw.bestSpeed, 0, 0), d.speed)
 	d.playtime = num(raw.playtime, 0, 0)
 	d.treadmill = math.floor(num(raw.treadmill, 1, 1, C.TREADMILL_MAX))
+	d.luckLevel = math.floor(num(raw.luckLevel, 1, 1, C.LUCK_MAX))
 	d.plot = math.floor(num(raw.plot, 1, 1, C.PLOT_MAX))
 	d.altars = math.floor(num(raw.altars, C.ALTARS_BASE, C.ALTARS_BASE, C.ALTARS_MAX))
 	d.altarPacks = packList(raw.altarPacks, C, C.ALTARS_MAX + 2)

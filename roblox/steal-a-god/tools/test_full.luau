@@ -489,6 +489,125 @@ step("Golpe del jefe: te lanza volando hacia atrás sin salir del pasillo", func
 	end
 end)
 
+step("Suerte de cada sobre: según zona, rareza y amanecer", function()
+	for zi, zone in ipairs(C.ZONES) do
+		local base = C.PACK_LUCK.zoneBase[zi]
+		local minR = C.zoneMinRarity(zi)
+		for r in pairs(zone.weights) do
+			local k = base * (1 + C.PACK_LUCK.perTier * (r - minR))
+			for _ = 1, 100 do
+				local l = C.packLuck(zi, r, false)
+				assert(l == math.floor(l) and l >= 1, "suerte no entera")
+				assert(l >= math.floor(k * 0.55) and l <= k * 1.6, string.format("zona %d rareza %d: %d fuera de rango", zi, r, l))
+			end
+		end
+	end
+	assert(C.packLuck(3, 4, true, function() return 0.5 end) == 3 * C.packLuck(3, 4, false, function() return 0.5 end) or math.abs(C.packLuck(3, 4, true, function() return 0.5 end) - 3 * C.packLuck(3, 4, false, function() return 0.5 end)) <= 3, "amanecer x3")
+	assert(C.packLuck(6, 9, false, function() return 1 end) > C.packLuck(1, 1, false, function() return 0 end) * 1000, "las zonas lejanas no traen más suerte")
+	add(string.format("   Ejemplos: zona 1 común x%d · zona 3 épica x%d · zona 6 primordial al amanecer x%s", C.packLuck(1, 1, false), C.packLuck(3, 4, false), G.Format.group(C.packLuck(6, 9, true))))
+	-- el sobre del mundo lleva su suerte en el cartel
+	local pack = G.Packs.debugSpawn(2, 1, 3, 100)
+	assert(pack.luck and pack.luck >= 1, "el sobre no tiene suerte")
+	local bb = pack.part:FindFirstChildWhichIsA("BillboardGui", true)
+	assert(bb and bb:GetAttribute("Luck") == pack.luck, "el cartel del sobre no muestra la suerte")
+end)
+
+step("Suerte al abrir: el sobre puede subir de rareza (nunca pasa de Primordial)", function()
+	assert(C.upgradeChance(1) == 0 and C.upgradeChance(0) == 0, "sin suerte no sube")
+	local last = 0
+	for e = 1, 12 do
+		local c = C.upgradeChance(10 ^ e)
+		assert(c >= last and c <= C.UPGRADE.cap, "la probabilidad no crece o pasa del tope")
+		last = c
+	end
+	assert(C.upgradeChance(1e300) == C.UPGRADE.cap, "tope")
+	local always, never = function() return 0 end, function() return 0.999 end
+	assert(C.rollUpgrade(1, 1e9, always) == 1 + C.UPGRADE.maxTiers, "más de 4 rarezas")
+	assert(C.rollUpgrade(7, 1e9, always) == 9, "pasó de Primordial")
+	assert(C.rollUpgrade(9, 1e9, always) == 9 and C.rollUpgrade(10, 1e9, always) == 10 and C.rollUpgrade(14, 1e9, always) == 14, "cambió un sobre de rareza 10+")
+	assert(C.rollUpgrade(3, 1e9, never) == 3, "subió sin acertar")
+	-- reparto real: con T = 100.000 la probabilidad por paso es 9 %
+	local N, up = 20000, 0
+	for _ = 1, N do
+		if C.rollUpgrade(1, 1e5) > 1 then
+			up += 1
+		end
+	end
+	assert(math.abs(up / N - C.upgradeChance(1e5)) < 0.012, string.format("reparto raro: %.3f", up / N))
+	add(string.format("   Subir de rareza por paso: x12 → %.1f %% · x5.000 → %.1f %% · x1M → %.1f %% · x1M con suerte nivel 30 → %.1f %%", C.upgradeChance(12) * 100, C.upgradeChance(5000) * 100, C.upgradeChance(1e6) * 100, C.upgradeChance(1e6 * C.luckMult(C.LUCK_MAX)) * 100))
+	-- abrir: sobres antiguos sin suerte abren bien, la suerte viaja al altar y no se abre dos veces
+	local fp, d = fakePlayer(-122)
+	local reveals = {}
+	local saved = G.Net.Reveal
+	G.Net.Reveal = { FireClient = function(_, _, data) table.insert(reveals, data) end }
+	local ok, err = pcall(function()
+		table.insert(d.altarPacks, { r = 2, rem = 0, dawn = false, kg = 100 })
+		G.Packs.openAltar(fp, 1)
+		G.Packs.openAltar(fp, 1)
+		local from, to = G.Packs.rollUpgrade({ r = 2, luck = 1000 }, fp, always)
+		assert(from == 2 and to == 6, "rollUpgrade")
+		local item = { r = 3, rem = 0, dawn = false, kg = 100, luck = 777 }
+		table.insert(d.altarPacks, item)
+		G.Packs.openAltar(fp, 1)
+	end)
+	G.Net.Reveal = saved
+	assert(ok, tostring(err))
+	assert(#reveals == 2, "se abrió dos veces o ninguna")
+	assert(reveals[1].fromR == 2 and reveals[1].toR >= 2 and reveals[1].luck == 1, "sobre antiguo sin suerte")
+	assert(reveals[2].fromR == 3 and reveals[2].luck == 777 and C.GOD_BY_ID[reveals[2].god].r == reveals[2].toR, "la rareza final no manda")
+	-- se guarda y se limpia
+	local dd = G.Data.sanitize({ altarPacks = { { r = 2, rem = 5, luck = 93754 }, { r = 3, rem = 5, luck = -4 }, { r = 3, rem = 5, luck = "x" } }, luckLevel = 999 }, C)
+	assert(dd.altarPacks[1].luck == 93754 and dd.altarPacks[2].luck == 1 and dd.altarPacks[3].luck == nil, "guardar la suerte del sobre")
+	assert(dd.luckLevel == C.LUCK_MAX and G.Data.sanitize({}, C).luckLevel == 1, "nivel de suerte")
+end)
+
+step("Carteles de mejora: suerte en la parcela y cinta delante (solo el dueño)", function()
+	local plot = G.World.plots[1]
+	assert(plot.luckSign and plot.treadSign, "faltan carteles")
+	assert(G.World.inPlot(plot, plot.luckSign.part.Position), "el cartel de suerte no está en la parcela")
+	assert(not G.World.inPlot(plot, plot.treadmill.Position), "la cinta sigue dentro de la parcela")
+	assert(not G.World.inPlot(plot, plot.treadSign.part.Position), "el cartel de la cinta está dentro")
+	local CS = game:GetService("CollectionService")
+	assert(CS:HasTag(plot.luckSign.gui, "UpgradeSign") and CS:HasTag(plot.treadSign.prompt, "LocPrompt"), "etiquetas")
+	-- la cinta y su cartel no chocan con nada de fuera de su parcela (farolas, bordillo, otras parcelas)
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	for _, pl in ipairs(G.World.plots) do
+		params.FilterDescendantsInstances = { pl.folder }
+		for _, p in ipairs({ pl.treadmill, pl.treadSign.part }) do
+			local box = CFrame.new(p.Position.X, 6, p.Position.Z) * p.CFrame.Rotation
+			local hits = workspace:GetPartBoundsInBox(box, Vector3.new(p.Size.X + 3, 9, p.Size.Z + 3), params)
+			for _, h in ipairs(hits) do
+				assert(not h.CanCollide or h.Transparency >= 1, string.format("parcela %d: %s choca con %s", pl.index, p.Name, h:GetFullName()))
+			end
+			assert(math.abs(p.Position.X) <= 37, "fuera de la plaza")
+		end
+	end
+	-- dueño: compra desde el cartel; otro jugador no puede
+	local fp, d, s = fakePlayer(-123)
+	local other = fakePlayer(-124)
+	s.plot = plot
+	plot.owner = fp
+	G.Core.refreshSigns(fp)
+	assert(plot.luckSign.gui:GetAttribute("Owner") == fp.UserId and plot.luckSign.gui:GetAttribute("Level") == 1, "cartel sin datos")
+	assert(plot.treadSign.gui:GetAttribute("Cost") == C.treadmillCost(2), "precio de la cinta")
+	d.money = C.luckCost(2) + C.treadmillCost(2)
+	assert(G.Core.useSign(other, plot, "luck") == false and d.luckLevel == 1, "otro jugador mejoró tu suerte")
+	G.Core.useSign(fp, plot, "luck")
+	assert(d.luckLevel == 2 and plot.luckSign.gui:GetAttribute("Level") == 2, "no subió la suerte")
+	G.Core.useSign(fp, plot, "treadmill")
+	assert(d.treadmill == 2 and d.money == 0 and plot.treadSign.gui:GetAttribute("Level") == 2, "no subió la cinta")
+	d.luckLevel, d.money = C.LUCK_MAX, 1e300
+	G.Core.handleAction(fp, "buyLuck")
+	assert(d.luckLevel == C.LUCK_MAX and d.money == 1e300, "pasó del máximo")
+	-- subir a la cinta nueva: te coloca encima, mirando a lo largo
+	local cf = G.Core.treadmillCF(plot)
+	local rel = plot.treadmill.CFrame:PointToObjectSpace(cf.Position)
+	assert(math.abs(rel.X) < 0.1 and math.abs(rel.Z) < 0.1 and rel.Y > 0, "posición en la cinta")
+	plot.owner = nil
+	s.plot = nil
+end)
+
 step("Colección enorme: se recorta sin tocar el índice", function()
 	local fp, d = fakePlayer(-107)
 	for i = 1, 700 do
@@ -1296,7 +1415,7 @@ step("Datos: partidas antiguas cargan bien, la basura se rechaza y todo se guard
 	G.Data.KEY_PREFIX = "u_"
 end)
 
-step("Suerte: el boost multiplica tu suerte y mejora los sobres que llevas a casa", function()
+step("Suerte: el boost multiplica tu suerte y cuenta al abrir los sobres", function()
 	local fp, d, s = fakePlayer(-360)
 	assert(select(3, G.Core.mults(fp)) == 1 and G.Core.personalLuck(fp) == 1, "suerte base")
 	local msg = Quests.give(fp, { kind = "luck", mins = 10 })
@@ -1313,14 +1432,14 @@ step("Suerte: el boost multiplica tu suerte y mejora los sobres que llevas a cas
 	d.boosts.luck = os.time() - 1
 	G.Core.invalidate(fp)
 	assert(select(3, G.Core.mults(fp)) == 1, "el boost no caduca")
-	-- al llegar a casa: 12 % de mejorar con suerte x2, nunca por encima de la rareza máxima de la zona
+	-- la suerte ya no cambia el sobre al llegar a casa: cuenta al ABRIRLO (suerte del sobre × la tuya)
+	assert(G.Packs.luckUpgrade == nil, "sigue la mejora al llegar a casa")
 	d.boosts.luck = os.time() + 600
-	local item = { r = 1, rem = 10 }
-	assert(G.Packs.luckUpgrade(fp, 1, item, 0.05) == true and item.r == 2 and item.rem == C.RARITIES[2].open, "no mejoró")
-	assert(G.Packs.luckUpgrade(fp, 1, { r = 1, rem = 10 }, 0.5) == false, "mejora demasiado a menudo")
-	assert(G.Packs.luckUpgrade(fp, 1, { r = 4, rem = 1 }, 0) == false, "pasó de la rareza máxima de la zona")
+	assert(math.abs(G.Core.openLuck(fp, 100) - 100 * Q.LUCK_BOOST) < 1e-6, "el boost no cuenta al abrir")
+	d.luckLevel = 5
+	assert(math.abs(G.Core.openLuck(fp, 100) - 100 * Q.LUCK_BOOST * C.luckMult(5)) < 1e-6, "el nivel de suerte no cuenta al abrir")
+	d.luckLevel = 1
 	d.boosts.luck = 0
-	assert(G.Packs.luckUpgrade(fp, 1, { r = 1, rem = 10 }, 0) == false, "mejoró sin suerte")
 	forget(fp)
 end)
 

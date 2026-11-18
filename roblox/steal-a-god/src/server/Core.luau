@@ -182,6 +182,51 @@ function Core.personalLuck(player, d, s)
 	return luck
 end
 
+-- Suerte total al ABRIR un sobre: la del sobre × tu nivel de suerte × pase/premio × suerte del servidor
+function Core.openLuck(player, packLuck)
+	local d = G.Data.profiles[player]
+	local s = Core.sessions[player]
+	local T = (packLuck or 1) * C.luckMult(d and d.luckLevel or 1) * Core.personalLuck(player, d, s)
+	if os.clock() < (G.serverLuckUntil or 0) then
+		T *= 3
+	end
+	return T
+end
+
+-- Carteles de mejora de la parcela (suerte dentro, cinta fuera): el cliente los dibuja en su idioma
+function Core.refreshSigns(player)
+	local s = Core.sessions[player]
+	local d = G.Data.profiles[player]
+	local plot = s and s.plot
+	if not plot or not d or not plot.luckSign then
+		return
+	end
+	local speedMult = Core.mults(player)
+	local function set(sign, level, max, now, nxt, cost)
+		sign.gui:SetAttribute("Owner", player.UserId)
+		sign.gui:SetAttribute("Level", level)
+		sign.gui:SetAttribute("Max", max)
+		sign.gui:SetAttribute("Now", now)
+		sign.gui:SetAttribute("Next", level < max and nxt or 0)
+		sign.gui:SetAttribute("Cost", level < max and cost or 0)
+		sign.prompt:SetAttribute("Owner", player.UserId)
+	end
+	local L = d.luckLevel or 1
+	set(plot.luckSign, L, C.LUCK_MAX, C.luckMult(L), C.luckMult(L + 1), C.luckCost(L + 1))
+	local T = d.treadmill
+	set(plot.treadSign, T, C.TREADMILL_MAX, C.treadmillGain(T) * speedMult, C.treadmillGain(T + 1) * speedMult, C.treadmillCost(T + 1))
+end
+
+-- Pulsar un cartel de mejora: solo el dueño de la parcela, con el mismo límite que el resto de acciones
+function Core.useSign(player, plot, kind)
+	local s = Core.sessions[player]
+	if not s or s.plot ~= plot then
+		G.Net.toast(player, "notYourPlot")
+		return false
+	end
+	return Core.handleAction(player, kind == "luck" and "buyLuck" or "buyTreadmill")
+end
+
 ---------------------------------------------------------------------
 -- Dioses colocados e ingresos
 ---------------------------------------------------------------------
@@ -268,6 +313,7 @@ function Core.refreshPlot(player)
 		G.World.styleplot(plot, d.plot)
 	end
 	plot.signGui.Label.Text = string.format("<b>%s</b>\n%s %d", player.DisplayName, "⭐", d.plot)
+	Core.refreshSigns(player)
 end
 
 ---------------------------------------------------------------------
@@ -349,6 +395,20 @@ function actions.buyTreadmill(player)
 	if Core.spend(player, C.treadmillCost(d.treadmill + 1)) then
 		d.treadmill += 1
 		G.Net.toast(player, "bought")
+		Core.refreshSigns(player)
+	end
+end
+
+-- Suerte propia (cartel de la parcela): más posibilidades de que el sobre suba de rareza al abrirlo
+function actions.buyLuck(player)
+	local d = G.Data.profiles[player]
+	if (d.luckLevel or 1) >= C.LUCK_MAX then
+		return
+	end
+	if Core.spend(player, C.luckCost((d.luckLevel or 1) + 1)) then
+		d.luckLevel = (d.luckLevel or 1) + 1
+		G.Net.toast(player, "luckUp", G.Format.mult(C.luckMult(d.luckLevel)))
+		Core.refreshSigns(player)
 	end
 end
 
@@ -833,6 +893,13 @@ local function onLeave(player)
 			end
 			s.plot.signGui.Label.Text = ""
 			s.plot.treadmillGui.Label.Text = ""
+			for _, sign in ipairs({ s.plot.luckSign, s.plot.treadSign }) do
+				if sign then
+					sign.gui:SetAttribute("Owner", nil)
+					sign.gui:SetAttribute("Level", 0)
+					sign.prompt:SetAttribute("Owner", nil)
+				end
+			end
 			s.plot.owner = nil
 			s.plot.folder:SetAttribute("Owner", nil)
 		end
@@ -949,6 +1016,7 @@ function Core.sendState(player)
 		combo = s.combo,
 		treadmill = d.treadmill,
 		treadmillGain = C.treadmillGain(d.treadmill) * speedMult,
+		luckLevel = d.luckLevel or 1,
 		plot = d.plot,
 		pedestals = Core.pedestalCount(player),
 		altarsMax = Core.altarCount(player),
@@ -967,7 +1035,7 @@ function Core.sendState(player)
 		cycleLeft = G.DayNight.timeLeft(),
 		speedMult = speedMult,
 		moneyMult = moneyMult,
-		luck = luck,
+		luck = luck * C.luckMult(d.luckLevel or 1), -- suerte al abrir (sin contar la de cada sobre)
 		onTreadmill = s.onTreadmill,
 		zone = s.zone or 0,
 		shieldLeft = math.max(0, (d.boosts.shield or 0) - os.time()),

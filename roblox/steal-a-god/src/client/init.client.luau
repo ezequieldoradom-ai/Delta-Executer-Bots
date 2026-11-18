@@ -559,12 +559,7 @@ end
 renderers.shop = function()
 	listLayout()
 	local money = state.money or 0
-	local tm = state.treadmill or 1
-	local tmMax = tm >= Config.TREADMILL_MAX
-	local tmCost = not tmMax and Config.treadmillCost(tm + 1) or 0
-	row(1, "🏃", string.format("%s · %s %d", t("treadmill"), t("level"), tm), string.format("⚡ +%s/s → +%s/s", Format.num(Config.treadmillGain(tm)), tmMax and "—" or Format.num(Config.treadmillGain(tm + 1))), tmMax and t("max") or ("💰 " .. Format.num(tmCost)), CYAN, not tmMax and money >= tmCost, function()
-		Action:FireServer("buyTreadmill")
-	end, CYAN)
+	-- la cinta y la suerte se mejoran en los carteles de la parcela (ver aviso de abajo)
 	local pl = state.plot or 1
 	local plMax = pl >= Config.PLOT_MAX
 	local plCost = not plMax and Config.plotCost(pl + 1) or 0
@@ -578,13 +573,13 @@ renderers.shop = function()
 		Action:FireServer("buyAltar")
 	end, PURPLE)
 	-- aviso: dónde se compran ahora las auras y los entrenadores
-	local info = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -14, 0, 74), LayoutOrder = 4, ZIndex = 11, Parent = content }, {
+	local info = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -14, 0, 110), LayoutOrder = 4, ZIndex = 11, Parent = content }, {
 		corner(16),
 		gradient(Color3.fromRGB(58, 40, 112), Color3.fromRGB(26, 18, 50), 0),
 		stroke(Config.VENDORS.aura.color, 2, 0.35),
 	})
 	label({ Parent = info, Text = "🧭", Font = TITLE, Size = UDim2.fromOffset(48, 48), Position = UDim2.fromOffset(12, 13), ZIndex = 12, Stroke = false })
-	local infoText = label({ Parent = info, Font = BTN, Text = t("vendorMoved"), Size = UDim2.new(1, -90, 1, -16), Position = UDim2.fromOffset(72, 8), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(228, 218, 250), ZIndex = 12 })
+	local infoText = label({ Parent = info, Font = BTN, Text = t("signsHint") .. "\n" .. t("vendorMoved"), Size = UDim2.new(1, -90, 1, -16), Position = UDim2.fromOffset(72, 8), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(228, 218, 250), ZIndex = 12 })
 	new("UITextSizeConstraint", { MaxTextSize = 24, Parent = infoText })
 end
 
@@ -1439,6 +1434,10 @@ local function doReveal(data)
 		ribbonLabel.TextColor3 = DARK
 		godNameGrad.Color = ColorSequence.new(mut.color, rc)
 	end
+	local upgraded = tonumber(data.fromR) and tonumber(data.toR) and data.toR > data.fromR
+	if upgraded then
+		ribbonLabel.Text = "⬆️ " .. ribbonLabel.Text
+	end
 	local kg = data.kg or 100
 	godIncome.Text = string.format("⚖️ %d kg   💰 +%s/s", kg, Format.num(rarity.income * (kg / 100) * (mut and mut.mult or 1) * (state.moneyMult or 1)))
 	godFact.Text = Locale.lang() == "es" and g.factEs or g.factEn
@@ -1455,6 +1454,11 @@ local function doReveal(data)
 		if mut.mult >= 6 then
 			shake(0.6, 0.35)
 		end
+	end
+	if upgraded then
+		floatText(t("upgraded", Locale.name(Config.RARITIES[data.fromR]), Locale.name(Config.RARITIES[data.toR])), Color3.fromRGB(110, 255, 140), gui, UDim2.new(0.5, -100, 0.12, 0))
+		bump(ribbon, 1.35)
+		shake(0.45, 0.3)
 	end
 	task.wait(0.4)
 	revealing = false
@@ -1677,6 +1681,11 @@ end)
 ---------------------------------------------------------------------
 -- Carteles del mundo en tu idioma
 ---------------------------------------------------------------------
+-- Suerte con separador de miles en el idioma del jugador: x93.754 / x93,754
+local function luckText(n)
+	return Format.group(n, Locale.lang() == "es" and "." or ",")
+end
+
 local function locLabel(bb)
 	local l = bb:FindFirstChild("Label")
 	if not l then
@@ -1711,7 +1720,7 @@ local function locLabel(bb)
 		if r > 0 then
 			local rem = bb:GetAttribute("Rem") or 0
 			l.TextColor3 = rcolor(r)
-			l.Text = string.format("%s · %d kg\n%s", Locale.name(Config.RARITIES[r]), bb:GetAttribute("Kg") or 100, rem <= 0 and ("✨ " .. t("ready")) or ("⏳ " .. Format.time(rem)))
+			l.Text = string.format("%s · %d kg · 🍀 x%s\n%s", Locale.name(Config.RARITIES[r]), bb:GetAttribute("Kg") or 100, luckText(bb:GetAttribute("Luck") or 1), rem <= 0 and ("✨ " .. t("ready")) or ("⏳ " .. Format.time(rem)))
 		else
 			l.Text = ""
 		end
@@ -1729,13 +1738,73 @@ local function locLabel(bb)
 	elseif bb:GetAttribute("Rarity") then
 		local r = bb:GetAttribute("Rarity")
 		l.TextColor3 = rcolor(r)
-		l.Text = string.format("%s%s\n<font size=\"16\" color=\"#FFE9A8\">⚖️ %d kg</font>", string.upper(Locale.name(Config.RARITIES[r])), bb:GetAttribute("Dawn") and " 🌅" or "", bb:GetAttribute("Kg") or 100)
+		l.Text = string.format("%s%s\n<font size=\"16\" color=\"#FFE9A8\">⚖️ %d kg</font>  <font size=\"16\" color=\"#7CFF8A\">🍀 x%s</font>", string.upper(Locale.name(Config.RARITIES[r])), bb:GetAttribute("Dawn") and " 🌅" or "", bb:GetAttribute("Kg") or 100, luckText(bb:GetAttribute("Luck") or 1))
 	end
 end
 
-local function locPrompt(p)
-	p.ActionText = p:GetAttribute("Kind") == "steal" and t("steal") or t("open")
+local PROMPT_TEXT = { steal = "steal", open = "open", upgradeLuck = "upgradeLuck", upgradeTreadmill = "upgradeTreadmill" }
+local function promptOwnerOnly(p)
+	local owner = p:GetAttribute("Owner")
+	p.Enabled = owner == player.UserId
 end
+local function locPrompt(p)
+	local kind = p:GetAttribute("Kind")
+	p.ActionText = t(PROMPT_TEXT[kind] or "open")
+	if kind == "upgradeLuck" or kind == "upgradeTreadmill" then
+		promptOwnerOnly(p)
+		p:GetAttributeChangedSignal("Owner"):Connect(function()
+			promptOwnerOnly(p)
+		end)
+	end
+end
+
+-- Carteles de mejora (suerte en la parcela, cinta delante): el servidor pone los números en atributos
+local function drawSign(gui)
+	local kind = gui:GetAttribute("Kind")
+	local level = gui:GetAttribute("Level") or 0
+	local title, body, cost = gui:FindFirstChild("Title"), gui:FindFirstChild("Body"), gui:FindFirstChild("Cost")
+	if not title or not body or not cost then
+		return
+	end
+	title.Text = t(kind == "luck" and "luckSign" or "treadSign")
+	if level <= 0 or not gui:GetAttribute("Owner") then
+		body.Text = t("signFree")
+		cost.Text = ""
+		return
+	end
+	local max = (gui:GetAttribute("Max") or 1)
+	local now, nxt = gui:GetAttribute("Now") or 1, gui:GetAttribute("Next") or 0
+	if kind == "luck" then
+		body.Text = string.format(t("luckSignBody"), level, Format.mult(now), level >= max and "—" or Format.mult(nxt))
+	else
+		body.Text = string.format(t("treadSignBody"), level, Format.num(now), level >= max and "—" or Format.num(nxt))
+	end
+	local c = gui:GetAttribute("Cost") or 0
+	local mine = gui:GetAttribute("Owner") == player.UserId
+	cost.Text = level >= max and t("max") or string.format("💰 %s%s", Format.num(c), mine and ("  ·  " .. t(kind == "luck" and "upgradeLuck" or "upgradeTreadmill")) or "")
+	cost.TextColor3 = (mine and (state.money or 0) >= c) and Color3.fromRGB(110, 255, 140) or Color3.fromRGB(255, 200, 120)
+end
+local function hookSign(gui)
+	drawSign(gui)
+	gui.AttributeChanged:Connect(function()
+		drawSign(gui)
+	end)
+end
+for _, g in ipairs(CollectionService:GetTagged("UpgradeSign")) do
+	hookSign(g)
+end
+CollectionService:GetInstanceAddedSignal("UpgradeSign"):Connect(hookSign)
+-- el color del precio depende de tu dinero: se repasa cada 2 s
+task.spawn(function()
+	while true do
+		task.wait(2)
+		for _, g in ipairs(CollectionService:GetTagged("UpgradeSign")) do
+			if g:GetAttribute("Owner") == player.UserId then
+				drawSign(g)
+			end
+		end
+	end
+end)
 for _, p in ipairs(CollectionService:GetTagged("LocPrompt")) do
 	locPrompt(p)
 end
@@ -2293,7 +2362,7 @@ task.spawn(function()
 		if (state.boostLeft or 0) > 0 then
 			boosts ..= string.format('   <font color="#9BE7FF">⚡x3 %s</font>', Format.time(state.boostLeft))
 		end
-		multLabel.Text = string.format("💰 x%s   🍀 x%s%s", Format.num(state.moneyMult or 1), Format.num(state.luck or 1), boosts)
+		multLabel.Text = string.format("💰 x%s   🍀 x%s%s", Format.mult(state.moneyMult or 1), Format.mult(state.luck or 1), boosts)
 		cycleLabel.Text = string.format('%s <font color="#FFD23F">%s</font>', state.night and t("dawnIn") or t("nightIn"), Format.time(left))
 		-- "NEW" en la tienda si puedes comprar una mejora
 		local canBuy = (state.money or 0) >= Config.treadmillCost((state.treadmill or 1) + 1) or (state.money or 0) >= Config.plotCost((state.plot or 1) + 1)

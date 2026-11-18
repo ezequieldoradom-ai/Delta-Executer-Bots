@@ -52,7 +52,7 @@ function Quests.give(player, reward)
 		-- la suerte del jugador (pase o boost) también cuenta en los sobres de premio
 		local luck = (reward.luck or 1) * G.Core.personalLuck(player)
 		local r = C.rollRarity(bestZone(d), luck)
-		local ok = G.Packs.givePack(player, { r = r, rem = C.RARITIES[r].open, dawn = reward.big == true, kg = C.rollKg() })
+		local ok = G.Packs.givePack(player, { r = r, rem = C.RARITIES[r].open, dawn = reward.big == true, kg = C.rollKg(), luck = C.packLuck(bestZone(d), r, reward.big == true) })
 		if not ok then
 			-- altares y cola llenos: se cambia por 15 min de ingresos
 			local amount = math.max(1000, math.floor(G.Core.income(player) * 900))

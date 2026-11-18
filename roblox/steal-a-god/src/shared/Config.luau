@@ -283,6 +283,59 @@ function Config.rollRarity(zoneIndex, luck, rng)
 end
 
 ---------------------------------------------------------------------
+-- SUERTE DE LOS SOBRES Y SUERTE PROPIA
+-- Cada sobre trae su suerte (más en zonas lejanas y rarezas altas; x3 al amanecer).
+-- Al abrirlo: suerte total T = suerte del sobre × tu nivel de suerte (cartel de la parcela) × pase,
+-- premio y suerte del servidor. Con T, cada tirada puede subir el sobre UNA rareza (y seguir tirando):
+-- probabilidad por paso = 1,8 % × log10(T) (máx. 42 %), como mucho +4 rarezas y nunca por encima de
+-- Primordial (9); los sobres de rareza 10 o más no cambian.
+---------------------------------------------------------------------
+Config.PACK_LUCK = { zoneBase = { 12, 90, 700, 5000, 35000, 220000 }, perTier = 0.6, spread = { 0.55, 1.6 }, dawn = 3 }
+Config.LUCK_MAX = 30
+Config.UPGRADE = { per = 0.018, cap = 0.42, maxTiers = 4, maxRarity = 9, lockFrom = 10 }
+function Config.zoneMinRarity(zoneIndex)
+	local zone = Config.ZONES[zoneIndex]
+	local minR = math.huge
+	for r in pairs(zone and zone.weights or { [1] = 1 }) do
+		minR = math.min(minR, r)
+	end
+	return minR
+end
+function Config.packLuck(zoneIndex, rarity, dawn, rng)
+	local L = Config.PACK_LUCK
+	local base = L.zoneBase[math.clamp(zoneIndex or 1, 1, #L.zoneBase)]
+	local tier = math.max(0, (rarity or 1) - Config.zoneMinRarity(zoneIndex or 1))
+	local spread = L.spread[1] + (rng or math.random)() * (L.spread[2] - L.spread[1])
+	return math.max(1, math.floor(base * (1 + L.perTier * tier) * spread * (dawn and L.dawn or 1)))
+end
+function Config.luckMult(level) -- tu suerte propia según el nivel del cartel
+	return 1.35 ^ ((level or 1) - 1)
+end
+function Config.luckCost(level) -- precio para llegar a ese nivel
+	return math.floor(60 * 4.5 ^ (level - 2))
+end
+function Config.upgradeChance(T)
+	local U = Config.UPGRADE
+	return math.clamp(U.per * math.log10(math.max(1, T or 1)), 0, U.cap)
+end
+-- Rareza final al abrir un sobre de rareza r con suerte total T (rng para las pruebas)
+function Config.rollUpgrade(r, T, rng)
+	local U = Config.UPGRADE
+	if r >= U.lockFrom then
+		return r
+	end
+	local chance = Config.upgradeChance(T)
+	local out = r
+	for _ = 1, U.maxTiers do
+		if out >= U.maxRarity or (rng or math.random)() >= chance then
+			break
+		end
+		out += 1
+	end
+	return out
+end
+
+---------------------------------------------------------------------
 -- VELOCIDAD, CINTA Y PARCELA
 ---------------------------------------------------------------------
 Config.TREADMILL_MAX = 40

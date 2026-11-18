@@ -151,6 +151,7 @@ local function makePackPart(pack)
 	gui:SetAttribute("Rarity", pack.rarity)
 	gui:SetAttribute("Kg", pack.kg)
 	gui:SetAttribute("Dawn", pack.dawn == true)
+	gui:SetAttribute("Luck", pack.luck or 1)
 	gui.Label.Text = "" -- el cliente pone el nombre en su idioma
 	CollectionService:AddTag(gui, "Loc")
 	local prompt = Instance.new("ProximityPrompt")
@@ -336,12 +337,14 @@ local function spawnPack(zoneIndex, spotIndex, dawn, forced)
 		luck *= C.DAWN_LUCK
 	end
 	nextId += 1
+	local rarity = forced and forced.rarity or rollRarity(zoneIndex, luck)
 	local pack = {
 		id = nextId,
 		zone = zoneIndex,
 		spot = spotIndex,
-		rarity = forced and forced.rarity or rollRarity(zoneIndex, luck),
+		rarity = rarity,
 		kg = forced and forced.kg or C.rollKg(),
+		luck = forced and forced.luck or C.packLuck(zoneIndex, rarity, dawn), -- suerte del sobre (sale en su cartel)
 		dawn = dawn,
 		state = "ground",
 		carrier = nil,
@@ -441,7 +444,6 @@ function Packs.grab(player, pack)
 	end
 	pack.state = "carried"
 	pack.carrier = player
-	pack.lucky = nil -- la tirada de suerte es de quien lo lleve a casa
 	pack.loosePos = nil
 	pack.looseDir = nil
 	s.carrying = pack
@@ -465,30 +467,6 @@ function Packs.grab(player, pack)
 		pack.stolenBy[player.UserId] = true
 		G.Quests.event(player, "steal", 1)
 	end
-end
-
--- La suerte propia (pase Suerte x2 o boost de las misiones) puede mejorar el sobre al llegar a casa:
--- 12 % con suerte x2, 24 % con x4… (máximo 40 %) y solo hasta la rareza más alta de su zona.
--- roll = número de 0 a 1 para las pruebas (si no, al azar).
-function Packs.luckUpgrade(player, zoneIndex, item, roll)
-	local luck = G.Core.personalLuck(player)
-	local zone = C.ZONES[zoneIndex]
-	if luck <= 1 or not zone then
-		return false
-	end
-	local maxR = 0
-	for r in pairs(zone.weights) do
-		maxR = math.max(maxR, r)
-	end
-	if item.r >= maxR then
-		return false
-	end
-	if (roll or math.random()) < math.min(0.4, 0.12 * math.log(luck, 2)) then
-		item.r += 1
-		item.rem = C.RARITIES[item.r].open
-		return true
-	end
-	return false
 end
 
 -- Suelta el sobre que lleva el jugador. loose=true lo deja en el suelo (golpe); false lo devuelve a su sitio
@@ -526,13 +504,8 @@ end
 
 local function deliver(player, pack)
 	local s = G.Core.sessions[player]
-	local item = { r = pack.rarity, rem = C.RARITIES[pack.rarity].open, dawn = pack.dawn == true, kg = pack.kg }
-	-- se tira la suerte una sola vez por sobre (si no cabe y se reintenta, no se vuelve a tirar)
-	if pack.lucky == nil then
-		pack.lucky = Packs.luckUpgrade(player, pack.zone, item) and item.r or false
-	elseif pack.lucky then
-		item.r, item.rem = pack.lucky, C.RARITIES[pack.lucky].open
-	end
+	-- la suerte del sobre viaja con él al altar y cuenta al abrirlo (Packs.rollUpgrade)
+	local item = { r = pack.rarity, rem = C.RARITIES[pack.rarity].open, dawn = pack.dawn == true, kg = pack.kg, luck = pack.luck }
 	local ok, where = Packs.givePack(player, item)
 	if not ok then
 		-- avisar como mucho cada 3 s (antes se repetía en cada fotograma)
@@ -552,9 +525,6 @@ local function deliver(player, pack)
 	end
 	if pack.rarity >= C.ANNOUNCE_CHAT_FROM then
 		G.Net.announce("all", "escaped", { player.DisplayName, { rarity = pack.rarity } }, { color = G.Format.hex(C.RARITIES[pack.rarity].color) })
-	end
-	if pack.lucky then
-		G.Net.toast(player, "luckUpgrade", { rarity = pack.lucky })
 	end
 	destroyPack(pack)
 	if G.Quests then
@@ -660,7 +630,7 @@ function Packs.savePurchased(player)
 	local rarity
 	if p and p.pack.state == "pending" then
 		rarity = p.pack.rarity
-		local item = { r = rarity, rem = C.RARITIES[rarity].open, dawn = p.pack.dawn == true, kg = p.pack.kg }
+		local item = { r = rarity, rem = C.RARITIES[rarity].open, dawn = p.pack.dawn == true, kg = p.pack.kg, luck = p.pack.luck }
 		if not Packs.givePack(player, item) then
 			G.Net.toast(player, "queueFull")
 			return false -- no cabe: Roblox reintentará la entrega más tarde
@@ -677,7 +647,7 @@ function Packs.savePurchased(player)
 			end
 		end
 		rarity = rollRarity(z, 1)
-		if not Packs.givePack(player, { r = rarity, rem = C.RARITIES[rarity].open, dawn = false, kg = C.rollKg() }) then
+		if not Packs.givePack(player, { r = rarity, rem = C.RARITIES[rarity].open, dawn = false, kg = C.rollKg(), luck = C.packLuck(z, rarity, false) }) then
 			G.Net.toast(player, "queueFull")
 			return false
 		end
@@ -733,6 +703,7 @@ function Packs.tickAltars(player, mult)
 			a.gui:SetAttribute("Rarity", p.r)
 			a.gui:SetAttribute("Rem", p.rem)
 			a.gui:SetAttribute("Kg", p.kg or 100)
+			a.gui:SetAttribute("Luck", p.luck or 1)
 			a.prompt.Enabled = p.rem <= 0
 		else
 			a.glow.Transparency = 1
@@ -756,6 +727,13 @@ local function rollGod(r, dawn)
 	return pool[math.random(1, #pool)]
 end
 
+-- Tirada de suerte al abrir: la suerte del sobre por la tuya puede subirlo de rareza.
+-- Devuelve (rareza original, rareza final, suerte total). rng para las pruebas.
+function Packs.rollUpgrade(item, player, rng)
+	local T = G.Core.openLuck(player, item.luck or 1)
+	return item.r, C.rollUpgrade(item.r, T, rng), T
+end
+
 function Packs.openAltar(player, i)
 	local d = G.Data.profiles[player]
 	local p = d and d.altarPacks[i]
@@ -763,7 +741,8 @@ function Packs.openAltar(player, i)
 		return
 	end
 	table.remove(d.altarPacks, i)
-	local god = rollGod(p.r, p.dawn)
+	local fromR, toR = Packs.rollUpgrade(p, player)
+	local god = rollGod(toR, p.dawn)
 	local kg = p.kg or 100
 	G.Avatars.make(god)
 	-- mutación (Dorado, Hielo, Diamante, Lava, Arcoíris): más dinero y otro aspecto
@@ -794,7 +773,10 @@ function Packs.openAltar(player, i)
 		light.Parent = att
 		game:GetService("Debris"):AddItem(att, 2)
 	end
-	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew, kg = kg, mut = mut })
+	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew, kg = kg, mut = mut, fromR = fromR, toR = toR, luck = p.luck or 1 })
+	if toR > fromR then
+		G.Net.toast(player, "luckUpgrade", { rarity = toR })
+	end
 	-- las mutaciones más raras se anuncian a todo el servidor
 	local mdef = mut and C.MUTATION_BY_ID[mut]
 	if mdef and mdef.mult >= 6 then
