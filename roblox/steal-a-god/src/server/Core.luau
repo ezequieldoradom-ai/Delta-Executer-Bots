@@ -851,7 +851,7 @@ local function onCharacter(player, char)
 		task.wait(0.1)
 		hrp.CFrame = s.plot.spawnCF
 	end
-	hum.WalkSpeed = s.slow and C.WALK_SLOW or C.walkSpeedFor(d.speed)
+	hum.WalkSpeed = (s.slow and not s.carrying) and C.WALK_SLOW or C.walkSpeedFor(d.speed)
 	hum.Died:Connect(function()
 		if s.carrying then
 			G.Packs.dropCarried(player, false)
@@ -1162,7 +1162,7 @@ local function tick(dt)
 				end
 			end
 			if hum then
-				hum.WalkSpeed = s.slow and C.WALK_SLOW or C.walkSpeedFor(d.speed)
+				hum.WalkSpeed = (s.slow and not s.carrying) and C.WALK_SLOW or C.walkSpeedFor(d.speed)
 			end
 			if hrp then
 				s.zone = G.World.zoneAt(hrp.Position.Z)

@@ -95,3 +95,13 @@ Toca archivos tuyos (pequeño, probado en Studio):
 - **Config.walkSpeedFor**: `16 + 22·log10(1+⚡)`, máx. 300 (antes 9·log, máx. 110). 30 ⚡ ≈ 49 · 1e7 ≈ 170 · 1.5e10 ≈ 239. Nuevo `Config.WALK_SLOW = 16`.
 - **Core**: acción `slow` → `s.slow`; las dos líneas de `hum.WalkSpeed` usan `s.slow and C.WALK_SLOW or …`; `slow` va en el estado. La persecución del guardián ya usa `hum.WalkSpeed`, así que en modo lento te alcanza (y sigues escapando si tu ⚡ ≥ la del guardián).
 - **Locale**: `slowMode`, `slowOn`, `slowOff`. **Cliente**: botón ⚡/🐢 "MODO LENTO" encima de la Tienda (`sideButton(0, …)` dentro de `do … end`).
+
+## 2026-11-18 17:20 · Shadow — caza de fallos (el dueño me pidió "ve buscando fallos")
+Recorrido completo en Studio: robar → huir → altar → abrir (apertura por etapas) + modo lento. **Sin errores de script** en el log.
+- ✅ Arreglado por mí (Core, 2 líneas): en **modo lento** el guardián te pillaba siempre (andas a 16 y su mínimo es 18). Ahora el modo lento se ignora mientras llevas un sobre (`(s.slow and not s.carrying)`): probado 16 → 75 al robar → 16 en casa.
+- ⚠️ (tuyo, init.client) **La barra de herramientas de Roblox ("1 Bate de madera") tapa la parte de abajo de la carta del dios** (el dato "Diosa de las flores.") **y el texto de la apertura** ("¿POCO COMÚN?"). Capturas `capturas_shadow/bug_barra_tapa_*.png`. Sube la carta y el texto ~60 px o esconde la Backpack (`StarterGui:SetCoreGuiEnabled(Backpack,false)`) mientras se ve la carta.
+- ⚠️ (tuyo, buildPlot) **Los carteles de los altares vecinos se montan** ("POCO COMÚN" encima de "COMÚN 154 KG"): altares a 5 studs y cartel ancho. Estrecharlos o alternar altura (par/impar).
+- ⚠️ (tuyo) Regalo 🎁 sigue encima de la píldora "Noche en …".
+- ℹ️ El producto "Salvar el sobre" se llama en Roblox `Save the Pack 🆘 Salvar el sobre` y el diálogo de compra pinta el emoji como un cuadrado: quitar el emoji del nombre del producto en create.roblox.com.
+- ℹ️ No es fallo: si te quedas quieto junto al nido tras robar, el guardián (a 75 studs) te alcanza en ~1 s porque corre al 82 % de tu velocidad; huyendo se escapa bien (probado).
+- ✅ Apertura por etapas: se ve el sobre 3D con rayos y "¿POCO COMÚN?" y luego la carta. Zonas sin cortina y velocidad nueva OK.
