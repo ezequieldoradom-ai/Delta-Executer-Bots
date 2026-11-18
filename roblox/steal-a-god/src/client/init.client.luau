@@ -1,4 +1,4 @@
--- Steal a God ⚡ Roba un Dios — cliente (interfaz, animaciones y efectos)
+﻿-- Steal a God ⚡ Roba un Dios — cliente (interfaz, animaciones y efectos)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -410,6 +410,10 @@ end
 local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Position = UDim2.new(0, 14, 0.57, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
 	-- orden por LayoutOrder (explícito: Misiones va entre la Tienda y el Índice aunque se cree la última)
 	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
+})
+-- Columna derecha (petición del dueño): Índice y Misiones
+local sideRight = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 160), Position = UDim2.new(1, -14, 0.45, 0), AnchorPoint = Vector2.new(1, 0.5), Parent = gui }, {
+	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center, HorizontalAlignment = Enum.HorizontalAlignment.Right, SortOrder = Enum.SortOrder.LayoutOrder }),
 })
 
 local panel = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromScale(0.64, 0.7), Position = UDim2.fromScale(0.5, 0.47), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 10, Parent = gui }, {
@@ -950,26 +954,82 @@ end
 ---------------------------------------------------------------------
 local floaters = {}
 local badges = {}
+local function hueSeq(colors)
+	local kp = {}
+	for i, c in ipairs(colors) do
+		kp[i] = ColorSequenceKeypoint.new((i - 1) / (#colors - 1), c)
+	end
+	return ColorSequence.new(kp)
+end
+local RAINBOW_SEQ = hueSeq({
+	Color3.fromRGB(255, 70, 90), Color3.fromRGB(255, 170, 40), Color3.fromRGB(255, 240, 80), Color3.fromRGB(80, 235, 110),
+	Color3.fromRGB(60, 210, 255), Color3.fromRGB(150, 100, 255), Color3.fromRGB(255, 90, 220), Color3.fromRGB(255, 70, 90),
+})
+local GREEN_RAINBOW_SEQ = hueSeq({
+	Color3.fromRGB(190, 255, 90), Color3.fromRGB(60, 230, 120), Color3.fromRGB(30, 200, 170), Color3.fromRGB(120, 255, 200), Color3.fromRGB(190, 255, 90),
+})
 local function sideButton(order, emoji, text, color, onClick)
 	-- LayoutOrder = order × 10: deja hueco para meter botones entre medias (Misiones va en el 15)
-	local b = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(200, 60), LayoutOrder = order * 10, Parent = side }, {
-		corner(16),
-		gradient(color, darker(color, 0.45), 100),
-		stroke(darker(color, 0.25), 3.5),
+	-- Botón "de templo": cuerpo con degradado, borde dorado, brillo arriba, destello que lo recorre,
+	-- medallón dorado para el icono y entrada escalonada. (El primer UIStroke es el borde: el AFK lo recolorea.)
+	local GOLD_RIM = Color3.fromRGB(255, 214, 110)
+	-- borde arcoíris que gira (UIGradient dentro del UIStroke; el color del trazo lo tiñe: blanco = arcoíris puro)
+	local rimGrad = new("UIGradient", { Color = RAINBOW_SEQ })
+	local body = gradient(color:Lerp(WHITE, 0.15), darker(color, 0.5), 100)
+	-- 2 = Índice y 6 = Misiones van a la columna derecha
+	local column = (order == 2 or order == 6) and sideRight or side
+	local b = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(200, 60), LayoutOrder = order * 10, Parent = column }, {
+		corner(18),
+		body,
+		stroke(WHITE, 3.5),
 	})
+	rimGrad.Parent = b:FindFirstChildOfClass("UIStroke")
 	pressable(b)
-	local iconBg = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(52, 52), Position = UDim2.fromOffset(4, 4), Parent = b }, { corner(14), gradient(WHITE, darker(color, 0.8), 90) })
-	local icon = label({ Parent = iconBg, Text = emoji, Font = TITLE, Size = UDim2.new(1, -8, 1, -8), Position = UDim2.fromOffset(4, 4), Stroke = false })
-	heavy({ Parent = b, Text = string.upper(text), Size = UDim2.new(1, -70, 1, -14), Position = UDim2.fromOffset(64, 7), TextXAlignment = Enum.TextXAlignment.Left })
-	local badge = new("Frame", { BackgroundColor3 = Color3.fromRGB(255, 50, 70), Size = UDim2.fromOffset(58, 22), Position = UDim2.new(1, -40, 0, -10), Visible = false, ZIndex = 3, Parent = b }, { corner(11), stroke(WHITE, 2) })
-	heavy({ Parent = badge, Text = t("new"), Size = UDim2.new(1, -6, 1, -4), Position = UDim2.fromOffset(3, 2), ZIndex = 4, StrokeThickness = 1.5 })
+	-- sombra/borde interior oscuro para dar volumen
+	new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -6, 1, -6), Position = UDim2.fromOffset(3, 3), Parent = b }, { corner(15), stroke(darker(color, 0.3), 2, 0.2) })
+	-- brillo de cristal en la mitad de arriba
+	new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -10, 0.42, 0), Position = UDim2.fromOffset(5, 3), ZIndex = 2, Parent = b }, {
+		corner(13),
+		new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(1, 1) }) }),
+	})
+	-- destello diagonal que cruza el botón de vez en cuando (se mueve con el Offset del degradado)
+	local shine = new("UIGradient", {
+		Rotation = 20,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.42, 1), NumberSequenceKeypoint.new(0.5, 0.35),
+			NumberSequenceKeypoint.new(0.58, 1), NumberSequenceKeypoint.new(1, 1),
+		}),
+		Offset = Vector2.new(-1, 0),
+	})
+	new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromScale(1, 1), ZIndex = 3, Parent = b }, { corner(18), shine })
+	-- medallón redondo con aro dorado
+	local iconBg = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(50, 50), Position = UDim2.fromOffset(5, 5), ZIndex = 4, Parent = b }, {
+		new("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		gradient(WHITE, color:Lerp(WHITE, 0.35), 90),
+		stroke(GOLD_RIM, 2.5),
+	})
+	local iconScale = new("UIScale", { Parent = iconBg })
+	local icon = label({ Parent = iconBg, Text = emoji, Font = TITLE, Size = UDim2.new(1, -10, 1, -10), Position = UDim2.fromOffset(5, 5), Stroke = false, ZIndex = 5 })
+	local txt = heavy({ Parent = b, Text = string.upper(text), Size = UDim2.new(1, -72, 1, -16), Position = UDim2.fromOffset(64, 8), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5 })
+	new("UIGradient", { Color = ColorSequence.new(WHITE, Color3.fromRGB(255, 240, 200)), Rotation = 90, Parent = txt })
+	local badge = new("Frame", { BackgroundColor3 = Color3.fromRGB(255, 50, 70), Size = UDim2.fromOffset(58, 22), Position = UDim2.new(1, -40, 0, -10), Visible = false, ZIndex = 6, Parent = b }, { corner(11), stroke(WHITE, 2) })
+	heavy({ Parent = badge, Text = t("new"), Size = UDim2.new(1, -6, 1, -4), Position = UDim2.fromOffset(3, 2), ZIndex = 7, StrokeThickness = 1.5 })
 	badges[order] = badge
-	table.insert(floaters, { gui = icon, phase = order })
+	local entry = { gui = icon, phase = order, shine = shine, iconScale = iconScale, badge = badge, button = b, rim = rimGrad, body = body, iconBg = iconBg, text = txt }
+	table.insert(floaters, entry)
+	-- entrada: aparecen uno tras otro con rebote
+	local sc = b:FindFirstChildOfClass("UIScale")
+	if sc then
+		sc.Scale = 0
+		task.delay(0.15 + order * 0.07, function()
+			TweenService:Create(sc, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		end)
+	end
 	b.Activated:Connect(function()
 		play("click")
 		onClick()
 	end)
-	return b
+	return b, entry
 end
 
 local function openShop()
@@ -1132,13 +1192,50 @@ end
 sideButton(3, "💎", t("robux"), GREEN, function()
 	openPanel("robux", "💎 Robux", { { id = "passes", text = t("passes") }, { id = "products", text = t("products") } }, GREEN)
 end)
-local afkButton = sideButton(4, "💤", t("afk"), PURPLE, function()
+local afkButton, afkFx = sideButton(4, "💤", t("afk"), GREEN, function()
 	Action:FireServer("afk", not state.afk)
 end)
+-- AFK suelto en la esquina de arriba a la izquierda (petición del dueño): pequeño, en arcoíris de verdes.
+-- Va EN la barra de arriba de Roblox, justo a la derecha de sus botones (GuiService.TopbarInset): así el chat,
+-- que ocupa la esquina de debajo y se come los toques, nunca lo tapa, y se ve igual en PC y en móvil.
+local topGui = new("ScreenGui", { Name = "HUDTop", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 5, Parent = gui.Parent })
+afkButton.Parent = topGui
+afkButton.AnchorPoint = Vector2.new(0, 0.5)
+-- botones pequeños de la barra de arriba: AFK a la izquierda; Ajustes a la derecha (ver más abajo)
+local topButtons = {}
+local function placeTop()
+	local inset = game:GetService("GuiService").TopbarInset
+	local h = math.clamp(inset.Height - 12, 30, 42)
+	for _, tb in ipairs(topButtons) do
+		local w = math.floor(h * tb.ratio)
+		tb.button.Size = UDim2.fromOffset(w, h)
+		tb.button.AnchorPoint = Vector2.new(tb.right and 1 or 0, 0.5)
+		tb.button.Position = UDim2.fromOffset(tb.right and (inset.Max.X - 8) or (inset.Min.X + 8), inset.Min.Y + inset.Height / 2)
+		tb.fx.iconBg.Size = UDim2.fromOffset(h - 8, h - 8)
+		tb.fx.iconBg.Position = UDim2.fromOffset(4, 4)
+		tb.fx.text.Size = UDim2.new(1, -(h + 4), 1, -10)
+		tb.fx.text.Position = UDim2.fromOffset(h + 1, 5)
+		tb.fx.gui.Size = UDim2.new(1, -6, 1, -6)
+		tb.fx.small = true
+	end
+end
+local function toTopbar(button, fx, ratio, right)
+	button.Parent = topGui
+	table.insert(topButtons, { button = button, fx = fx, ratio = ratio, right = right })
+	placeTop()
+end
+toTopbar(afkButton, afkFx, 2.9, false)
+game:GetService("GuiService"):GetPropertyChangedSignal("TopbarInset"):Connect(placeTop)
+afkFx.body.Color = GREEN_RAINBOW_SEQ
+afkFx.body.Rotation = 0
+afkFx.greenBody = afkFx.body
+afkFx.rim.Color = GREEN_RAINBOW_SEQ
 local function openSettings()
 	openPanel("settings", "⚙️ " .. t("settings"), nil, Color3.fromRGB(200, 200, 220))
 end
-sideButton(5, "⚙️", t("settings"), Color3.fromRGB(150, 150, 175), openSettings)
+-- Ajustes: pequeño, arriba a la derecha (en la barra de Roblox, a la izquierda de sus botones de la derecha)
+local settingsButton, settingsFx = sideButton(5, "⚙️", t("settings"), Color3.fromRGB(150, 150, 175), openSettings)
+toTopbar(settingsButton, settingsFx, 3.3, true)
 
 ---------------------------------------------------------------------
 -- Controles de PC (teclado) y consola (mando de PS5/Xbox)
@@ -2099,8 +2196,27 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 	local now = os.clock()
 	for _, f in ipairs(floaters) do
-		f.gui.Position = UDim2.new(0, 4, 0, 4 + math.sin(now * 2.2 + f.phase) * 3)
+		local o = f.small and 3 or 5
+		f.gui.Position = UDim2.new(0, o, 0, o + math.sin(now * 2.2 + f.phase) * (f.small and 1.5 or 3))
 		f.gui.Rotation = math.sin(now * 1.6 + f.phase) * 6
+		if f.shine then
+			-- un destello cada 4 s, escalonado entre botones (cascada de arriba abajo)
+			local p = ((now + f.phase * 0.35) % 4) / 0.7
+			f.shine.Offset = Vector2.new(p < 1 and (-1 + p * 2) or 1, 0)
+		end
+		if f.rim then
+			-- el arcoíris del borde da vueltas (desfasado entre botones)
+			f.rim.Rotation = (now * 120 + f.phase * 40) % 360
+		end
+		if f.greenBody then
+			-- cuerpo del AFK: verdes que se desplazan
+			f.greenBody.Offset = Vector2.new(math.sin(now * 1.4) * 0.5, 0)
+		end
+		if f.iconScale then
+			-- con aviso (NUEVO / misiones listas) el medallón late
+			local alert = f.badge and f.badge.Visible
+			f.iconScale.Scale = alert and (1 + math.abs(math.sin(now * 4)) * 0.12) or 1
+		end
 	end
 	for i, g in ipairs(pillGradients) do
 		g.Rotation = 90 + math.sin(now * 0.8 + i) * 25
@@ -2672,7 +2788,10 @@ task.spawn(function()
 		end
 		tierFill.Size = UDim2.new(nextHits and math.clamp((hits - prevHits) / (nextHits - prevHits), 0, 1) or 1, 0, 1, 0)
 		leaveLabel.Text = t("jumpToLeave", deviceKey("jump"))
-		afkButton:FindFirstChildOfClass("UIStroke").Color = state.afk and GREEN or darker(PURPLE, 0.3)
+		-- el borde lleva un degradado de verdes: blanco = colores puros; activo = algo más brillante y grueso
+		local afkStroke = afkButton:FindFirstChildOfClass("UIStroke")
+		afkStroke.Color = WHITE
+		afkStroke.Thickness = state.afk and 4.5 or 3.5
 		for _, bb in ipairs(CollectionService:GetTagged("Loc")) do
 			locLabel(bb)
 		end

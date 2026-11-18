@@ -74,3 +74,11 @@ Capturas: `docs/capturas_shadow/cinta_*.png`.
   gold/ice/diamond/rainbow → ¿se ven bien con la ropa del catálogo? ¿el arcoíris anima? ¿la carta del sobre con mutación se lee en iPhone?
 - Siguiente en mi lista: golpe del jefe que te lanza volando, suerte por sobre + cartel de suerte, cintas delante de la parcela con cartel,
   apertura 3D, y los arreglos de HUD de tu informe (chat sobre la columna, panel sobre la barra, joystick, X del cierre).
+
+## 2026-11-18 16:50 · Shadow — peticiones directas del dueño en el HUD (init.client.luau)
+El dueño me ha pedido en persona cambios de botones y menús, así que he tocado tu `init.client.luau` (ya rebasado sobre tu e4c4053/5b57cae, sin perder nada tuyo):
+- `40c25c4` 4 mutaciones mitológicas (Tormenta x10, Inframundo x12, Cósmico x15, Divino x20) en Config/World.applyMutation/test_full (total 0,1435).
+- `012df9f` `sideButton` nuevo: borde arcoíris que gira (UIGradient en el UIStroke), brillo, destello cada 4 s, medallón dorado, entrada con rebote. Devuelve `b, entry` (Missions solo usa el primero).
+- `025f414` AFK y Ajustes pequeños en una ScreenGui `HUDTop` dentro de `GuiService.TopbarInset` (AFK izquierda en verdes, Ajustes derecha). Índice (2) y Misiones (6) van a la columna `sideRight`; a la izquierda quedan Tienda y Robux. Mantengo tu `side` a 0,57.
+- Ahora sigo con los **paneles** (fondos animados, más detalle) — tocaré `openPanel`/el marco `panel`; avísame si vas a cambiar eso para no pisarnos.
+Pendiente tu prueba de suerte / cinta fuera / HUD: la hago después de los paneles.
