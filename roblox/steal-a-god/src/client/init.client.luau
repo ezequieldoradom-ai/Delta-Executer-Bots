@@ -1208,7 +1208,8 @@ do
 			end, ready and GREEN or PINK)
 		end
 	end
-	local giftBtn = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(92, 92), Position = UDim2.new(1, -24, 0.45, 96), AnchorPoint = Vector2.new(1, 0), Parent = gui }, { -- debajo de la columna derecha (Índice y Misiones)
+	-- dentro de la columna derecha, debajo de Misiones e Índice (suelto se montaba con la píldora de la noche)
+	local giftBtn = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(84, 84), LayoutOrder = 999, Parent = sideRight }, {
 		corner(46),
 		gradient(PINK, darker(PINK, 0.45), 90),
 		stroke(WHITE, 3),
@@ -1738,6 +1739,10 @@ local function doReveal(data)
 	revealing = true
 	local rarity = Config.RARITIES[g.r]
 	local rc = rcolor(g.r)
+	-- la barra de herramientas de Roblox (el bate) tapaba la carta y el "¿RAREZA?": se esconde mientras tanto
+	pcall(function()
+		game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+	end)
 	-- 1) oscurecer
 	reveal.Visible = true
 	reveal.BackgroundTransparency = 1
@@ -1764,6 +1769,7 @@ local function doReveal(data)
 	else
 		packCard.BackgroundTransparency = 0
 		packStroke.Transparency = 0
+		packLabel.Size = UDim2.new(1, -20, 0, 60)
 		packLabel.Position = UDim2.new(0, 10, 0.5, -30)
 		packGrad.Color = ColorSequence.new(rc, darker(rc, 0.35))
 		packLabel.Text = Locale.upper(Locale.name(rarity))
@@ -1855,7 +1861,10 @@ local function doReveal(data)
 	godNew.Text = data.isNew and t("gotNew") or ""
 	godCard.Visible = true
 	godScale.Scale = 0.2
-	TweenService:Create(godScale, TweenInfo.new(0.55, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	-- la carta cabe siempre en la pantalla (en pantallas bajitas se encoge)
+	local vh = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.Y or 720
+	local fit = math.clamp((vh - 70) / (540 * math.max(0.3, uiScale.Scale)), 0.55, 1)
+	TweenService:Create(godScale, TweenInfo.new(0.55, Enum.EasingStyle.Back), { Scale = fit }):Play()
 	play("reward", 0.7)
 	if data.isNew then
 		bump(godNew, 1.6)
@@ -1886,6 +1895,10 @@ reveal.Activated:Connect(function()
 		spinModel = nil
 		if #queueReveal > 0 then
 			task.spawn(doReveal, table.remove(queueReveal, 1))
+		else
+			pcall(function()
+				game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+			end)
 		end
 	end)
 end)

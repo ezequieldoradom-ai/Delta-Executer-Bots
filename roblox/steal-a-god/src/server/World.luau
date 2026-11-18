@@ -398,7 +398,8 @@ local function buildPlot(index)
 		prompt.RequiresLineOfSight = false
 		prompt.Enabled = false
 		prompt.Parent = a
-		local gui = billboard(a, "", Color3.new(1, 1, 1), UDim2.fromOffset(150, 60), Vector3.new(0, 4.5, 0))
+		-- altares a 5 studs: cartel más estrecho y a alturas alternas (par/impar) para que no se monten
+		local gui = billboard(a, "", Color3.new(1, 1, 1), UDim2.fromOffset(118, 54), Vector3.new(0, i % 2 == 0 and 7.4 or 4.6, 0))
 		gui:SetAttribute("Altar", true)
 		CollectionService:AddTag(gui, "Loc")
 		prompt:SetAttribute("Kind", "open")

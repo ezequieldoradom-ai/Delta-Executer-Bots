@@ -689,7 +689,9 @@ function RevealFx.run(fromR, toR)
 	ctx.packCard.BackgroundTransparency = has3D and 1 or 0
 	ctx.packStroke.Transparency = has3D and 1 or 0
 	ctx.packStroke.Color = WHITE
-	ctx.packLabel.Position = has3D and UDim2.new(0, 10, 1, -14) or UDim2.new(0, 10, 0.5, -30)
+	-- con el sobre 3D la carta es transparente: el cartel puede ser más ancho y grande que ella
+	ctx.packLabel.Size = has3D and UDim2.new(1.9, 0, 0, 74) or UDim2.new(1, -20, 0, 60)
+	ctx.packLabel.Position = has3D and UDim2.new(-0.45, 0, 1, -26) or UDim2.new(0, 10, 0.5, -30)
 	aura.BackgroundTransparency = 1
 	setStage(fromR, "q")
 	pose(0, 0, 0, 0, 1)
