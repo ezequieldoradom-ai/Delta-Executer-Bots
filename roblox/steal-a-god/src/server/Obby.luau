@@ -491,7 +491,7 @@ function Obby.build()
 		portal(CFrame.new(Obby.summit.pos + Vector3.new(0, 0, -14)), "obbyLeave", Obby.folder, 0.7)
 	end
 	-- plaza: portal de entrada mirando hacia la fuente
-	portal(CFrame.lookAt(O.PORTAL, O.PORTAL + Vector3.new(0, 0, 1)), "obbyEnter", Obby.folder, 1)
+	portal(CFrame.lookAt(O.PORTAL, Vector3.new(0, O.PORTAL.Y, O.PORTAL.Z + 20)), "obbyEnter", Obby.folder, 1)
 	Obby.folder:SetAttribute("Stages", O.STAGES)
 	Obby.folder.Parent = workspace
 	return Obby.folder
@@ -631,7 +631,7 @@ function Obby.finish(player)
 		od.top = day
 		-- Sobre del Olimpo: rareza de tu mejor zona con mucha suerte, y suerte enorme al abrirlo
 		local z = bestZone(d)
-		local r = C.rollRarity(z, O.TOP_RARITY_LUCK * G.Core.personalLuck(player))
+		local r = math.max(O.TOP_MIN_RARITY or 1, C.rollRarity(z, O.TOP_RARITY_LUCK * G.Core.personalLuck(player)))
 		local item = { r = r, rem = C.RARITIES[r].open, dawn = true, kg = math.max(200, C.rollKg()), luck = C.packLuck(z, r, true) * O.TOP_PACK_LUCK }
 		local amount = math.max(5000, math.floor(G.Core.income(player) * O.TOP_MONEY_SECS))
 		G.Core.addMoney(player, amount)
@@ -834,7 +834,7 @@ function Obby.init(g)
 	O = C.OBBY
 	Obby.build()
 	-- ranking: junto al portal de la plaza y en la salida de la isla
-	buildBoard(CFrame.lookAt(O.BOARD, O.BOARD + Vector3.new(-0.35, 0, 1)), Obby.folder, 0.9)
+	buildBoard(CFrame.lookAt(O.BOARD, Vector3.new(0, O.BOARD.Y, O.BOARD.Z + 20)), Obby.folder, 0.9)
 	local islandBoard = buildBoard(Obby.padCF(0) * CFrame.new(-14, -0.7, 0) * CFrame.Angles(0, math.rad(-90), 0), Obby.folder, 0.8)
 	P({ Name = "BoardBase", Size = Vector3.new(14, 1.2, 4), CFrame = Obby.padCF(0) * CFrame.new(-14, -1.3, 0) * CFrame.Angles(0, math.rad(-90), 0), Color = Color3.fromRGB(236, 230, 218), Material = Enum.Material.Marble }, islandBoard)
 	Obby.renderBoards({})
