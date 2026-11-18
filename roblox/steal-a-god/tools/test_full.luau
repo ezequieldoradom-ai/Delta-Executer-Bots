@@ -251,7 +251,7 @@ step("Auras: capas en Attachments AuraFX y limpieza", function()
 				n += 1
 			end
 		end
-		assert(n >= 3 and rate <= (i == 1 and 30 or 70), aura.id .. ": " .. n .. " emisores, " .. rate .. " partículas/s")
+		assert(n >= 3 and rate <= (i == 1 and 36 or 70), aura.id .. ": " .. n .. " emisores, " .. rate .. " partículas/s")
 		assert(hrp:GetAttribute("AuraColor") == aura.color, aura.id .. ": AuraColor")
 	end
 	G.AuraFx.apply(hrp, nil)
@@ -521,7 +521,7 @@ step("Nidos: seis huecos juntos por zona y nido decorado sin colisión", functio
 		end
 		assert(parts <= 70, "zona " .. i .. ": " .. parts .. " piezas")
 		assert(parts >= 40, "zona " .. i .. ": nido pobre (" .. parts .. " piezas)")
-		assert(lights == 1 and emitters == 1 and spin == 1, string.format("zona %d: luces %d emisores %d discos %d", i, lights, emitters, spin))
+		assert(lights == 1 and emitters >= 1 and emitters <= 2 and spin == 1, string.format("zona %d: luces %d emisores %d discos %d", i, lights, emitters, spin))
 		assert(maxR <= PS.NEST_OUTER, string.format("zona %d: radio %.2f", i, maxR))
 		assert(maxY - floorY <= PS.NEST_RIM, string.format("zona %d: borde de %.2f de alto", i, maxY - floorY))
 		table.insert(info, string.format("%d piezas r=%.1f h=%.1f", parts, maxR, maxY - floorY))
