@@ -645,6 +645,41 @@ step("Carteles de mejora: suerte en la parcela y cinta delante (solo el dueño)"
 	s.plot = nil
 end)
 
+step("Regalos gratis por tiempo y bonus de amigos", function()
+	local fp, d, s = fakePlayer(-126)
+	s.joinedAt = os.clock()
+	assert(not G.Core.giftReady(fp, 1), "regalo antes de tiempo")
+	local m0 = d.money
+	G.Core.handleAction(fp, "claimGift", 1)
+	assert(d.money == m0, "cobró un regalo antes de tiempo")
+	s.joinedAt = os.clock() - 61 * 60
+	for i = 1, #C.GIFTS do
+		assert(G.Core.giftReady(fp, i), "regalo " .. i .. " no está listo a los 61 min")
+	end
+	G.Core.handleAction(fp, "claimGift", 1)
+	assert(d.money > m0 and s.gifts[1], "no dio el regalo 1")
+	local m1 = d.money
+	G.Core.handleAction(fp, "claimGift", 1)
+	assert(d.money == m1, "regalo cobrado dos veces")
+	for _, bad in ipairs({ 0, 99, 1.5, "x", -1 }) do
+		G.Core.handleAction(fp, "claimGift", bad)
+	end
+	assert(d.money == m1, "regalo con número raro")
+	local before = #d.altarPacks + #d.queue
+	G.Core.handleAction(fp, "claimGift", 5)
+	assert(#d.altarPacks + #d.queue == before + 1 and s.gifts[5], "el regalo 5 no dio el sobre")
+	-- amigos: +10 % de dinero por amigo (máximo 5)
+	local _, base = G.Core.mults(fp)
+	local old = G.Core.friendCount
+	G.Core.friendCount = function() return 3 end
+	G.Core.invalidate(fp)
+	local _, withFriends = G.Core.mults(fp)
+	G.Core.friendCount = old
+	G.Core.invalidate(fp)
+	assert(withFriends > base * 1.05, string.format("el bonus de amigos no suma: %.3f → %.3f", base, withFriends))
+	assert(G.Core.friendCount(fp) == 0, "amigos de mentira")
+end)
+
 step("Colección enorme: se recorta sin tocar el índice", function()
 	local fp, d = fakePlayer(-107)
 	for i = 1, 700 do

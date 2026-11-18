@@ -975,6 +975,100 @@ end
 local function openShop()
 	openPanel("shop", "🛒 " .. t("shop") .. " · " .. t("upgrades"), nil, CYAN)
 end
+
+---------------------------------------------------------------------
+-- Regalos gratis por tiempo jugado: botón 🎁 a la derecha con cuenta atrás y panel con los 8 regalos
+---------------------------------------------------------------------
+-- (en un bloque do: el script ya roza el límite de 200 variables locales de Luau)
+do
+	local function giftLeft(i)
+		local g = Config.GIFTS[i]
+		return math.max(0, g.mins * 60 - (state.playTime or 0))
+	end
+	local function giftClaimed(i)
+		local gs = state.gifts
+		return gs ~= nil and (gs[i] == true or gs[tostring(i)] == true)
+	end
+	local function giftText(reward)
+		if reward.kind == "money" then
+			return "💰 $" .. Format.num(math.max(Config.QUESTS and Config.QUESTS.MONEY_MIN or 0, (state.income or 0) * (reward.secs or 300)))
+		elseif reward.kind == "speed" then
+			return string.format("⚡ x3 · %d min", reward.mins or 5)
+		elseif reward.kind == "luck" then
+			return string.format("🍀 x2 · %d min", reward.mins or 10)
+		end
+		return reward.big and t("giftMegaPack") or t("giftPack")
+	end
+	local function openGifts()
+		openPanel("gifts", "🎁 " .. t("giftsTitle"), nil, PINK)
+	end
+	signatures.gifts = function()
+		local parts = {}
+		for i in ipairs(Config.GIFTS) do
+			parts[i] = giftClaimed(i) and "c" or tostring(math.ceil(giftLeft(i)))
+		end
+		return table.concat(parts, "|") .. "|" .. Format.num(state.income or 0)
+	end
+	renderers.gifts = function()
+		listLayout()
+		local hintL = label({ Parent = content, Font = BTN, Text = t("giftsHint"), Size = UDim2.new(1, -14, 0, 30), LayoutOrder = 0, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(228, 218, 250), ZIndex = 11 })
+		new("UITextSizeConstraint", { MaxTextSize = 22, Parent = hintL })
+		local icons = { money = "💰", speed = "⚡", luck = "🍀", pack = "📦" }
+		for i, g in ipairs(Config.GIFTS) do
+			local claimed, left = giftClaimed(i), giftLeft(i)
+			local ready = not claimed and left <= 0
+			row(i, icons[g.reward.kind] or "🎁", t("giftN", i), giftText(g.reward), claimed and "✅" or (ready and t("claim") or ("⏳ " .. Format.time(left))), ready and GREEN or Color3.fromRGB(90, 88, 110), ready, function()
+				Action:FireServer("claimGift", i)
+				play("reward", 1)
+			end, ready and GREEN or PINK)
+		end
+	end
+	local giftBtn = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(92, 92), Position = UDim2.new(1, -16, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), Parent = gui }, {
+		corner(46),
+		gradient(PINK, darker(PINK, 0.45), 90),
+		stroke(WHITE, 3),
+	})
+	pressable(giftBtn)
+	local giftIcon = label({ Parent = giftBtn, Text = "🎁", Font = TITLE, Size = UDim2.new(1, -24, 1, -30), Position = UDim2.fromOffset(12, 4), Stroke = false })
+	local giftTime = heavy({ Parent = giftBtn, Text = "", Size = UDim2.new(1.3, 0, 0, 28), Position = UDim2.new(-0.15, 0, 1, -26), StrokeThickness = 2.5 })
+	local giftBadge = new("Frame", { BackgroundColor3 = Color3.fromRGB(255, 50, 70), Size = UDim2.fromOffset(30, 30), Position = UDim2.new(1, -24, 0, -8), Visible = false, ZIndex = 3, Parent = giftBtn }, { corner(15), stroke(WHITE, 2) })
+	local giftBadgeText = heavy({ Parent = giftBadge, Text = "", Size = UDim2.new(1, -6, 1, -6), Position = UDim2.fromOffset(3, 3), ZIndex = 4, StrokeThickness = 1.5 })
+	table.insert(floaters, { gui = giftIcon, phase = 9 })
+	giftBtn.Activated:Connect(function()
+		play("click")
+		openGifts()
+	end)
+	-- cuenta atrás del próximo regalo y número de regalos listos (2 veces por segundo)
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			local ready, nextLeft = 0, nil
+			for i in ipairs(Config.GIFTS) do
+				if not giftClaimed(i) then
+					local left = giftLeft(i)
+					if left <= 0 then
+						ready += 1
+					elseif not nextLeft or left < nextLeft then
+						nextLeft = left
+					end
+				end
+			end
+			giftBadge.Visible = ready > 0
+			giftBadgeText.Text = tostring(ready)
+			giftTime.Text = ready > 0 and t("giftReady") or (nextLeft and Format.time(nextLeft) or "✅")
+			giftTime.TextColor3 = ready > 0 and GREEN or WHITE
+			giftBtn.Visible = ready > 0 or nextLeft ~= nil
+			if ready > 0 then
+				giftIcon.Rotation = math.sin(os.clock() * 9) * 12
+			else
+				giftIcon.Rotation = 0
+			end
+			if panel.Visible and currentPanel == "gifts" then
+				render()
+			end
+		end
+	end)
+end
 local function openIndex()
 	openPanel("index", "📖 " .. t("indexTitle"), { { id = "gods", text = t("index") }, { id = "rewards", text = "🎁" }, { id = "odds", text = "🎲 " .. t("odds") } }, GOLD)
 end
@@ -2504,7 +2598,8 @@ task.spawn(function()
 		if (state.boostLeft or 0) > 0 then
 			boosts ..= string.format('   <font color="#9BE7FF">⚡x3 %s</font>', Format.time(state.boostLeft))
 		end
-		multLabel.Text = string.format("💰 x%s   🍀 x%s%s", Format.mult(state.moneyMult or 1), Format.mult(state.luck or 1), boosts)
+		local friends = (state.friends or 0) > 0 and string.format("   👥 +%d%%", math.floor(state.friends * Config.FRIEND_BONUS * 100 + 0.5)) or ""
+		multLabel.Text = string.format("💰 x%s   🍀 x%s%s%s", Format.mult(state.moneyMult or 1), Format.mult(state.luck or 1), friends, boosts)
 		cycleLabel.Text = string.format('%s <font color="#FFD23F">%s</font>', state.night and t("dawnIn") or t("nightIn"), Format.time(left))
 		-- "NEW" en la tienda si puedes comprar una mejora
 		local canBuy = (state.money or 0) >= Config.treadmillCost((state.treadmill or 1) + 1) or (state.money or 0) >= Config.plotCost((state.plot or 1) + 1)

@@ -150,6 +150,8 @@ function Core.computeMults(player, d, s)
 		speedAdd += 0.1
 		moneyAdd += 0.1
 	end
+	-- jugar con amigos: +10 % de dinero por amigo en el servidor (máximo 5)
+	moneyAdd += C.FRIEND_BONUS * Core.friendCount(player)
 	if s.passes.speed2x then
 		speedMul *= 2
 	end
@@ -180,6 +182,57 @@ function Core.personalLuck(player, d, s)
 		luck *= C.QUESTS.LUCK_BOOST
 	end
 	return luck
+end
+
+-- Amigos en el servidor (IsFriendsWith espera a Roblox: se mira al entrar, en segundo plano)
+function Core.friendCount(player)
+	local s = Core.sessions[player]
+	local n = 0
+	for id in pairs(s and s.friends or {}) do
+		local other = Players:GetPlayerByUserId(id)
+		if other and Core.sessions[other] then
+			n += 1
+		end
+	end
+	return math.min(n, C.FRIEND_MAX)
+end
+
+function Core.checkFriends(player)
+	-- copia de la lista: IsFriendsWith espera y mientras tanto pueden entrar o salir jugadores
+	local others = {}
+	for other in pairs(Core.sessions) do
+		if other ~= player and typeof(other) == "Instance" and typeof(player) == "Instance" then
+			table.insert(others, other)
+		end
+	end
+	for _, other in ipairs(others) do
+		local ok, isFriend = pcall(player.IsFriendsWith, player, other.UserId)
+		local s, os2 = Core.sessions[player], Core.sessions[other]
+		if ok and isFriend and s and os2 then
+			s.friends[other.UserId] = true
+			os2.friends = os2.friends or {}
+			os2.friends[player.UserId] = true
+			Core.invalidate(player)
+			Core.invalidate(other)
+			G.Net.toast(player, "friendBonus", other.DisplayName)
+			G.Net.toast(other, "friendBonus", player.DisplayName)
+		end
+	end
+end
+
+function Core.giftList(s)
+	local list = table.create(#C.GIFTS, false)
+	for i in ipairs(C.GIFTS) do
+		list[i] = (s.gifts and s.gifts[i]) == true
+	end
+	return list
+end
+
+-- Regalo gratis i: cuando llevas jugando sus minutos en esta partida, una vez
+function Core.giftReady(player, i)
+	local s = Core.sessions[player]
+	local gift = C.GIFTS[i]
+	return s ~= nil and gift ~= nil and not (s.gifts and s.gifts[i]) and os.clock() - (s.joinedAt or os.clock()) >= gift.mins * 60
 end
 
 -- Suerte total al ABRIR un sobre: la del sobre × tu nivel de suerte × pase/premio × suerte del servidor
@@ -524,6 +577,18 @@ function actions.settings(player, tbl)
 	end
 end
 
+function actions.claimGift(player, i)
+	i = tonumber(i)
+	if not i or i ~= math.floor(i) or not Core.giftReady(player, i) then
+		return
+	end
+	local s = Core.sessions[player]
+	s.gifts = s.gifts or {}
+	s.gifts[i] = true
+	local msg = G.Quests.give(player, C.GIFTS[i].reward)
+	G.Net.toast(player, msg[1], msg[2])
+end
+
 function actions.leaveTreadmill(player)
 	Core.leaveTreadmill(player)
 end
@@ -822,8 +887,11 @@ local function onJoin(player)
 		tapHits = 0,
 		nextTapAt = 0,
 		leftAt = 0,
+		gifts = {}, -- regalos por tiempo ya reclamados en esta partida
+		friends = {}, -- [UserId] = true: amigos en este servidor
 	}
 	Core.sessions[player] = s
+	task.spawn(Core.checkFriends, player)
 	-- misiones del día y tutorial: antes de cualquier espera, así el primer estado ya los lleva
 	if G.Quests then
 		local ok, err = pcall(G.Quests.onJoin, player)
@@ -876,6 +944,13 @@ end
 
 local function onLeave(player)
 	local s = Core.sessions[player]
+	-- sus amigos pierden el bonus de amigo
+	for other, os2 in pairs(Core.sessions) do
+		if os2.friends and os2.friends[player.UserId] then
+			os2.friends[player.UserId] = nil
+			Core.invalidate(other)
+		end
+	end
 	if s then
 		if s.carrying then
 			G.Packs.dropCarried(player, false)
@@ -1017,6 +1092,9 @@ function Core.sendState(player)
 		treadmill = d.treadmill,
 		treadmillGain = C.treadmillGain(d.treadmill) * speedMult,
 		luckLevel = d.luckLevel or 1,
+		playTime = os.clock() - (s.joinedAt or os.clock()), -- para los regalos por tiempo
+		gifts = Core.giftList(s), -- lista seguida de true/false (las tablas con huecos llegan mal al cliente)
+		friends = Core.friendCount(player),
 		plot = d.plot,
 		pedestals = Core.pedestalCount(player),
 		altarsMax = Core.altarCount(player),

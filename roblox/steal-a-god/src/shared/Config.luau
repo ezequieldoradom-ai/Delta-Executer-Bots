@@ -283,6 +283,23 @@ function Config.rollRarity(zoneIndex, luck, rng)
 end
 
 ---------------------------------------------------------------------
+-- REGALOS GRATIS por tiempo jugado (en esta partida: se reinician al volver a entrar)
+-- y BONUS DE AMIGOS (+10 % de dinero por cada amigo en el servidor, máximo 5)
+---------------------------------------------------------------------
+Config.GIFTS = {
+	{ mins = 2, reward = { kind = "money", secs = 120 } },
+	{ mins = 5, reward = { kind = "speed", mins = 3 } },
+	{ mins = 10, reward = { kind = "money", secs = 300 } },
+	{ mins = 15, reward = { kind = "luck", mins = 10 } },
+	{ mins = 20, reward = { kind = "pack" } },
+	{ mins = 30, reward = { kind = "money", secs = 900 } },
+	{ mins = 45, reward = { kind = "luck", mins = 20 } },
+	{ mins = 60, reward = { kind = "pack", luck = 3, big = true } },
+}
+Config.FRIEND_BONUS = 0.1
+Config.FRIEND_MAX = 5
+
+---------------------------------------------------------------------
 -- SUERTE DE LOS SOBRES Y SUERTE PROPIA
 -- Cada sobre trae su suerte (más en zonas lejanas y rarezas altas; x3 al amanecer).
 -- Al abrirlo: suerte total T = suerte del sobre × tu nivel de suerte (cartel de la parcela) × pase,
