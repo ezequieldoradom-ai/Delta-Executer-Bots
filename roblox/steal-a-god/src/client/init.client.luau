@@ -2029,6 +2029,48 @@ local function launchFlight(vel, T)
 	end)
 end
 
+-- Grito del guardián al empezar a perseguir: suena en 3D desde el guardián para todos los que están cerca
+-- y, para quien lleva el sobre, también en primer plano (lo oye seguro aunque esté lejos)
+do
+	local shoutId = Config.SOUNDS and Config.SOUNDS.shouts
+	local function playShout(parent, info, volume, is3D)
+		local s = Instance.new("Sound")
+		s.SoundId = shoutId
+		s.Volume = volume
+		if is3D then
+			s.RollOffMode = Enum.RollOffMode.InverseTapered
+			s.RollOffMinDistance = 20
+			s.RollOffMaxDistance = 260
+		end
+		s.Parent = parent
+		s.TimePosition = (info.slot - 1) * (Config.SHOUT_SLOT or 5)
+		s:Play()
+		task.delay(info.len + 0.15, function()
+			s:Stop()
+			s:Destroy()
+		end)
+	end
+	Remotes:WaitForChild("Sfx").OnClientEvent:Connect(function(data)
+		if type(data) ~= "table" or data.kind ~= "shout" or type(shoutId) ~= "string" or shoutId == "" or not opt("sfx") then
+			return
+		end
+		local info = Config.SHOUTS and Config.SHOUTS[data.guardian]
+		if not info then
+			return
+		end
+		if data.victim == player.UserId then
+			playShout(SoundService, info, 1.1, false)
+			shake(0.35, 0.25)
+		else
+			local model = typeof(data.model) == "Instance" and data.model
+			local root = model and (model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true))
+			if root then
+				playShout(root, info, 1.4, true)
+			end
+		end
+	end)
+end
+
 Remotes:WaitForChild("Knock").OnClientEvent:Connect(function(vel, opts)
 	if type(opts) == "table" and opts.flight then
 		launchFlight(vel, tonumber(opts.time) or 1.3)
@@ -2411,10 +2453,30 @@ do
 	edge(UDim2.fromScale(0.17, 1), UDim2.fromScale(1, 0), Vector2.new(1, 0), 180) -- derecha
 end
 
--- Latido (cada fotograma, solo mientras llevas un sobre)
+local updateChase -- se define más abajo
+-- ¿En peligro? Llevas un sobre y estás al otro lado de la línea segura (en la plaza ya nadie te persigue)
+function chaseFx.danger_()
+	if state.carrying == nil then
+		return false
+	end
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	return not hrp or hrp.Position.Z >= (Config.SAFE_Z or 102)
+end
+
+-- Latido (cada fotograma, solo mientras llevas un sobre y estás en peligro)
 RunService.RenderStepped:Connect(function(dt)
 	local carried = state.carrying
 	if carried == nil then
+		return
+	end
+	-- pasar la línea segura apaga la pantalla roja y el ¡CORRE! al momento
+	local danger = chaseFx.danger_()
+	if danger ~= chaseFx.wasDanger then
+		chaseFx.wasDanger = danger
+		updateChase()
+	end
+	if not danger then
 		return
 	end
 	-- peligro de 0 a 1: guardián a 170 bloques o más = 0 · a 30 o menos = 1
@@ -2443,9 +2505,10 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 
-local function updateChase()
+function updateChase()
 	local carrying = state.carrying ~= nil
-	if carrying and not runBadge.Visible then
+	local chasing = carrying and chaseFx.danger_()
+	if chasing and not runBadge.Visible then
 		chaseFx.phase, chaseFx.danger = 0, 0
 		bump(runBadge, 1.5)
 		play("whoosh", 1.4)
@@ -2457,11 +2520,11 @@ local function updateChase()
 			fl:Destroy()
 		end)
 	end
-	runBadge.Visible = carrying
+	runBadge.Visible = chasing
 	dropBtn.Visible = carrying
-	chaseFx.gui.Enabled = carrying
-	distLabel.Visible = carrying and state.chase ~= nil
-	if carrying then
+	chaseFx.gui.Enabled = chasing
+	distLabel.Visible = chasing and state.chase ~= nil
+	if chasing then
 		if state.chase then
 			local near = state.chase < 40
 			distLabel.Text = (near and "⚠️ " or "") .. t("guardianDist", state.chase)

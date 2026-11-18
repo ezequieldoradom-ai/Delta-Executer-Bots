@@ -643,7 +643,20 @@ Config.LIGHT = {
 ---------------------------------------------------------------------
 Config.SOUNDS = {
 	chase = "rbxassetid://134426853581343", -- música de persecución original (bucle de 36 s; tools/audio/gen_chase.py)
+	bgm = "rbxassetid://123910427829548", -- música de fondo original, alegre y acogedora (bucle de 65 s; tools/audio/gen_bgm.py)
+	shouts = "rbxassetid://73369381252356", -- gritos de los guardianes: 6 frases en huecos de 5 s (tools/audio/make_shouts.sh)
 }
+-- Grito de cada guardián al empezar a perseguirte: hueco del audio "shouts" y duración (s)
+Config.SHOUT_SLOT = 5
+Config.SHOUTS = {
+	minotaur = { slot = 1, len = 2.83, text = "HEY!! That's MY pack!" },
+	dullahan = { slot = 2, len = 3.49, text = "HEEEY! You can't escape me!" },
+	sphinx = { slot = 3, len = 2.34, text = "HEY! Stop right there, thief!" },
+	jaguar = { slot = 4, len = 3.13, text = "HEY!! I see you!" },
+	lamassu = { slot = 5, len = 2.8, text = "HEY!! Give that back!" },
+	fenrir = { slot = 6, len = 3.13, text = "HEEEY!! Come back here!" },
+}
+Config.SAFE_Z = 102 -- la línea segura: por debajo de esta Z (la plaza) nadie te persigue (= World.SAFE_Z)
 
 
 ---------------------------------------------------------------------

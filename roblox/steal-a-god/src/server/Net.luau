@@ -13,6 +13,7 @@ local EVENTS = {
 	"Action", -- cliente -> servidor: comprar, equipar, AFK...
 	"Combo", -- cliente -> servidor: toque acertado en la cinta (id del toque)
 	"Tap", -- servidor -> cliente: aparece un toque de combo, acierto o combo perdido
+	"Sfx", -- servidor -> clientes: sonidos del mundo (grito de un guardián al empezar a perseguir)
 }
 
 function Net.init()

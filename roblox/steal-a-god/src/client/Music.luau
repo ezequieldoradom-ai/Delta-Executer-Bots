@@ -1,5 +1,7 @@
--- Música de persecución: suena mientras llevas un sobre robado (un guardián te persigue).
--- Entra con un fundido corto, sale con uno más largo y se acelera un poco cuando el guardián está cerca.
+-- Música: de fondo (alegre y acogedora, en todo el juego y en el Ascenso al Olimpo) y de persecución.
+-- La de persecución suena solo mientras llevas un sobre robado Y estás al otro lado de la línea segura
+-- (Config.SAFE_Z): al pasar a la plaza se apaga con un fundido y vuelve la de fondo donde se quedó.
+-- La persecución se acelera un poco cuando el guardián está cerca.
 -- ctx = { player, Config, Locale, t, opt, getState, gui, play } (lo prepara init.client.luau)
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
@@ -7,83 +9,105 @@ local ContentProvider = game:GetService("ContentProvider")
 
 local Music = {}
 
-local VOLUME = 0.5
+local CHASE_VOLUME = 0.5
+local BGM_VOLUME = 0.32
 local FADE_IN = 0.5
 local FADE_OUT = 1.2
 
-local sound = nil
-local fade = nil
-local playing = false
 local running = false
+local tracks = {} -- name = { sound, fade, on }
 
-local function tweenVolume(goal, seconds)
-	if fade then
-		fade:Cancel()
+local function track(name, id, volume)
+	if type(id) ~= "string" or id == "" then
+		return nil
 	end
-	fade = TweenService:Create(sound, TweenInfo.new(seconds, Enum.EasingStyle.Sine), { Volume = goal })
-	fade:Play()
-	return fade
+	local s = Instance.new("Sound")
+	s.Name = name
+	s.SoundId = id
+	s.Looped = true
+	s.Volume = 0
+	s.Parent = SoundService
+	task.spawn(function()
+		pcall(function()
+			ContentProvider:PreloadAsync({ s })
+		end)
+	end)
+	local t = { sound = s, fade = nil, on = false, volume = volume }
+	tracks[name] = t
+	return t
 end
 
-local function setOn(on)
-	if on == playing or not sound then
+-- Enciende o apaga una pista con fundido. restart: empezar desde el principio (persecución) o seguir (fondo)
+local function setOn(t, on, restart)
+	if not t or t.on == on then
 		return
 	end
-	playing = on
+	t.on = on
+	if t.fade then
+		t.fade:Cancel()
+	end
+	local s = t.sound
 	if on then
-		sound.TimePosition = 0
-		sound.PlaybackSpeed = 1
-		if not sound.IsPlaying then
-			sound:Play()
+		if restart then
+			s.TimePosition = 0
+			s.PlaybackSpeed = 1
 		end
-		tweenVolume(VOLUME, FADE_IN)
+		if not s.IsPlaying then
+			s:Resume()
+			if not s.IsPlaying then
+				s:Play()
+			end
+		end
+		t.fade = TweenService:Create(s, TweenInfo.new(FADE_IN, Enum.EasingStyle.Sine), { Volume = t.volume })
+		t.fade:Play()
 	else
-		local tw = tweenVolume(0, FADE_OUT)
-		tw.Completed:Connect(function(state)
-			-- si la persecución vuelve durante el fundido, este tween se cancela y no se para la música
-			if state == Enum.PlaybackState.Completed and not playing then
-				sound:Stop()
+		t.fade = TweenService:Create(s, TweenInfo.new(FADE_OUT, Enum.EasingStyle.Sine), { Volume = 0 })
+		t.fade.Completed:Connect(function(state)
+			-- si vuelve a encenderse durante el fundido, este tween se cancela y no se para
+			if state == Enum.PlaybackState.Completed and not t.on then
+				s:Pause()
 			end
 		end)
+		t.fade:Play()
 	end
+end
+
+-- ¿Estás en peligro? Llevas un sobre y estás al otro lado de la línea segura
+function Music.inDanger(state, player, Config)
+	if state.carrying == nil then
+		return false
+	end
+	local char = player and player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	local safeZ = Config.SAFE_Z or 102
+	return not hrp or hrp.Position.Z >= safeZ
 end
 
 function Music.start(ctx)
 	if running then
 		return
 	end
-	local id = ctx and ctx.Config and ctx.Config.SOUNDS and ctx.Config.SOUNDS.chase
-	if type(id) ~= "string" or id == "" then
-		return -- todavía no hay música subida
-	end
+	local S = ctx and ctx.Config and ctx.Config.SOUNDS or {}
 	running = true
-	sound = Instance.new("Sound")
-	sound.Name = "ChaseMusic"
-	sound.SoundId = id
-	sound.Looped = true
-	sound.Volume = 0
-	sound.Parent = SoundService
-	task.spawn(function()
-		pcall(function()
-			ContentProvider:PreloadAsync({ sound })
-		end)
-	end)
+	local chase = track("ChaseMusic", S.chase, CHASE_VOLUME)
+	local bgm = track("BackgroundMusic", S.bgm, BGM_VOLUME)
 	task.spawn(function()
 		while running do
 			task.wait(0.1)
 			local ok = pcall(function()
 				local state = ctx.getState and ctx.getState() or {}
 				local musicOn = not ctx.opt or ctx.opt("music")
-				local chasing = state.carrying ~= nil and musicOn
-				setOn(chasing)
-				if playing then
+				local danger = musicOn and Music.inDanger(state, ctx.player, ctx.Config)
+				setOn(chase, danger, true)
+				setOn(bgm, musicOn and not danger, false)
+				if chase and chase.on then
 					-- tensión: a menos de 60 bloques sube poco a poco hasta x1.08 (a 15 o menos)
 					local d = tonumber(state.chase)
 					local goal = 1
 					if d and d < 60 then
 						goal = 1 + 0.08 * math.clamp((60 - d) / 45, 0, 1)
 					end
-					sound.PlaybackSpeed += (goal - sound.PlaybackSpeed) * 0.15
+					chase.sound.PlaybackSpeed += (goal - chase.sound.PlaybackSpeed) * 0.15
 				end
 			end)
 			if not ok then
@@ -95,15 +119,14 @@ end
 
 function Music.stop()
 	running = false
-	playing = false
-	if fade then
-		fade:Cancel()
+	for _, t in pairs(tracks) do
+		if t.fade then
+			t.fade:Cancel()
+		end
+		t.sound:Stop()
+		t.sound:Destroy()
 	end
-	if sound then
-		sound:Stop()
-		sound:Destroy()
-		sound = nil
-	end
+	table.clear(tracks)
 end
 
 return Music

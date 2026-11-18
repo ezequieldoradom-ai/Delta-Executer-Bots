@@ -295,7 +295,7 @@ end)
 -- PRUEBAS DE SEGURIDAD, DATOS Y COMPRAS (jugadores simulados)
 ---------------------------------------------------------------------
 local noop = { FireClient = function() end, FireAllClients = function() end }
-G.Net.State, G.Net.Toast, G.Net.Offer, G.Net.Reveal, G.Net.Announce, G.Net.Knock, G.Net.Tap = noop, noop, noop, noop, noop, noop, noop
+G.Net.State, G.Net.Toast, G.Net.Offer, G.Net.Reveal, G.Net.Announce, G.Net.Knock, G.Net.Tap, G.Net.Sfx = noop, noop, noop, noop, noop, noop, noop, noop
 local C = G.Config
 local function fakePlayer(id)
 	local fp = { UserId = id, DisplayName = "Test" .. math.abs(id), Name = "Test" .. math.abs(id), Character = nil }
@@ -526,6 +526,28 @@ step("Apertura 3D: un sobre de muestra por rareza y columna de luz en el altar",
 	task.wait(1.6)
 	assert(not workspace:FindFirstChild("OpenPillar") and not workspace:FindFirstChild("Shockwave"), "la columna de luz no se limpia")
 	s.plot = nil
+end)
+
+step("Música y gritos: pistas subidas, un grito por guardián y la línea segura", function()
+	for _, k in ipairs({ "chase", "bgm", "shouts" }) do
+		assert(type(C.SOUNDS[k]) == "string" and C.SOUNDS[k]:match("^rbxassetid://%d+$"), "falta el audio " .. k)
+	end
+	local slots = {}
+	for zi, zone in ipairs(C.ZONES) do
+		local sh = C.SHOUTS[zone.guardian.kind]
+		assert(sh, "el guardián de la zona " .. zi .. " no tiene grito")
+		assert(not slots[sh.slot] and sh.len > 0.5 and sh.len < C.SHOUT_SLOT, "hueco del grito " .. zone.guardian.kind)
+		slots[sh.slot] = true
+	end
+	assert(C.SAFE_Z == G.World.SAFE_Z, "la línea segura del cliente y la del servidor no coinciden")
+	-- la música de persecución solo con el sobre y al otro lado de la línea
+	local Music = require(game:GetService("StarterPlayer").StarterPlayerScripts.Client.Music)
+	local fakeChar = { FindFirstChild = function(_, n) return n == "HumanoidRootPart" and { Position = Vector3.new(0, 5, C.SAFE_Z + 50) } or nil end }
+	local who = { Character = fakeChar }
+	assert(Music.inDanger({ carrying = 3 }, who, C) == true, "en el pasillo con sobre: peligro")
+	fakeChar.FindFirstChild = function(_, n) return n == "HumanoidRootPart" and { Position = Vector3.new(0, 5, C.SAFE_Z - 5) } or nil end
+	assert(Music.inDanger({ carrying = 3 }, who, C) == false, "en la plaza ya no hay persecución")
+	assert(Music.inDanger({ carrying = nil }, who, C) == false, "sin sobre no hay persecución")
 end)
 
 step("Suerte de cada sobre: según zona, rareza y amanecer", function()
@@ -1304,8 +1326,13 @@ step("Robar, llevar, soltar y entregar un sobre del nido", function()
 	stand(pack.home + out * 5 + Vector3.new(0, 0.2, 0))
 	local reach = (hrp.Position - pack.part.Position).Magnitude
 	assert(reach <= pack.prompt.MaxActivationDistance, string.format("aviso inalcanzable (%.1f > %.1f)", reach, pack.prompt.MaxActivationDistance))
+	local shouts = {}
+	G.Net.Sfx = { FireAllClients = function(_, data) table.insert(shouts, data) end }
 	G.Packs.grab(fp, pack)
+	G.Net.Sfx = noop
 	assert(pack.state == "carried" and s.carrying == pack and pack.carrier == fp and pack.prompt.Enabled == false, "no lo cogió")
+	-- el guardián grita al empezar a perseguirte (con su frase) y no repite enseguida
+	assert(#shouts == 1 and shouts[1].kind == "shout" and C.SHOUTS[shouts[1].guardian] and shouts[1].victim == fp.UserId, "sin grito del guardián")
 	assert(G.World.guardians[1].target == fp, "el guardián no persigue")
 	assert(pack.part:FindFirstChild("CarryFX") and pack.part:FindFirstChild("CarryTrail"), "sin estela")
 	-- sigue a la cabeza, de pie, con su haz de luz

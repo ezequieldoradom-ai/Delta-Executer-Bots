@@ -456,8 +456,15 @@ function Packs.grab(player, pack)
 	placeCarried(pack, char:FindFirstChild("Head") or hrp, true)
 	-- el guardián de la zona de origen despierta y persigue
 	local guard = G.World.guardians[pack.zone]
+	local newChase = guard.target ~= player
 	guard.target = player
 	guard.pack = pack
+	-- grito del guardián ("HEY!! That's MY pack!"): lo oyen todos cerca de él (como mucho uno cada 4 s)
+	if newChase and os.clock() - (guard.lastShout or 0) > 4 and G.Net.Sfx then
+		guard.lastShout = os.clock()
+		local kind = C.ZONES[pack.zone].guardian.kind
+		G.Net.Sfx:FireAllClients({ kind = "shout", guardian = kind, model = guard.model, victim = player.UserId })
+	end
 	if pack.rarity >= C.ANNOUNCE_CHAT_FROM then
 		G.Net.announce("all", "stoleBig", { player.DisplayName, { rarity = pack.rarity }, { guardian = pack.zone } }, { color = G.Format.hex(C.RARITIES[pack.rarity].color) })
 	end
