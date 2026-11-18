@@ -381,7 +381,8 @@ end
 -- Paneles
 ---------------------------------------------------------------------
 local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Position = UDim2.new(0, 14, 0.4, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
-	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center }),
+	-- orden por LayoutOrder (explícito: Misiones va entre la Tienda y el Índice aunque se cree la última)
+	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
 })
 
 local panel = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromScale(0.64, 0.74), Position = UDim2.fromScale(0.5, 0.53), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 10, Parent = gui }, {

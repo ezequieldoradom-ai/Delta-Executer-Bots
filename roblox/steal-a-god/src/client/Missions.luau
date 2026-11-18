@@ -517,10 +517,22 @@ local function nearestPack(from)
 	return best
 end
 
+-- Tu parcela, guardada: ctx.myPlot() recorre todo workspace.World (miles de piezas) y la guía pregunta
+-- 4 veces por segundo. Se vuelve a buscar solo si deja de ser tuya.
+local plotCache = nil
+local function myPlotCached()
+	local p = plotCache
+	if p and p.Parent and p:GetAttribute("Owner") == (ctx.player and ctx.player.UserId) then
+		return p
+	end
+	plotCache = ctx.myPlot()
+	return plotCache
+end
+
 -- Objetivo de cada paso: posición del suelo, texto y tamaño del aro (nil = sin guía en el mundo)
 local function guideTarget(step, from)
 	local st = getState()
-	local plot = ctx.myPlot()
+	local plot = myPlotCached()
 	if step == 1 or step == 2 then
 		if st.onTreadmill then
 			return nil
@@ -685,25 +697,26 @@ local function onSkip()
 end
 
 local function buildCard()
-	local card = keep(new("Frame", { Name = "TutorialCard", BackgroundColor3 = WHITE, Size = UDim2.fromOffset(640, 72), Position = UDim2.new(0.5, 0, 0, 44), AnchorPoint = Vector2.new(0.5, 0), Visible = false, ZIndex = 6, Parent = ctx.gui }, {
+	-- 88 de alto: el texto cabe en dos líneas a tamaño completo (con 72, en el iPhone se encogía a ~10 px)
+	local card = keep(new("Frame", { Name = "TutorialCard", BackgroundColor3 = WHITE, Size = UDim2.fromOffset(720, 88), Position = UDim2.new(0.5, 0, 0, 44), AnchorPoint = Vector2.new(0.5, 0), Visible = false, ZIndex = 6, Parent = ctx.gui }, {
 		corner(18),
 		gradient(Color3.fromRGB(64, 36, 124), Color3.fromRGB(16, 10, 36), 90),
 		stroke(GOLD, 3),
 	}))
 	tut.card = card
 	tut.scale = new("UIScale", { Parent = card })
-	local badge = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(58, 58), Position = UDim2.fromOffset(7, 7), ZIndex = 7, Parent = card }, {
-		corner(29),
+	local badge = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(64, 64), Position = UDim2.fromOffset(8, 12), ZIndex = 7, Parent = card }, {
+		corner(32),
 		gradient(Color3.fromRGB(255, 226, 110), Color3.fromRGB(240, 130, 40), 90),
 		stroke(WHITE, 2),
 	})
 	label({ Parent = badge, Font = BTN, Text = t("tutStep"), Size = UDim2.new(1, -10, 0.34, 0), Position = UDim2.new(0, 5, 0.1, 0), ZIndex = 8, StrokeThickness = 1.5 })
 	tut.stepLabel = heavy({ Parent = badge, Text = "1/6", Size = UDim2.new(1, -8, 0.5, 0), Position = UDim2.new(0, 4, 0.42, 0), ZIndex = 8, StrokeThickness = 2 })
-	tut.text = label({ Parent = card, Font = BTN, Text = "", Size = UDim2.new(1, -206, 1, -22), Position = UDim2.fromOffset(76, 6), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7, StrokeThickness = 2 })
+	tut.text = label({ Parent = card, Font = BTN, Text = "", Size = UDim2.new(1, -222, 1, -26), Position = UDim2.fromOffset(82, 5), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7, StrokeThickness = 2 })
 	new("UITextSizeConstraint", { MaxTextSize = 26, Parent = tut.text })
-	local trackBar = new("Frame", { BackgroundColor3 = Color3.fromRGB(10, 6, 24), Size = UDim2.new(1, -206, 0, 7), Position = UDim2.new(0, 76, 1, -13), ZIndex = 7, Parent = card }, { corner(4) })
+	local trackBar = new("Frame", { BackgroundColor3 = Color3.fromRGB(10, 6, 24), Size = UDim2.new(1, -222, 0, 7), Position = UDim2.new(0, 82, 1, -15), ZIndex = 7, Parent = card }, { corner(4) })
 	tut.fill = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromScale(0, 1), ZIndex = 8, Parent = trackBar }, { corner(4), gradient(Color3.fromRGB(255, 240, 150), GOLD, 0) })
-	tut.skipBtn = button({ Parent = card, Text = t("skip"), Size = UDim2.fromOffset(112, 48), Position = UDim2.new(1, -10, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), Color = Color3.fromRGB(120, 100, 150), ZIndex = 8, OnClick = onSkip })
+	tut.skipBtn = button({ Parent = card, Text = t("skip"), Size = UDim2.fromOffset(120, 56), Position = UDim2.new(1, -10, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), Color = Color3.fromRGB(120, 100, 150), ZIndex = 8, OnClick = onSkip })
 end
 
 -- Texto del paso actual (con datos en vivo)
@@ -741,7 +754,7 @@ local function celebrateStep(step)
 		sparkBurst(tut.card, UDim2.fromScale(0.5, 0.5), 20, { GOLD, WHITE, CYAN }, 9, 260)
 	end
 	ui.floatText("✔ " .. t("tutNice"), GREEN, ctx.gui, UDim2.new(0.5, -100, 0, 120))
-	if step == 2 then
+	if step == 3 then
 		-- primer paso del pasillo: un toque de ánimo
 		ctx.play("whoosh", 1.2)
 	end
@@ -876,7 +889,7 @@ local function update()
 	-- los avisos cortos bajan un poco cuando la tarjeta del tutorial está arriba
 	local th = ctx.refs and ctx.refs.toastHolder
 	if th then
-		local y = cardShown and 124 or 92
+		local y = cardShown and 140 or 92 -- la tarjeta ocupa de 44 a 132
 		if th.Position.Y.Offset ~= y then
 			th.Position = UDim2.new(0.5, 0, 0, y)
 		end
@@ -1020,6 +1033,7 @@ function Missions.stop()
 		end
 	end
 	table.clear(made)
+	plotCache = nil
 	if ctx then
 		ctx.panel.renderers.missions = nil
 		ctx.panel.signatures.missions = nil

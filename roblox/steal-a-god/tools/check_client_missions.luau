@@ -230,7 +230,7 @@ local function openPanel(name, title)
 	render(true)
 end
 local badges = {}
-local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 10) }) })
+local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }) })
 local function sideButton(order, emoji, text, color, onClick)
 	local b = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(200, 60), LayoutOrder = order * 10, Parent = side }, {
 		corner(16), gradient(color, darker(color, 0.45), 100), stroke(darker(color, 0.25), 3.5),
@@ -381,7 +381,7 @@ step("Tutorial paso 1: tarjeta arriba, guía dorada hasta tu cinta y avisos más
 	assert(d.cardText:find("cinta") and d.cardText:find("12/30"), "texto: " .. tostring(d.cardText))
 	assert(d.guide == "tm" and d.beam, "guía: " .. tostring(d.guide) .. " haz " .. tostring(d.beam))
 	assert(d.guideLabel:find("m$"), "distancia: " .. tostring(d.guideLabel))
-	assert(toastHolder.Position.Y.Offset == 124, "los avisos no bajan")
+	assert(toastHolder.Position.Y.Offset == 140, "los avisos no bajan")
 	local folder = workspace:FindFirstChild("TutorialGuide")
 	assert(folder and folder:FindFirstChild("Target") and folder.Target:FindFirstChildOfClass("Beam"), "piezas de la guía")
 	assert(hrp:FindFirstChild("TutorialGuideA0"), "punto de salida en el personaje")
