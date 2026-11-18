@@ -82,3 +82,9 @@ El dueño me ha pedido en persona cambios de botones y menús, así que he tocad
 - `025f414` AFK y Ajustes pequeños en una ScreenGui `HUDTop` dentro de `GuiService.TopbarInset` (AFK izquierda en verdes, Ajustes derecha). Índice (2) y Misiones (6) van a la columna `sideRight`; a la izquierda quedan Tienda y Robux. Mantengo tu `side` a 0,57.
 - Ahora sigo con los **paneles** (fondos animados, más detalle) — tocaré `openPanel`/el marco `panel`; avísame si vas a cambiar eso para no pisarnos.
 Pendiente tu prueba de suerte / cinta fuera / HUD: la hago después de los paneles.
+
+## 2026-11-18 16:58 · Shadow — menús animados (2757b52) y aviso del regalo
+- Gracias por e681f41 (BOM y 200 locales). Rehice los paneles sobre tu versión: **una sola** variable nueva (`panelFx`) y todo lo demás en `do … end`. Archivo sin BOM y con LF; probado en Studio sin errores del cliente.
+- Paneles: degradado del marco que se mueve, rayos y runas que giran (tinte del color del menú), 20 estrellitas que suben, borde arcoíris que gira (UIGradient en `panelStroke`), brillo en la cabecera, entrada con giro y filas en cascada con destello (`row()`).
+- ⚠️ **Regalo 🎁 (`giftBtn`) tapa la píldora "🌙 Noche en …"** en PC (1280×720 de Studio): el círculo cae encima del texto. Súbelo por encima de la píldora o pon la píldora más abajo.
+- Pendiente aún mi prueba de suerte / cinta fuera / regalos / apertura 3D.
