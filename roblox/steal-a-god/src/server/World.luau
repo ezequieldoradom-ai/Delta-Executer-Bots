@@ -497,12 +497,69 @@ function World.altarVisible(plot, count)
 end
 
 -- El dios aparece en su sitio de la parcela; el cliente lo hace pasear libremente
+-- Aspecto de un dios mutado: cuerpo del material de la mutación, partículas y luz.
+-- No toca la ropa del catálogo (accesorios) ni las piezas invisibles.
+local MUTATION_LOOK = {
+	gold = { material = Enum.Material.Foil, color = Color3.fromRGB(255, 205, 60), particle = "sparkle", rate = 7 },
+	ice = { material = Enum.Material.Ice, color = Color3.fromRGB(175, 225, 255), particle = "sparkle", rate = 6, fall = true },
+	diamond = { material = Enum.Material.Glass, color = Color3.fromRGB(200, 245, 255), particle = "sparkle", rate = 10 },
+	lava = { material = Enum.Material.CrackedLava, color = Color3.fromRGB(255, 110, 40), particle = "flame", rate = 9 },
+	rainbow = { material = Enum.Material.Neon, color = Color3.fromRGB(255, 120, 200), particle = "sparkle", rate = 12, rainbow = true },
+}
+function World.applyMutation(m, mut)
+	local def = mut and G.Config.MUTATION_BY_ID[mut]
+	local look = mut and MUTATION_LOOK[mut]
+	if not def or not look then
+		return
+	end
+	m:SetAttribute("Mutation", mut)
+	for _, p in ipairs(m:GetDescendants()) do
+		if p:IsA("BasePart") and p.Transparency < 0.95 and p.Name ~= "HumanoidRootPart" and not p:FindFirstAncestorOfClass("Accessory") then
+			p.Material = look.material
+			p.Color = look.color
+			if look.rainbow then
+				p:SetAttribute("RainbowSpeed", 0.35)
+				p:SetAttribute("RainbowSat", 0.6)
+				CollectionService:AddTag(p, "FxRainbow")
+			end
+		end
+	end
+	local anchor = m:FindFirstChild("UpperTorso") or m:FindFirstChild("Torso") or m.PrimaryPart
+	if not anchor then
+		return
+	end
+	local att = Instance.new("Attachment")
+	att.Name = "MutationFX"
+	att.Parent = anchor
+	local pe = Instance.new("ParticleEmitter")
+	pe.Texture = G.Config.VFX[look.particle]
+	pe.Rate = look.rate
+	pe.Lifetime = NumberRange.new(0.8, 1.6)
+	pe.Speed = look.fall and NumberRange.new(0.5, 1.5) or NumberRange.new(1, 3)
+	pe.Acceleration = look.fall and Vector3.new(0, -3, 0) or Vector3.new(0, 4, 0)
+	pe.SpreadAngle = Vector2.new(180, 180)
+	pe.LightEmission = 0.8
+	pe.Color = ColorSequence.new(def.color, Color3.new(1, 1, 1))
+	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, look.particle == "flame" and 1.6 or 0.9), NumberSequenceKeypoint.new(1, 0) })
+	pe.Transparency = NumberSequence.new(0.1, 1)
+	pe.Parent = att
+	if look.rainbow then
+		CollectionService:AddTag(pe, "FxRainbow")
+	end
+	local light = Instance.new("PointLight")
+	light.Color = def.color
+	light.Range = 10
+	light.Brightness = 1.2
+	light.Shadows = false
+	light.Parent = att
+end
+
 function World.setStatue(plot, i, entry)
 	local ped = plot.pedestals[i]
 	if not ped then
 		return
 	end
-	local key = entry and (entry.god.id .. ":" .. entry.kg) or nil
+	local key = entry and (entry.god.id .. ":" .. entry.kg .. ":" .. tostring(entry.mut)) or nil
 	if ped.key == key then
 		return
 	end
@@ -516,9 +573,12 @@ function World.setStatue(plot, i, entry)
 	end
 	local god, kg = entry.god, entry.kg
 	local rarity = G.Config.RARITIES[god.r]
+	local mutDef = entry.mut and G.Config.MUTATION_BY_ID[entry.mut]
+	local income = rarity.income * G.Config.kgMult(kg) * G.Config.mutMult(entry.mut)
 	local m = G.GodModel.build(god, rarity.color)
 	G.GodModel.decorate(m, rarity)
-	m:SetAttribute("Income", rarity.income * G.Config.kgMult(kg))
+	World.applyMutation(m, entry.mut)
+	m:SetAttribute("Income", income)
 	m:SetAttribute("Rarity", god.r)
 	m:SetAttribute("Kg", kg)
 	m:SetAttribute("Slot", i)
@@ -531,7 +591,8 @@ function World.setStatue(plot, i, entry)
 	local head = m:FindFirstChild("Head") or m:FindFirstChild("Torso")
 	if head then
 		local color = rarity.id == 10 and Color3.fromRGB(210, 140, 255) or rarity.color
-		local tag = billboard(head, string.format("<b>%s</b> <font size=\"13\" color=\"#FFE9A8\">%d kg</font>\n<font color=\"#6CFF7A\">$%s/s</font>", god.name, kg, G.Format.num(rarity.income * G.Config.kgMult(kg))), color, UDim2.fromOffset(136, 46), Vector3.new(0, 2.2 * scale + 1.2, 0))
+		local mutLine = mutDef and string.format('<font color="#%s">%s x%d</font> ', mutDef.color:ToHex(), mutDef.icon, mutDef.mult) or ""
+		local tag = billboard(head, string.format("<b>%s</b> <font size=\"13\" color=\"#FFE9A8\">%d kg</font>\n%s<font color=\"#6CFF7A\">$%s/s</font>", god.name, kg, mutLine, G.Format.num(income)), color, UDim2.fromOffset(136, 46), Vector3.new(0, 2.2 * scale + 1.2, 0))
 		tag.MaxDistance = 45 -- con la parcela llena, de lejos solo se veía una maraña de carteles
 	end
 	m.Parent = plot.folder

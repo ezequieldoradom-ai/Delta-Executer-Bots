@@ -724,7 +724,9 @@ function Packs.openAltar(player, i)
 	local god = rollGod(p.r, p.dawn)
 	local kg = p.kg or 100
 	G.Avatars.make(god)
-	local isNew = G.Core.addGod(player, god, kg)
+	-- mutación (Dorado, Hielo, Diamante, Lava, Arcoíris): más dinero y otro aspecto
+	local mut = C.rollMutation()
+	local isNew = G.Core.addGod(player, god, kg, mut)
 	-- estallido de luz y partículas en el altar
 	local s = G.Core.sessions[player]
 	local altar = s and s.plot and s.plot.altars[i]
@@ -750,7 +752,12 @@ function Packs.openAltar(player, i)
 		light.Parent = att
 		game:GetService("Debris"):AddItem(att, 2)
 	end
-	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew, kg = kg })
+	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew, kg = kg, mut = mut })
+	-- las mutaciones más raras se anuncian a todo el servidor
+	local mdef = mut and C.MUTATION_BY_ID[mut]
+	if mdef and mdef.mult >= 6 then
+		G.Net.announce("all", "gotMutation", { player.DisplayName, { mutation = mut }, { god = god.id } }, { color = G.Format.hex(mdef.color) })
+	end
 	if G.Quests then
 		G.Quests.event(player, "open", 1)
 	end

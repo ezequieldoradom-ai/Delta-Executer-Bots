@@ -222,7 +222,7 @@ function Core.computePlaced(player)
 	for _, e in ipairs(d.godList or {}) do
 		local g = C.GOD_BY_ID[e.id]
 		if g then
-			table.insert(all, { god = g, kg = e.kg or 100, value = C.RARITIES[g.r].income * C.kgMult(e.kg) })
+			table.insert(all, { god = g, kg = e.kg or 100, mut = e.mut, value = C.RARITIES[g.r].income * C.kgMult(e.kg) * C.mutMult(e.mut) })
 		end
 	end
 	table.sort(all, function(x, y)
@@ -306,11 +306,14 @@ function Core.bestWeapon(d)
 	return best
 end
 
-function Core.addGod(player, god, kg)
+function Core.addGod(player, god, kg, mut)
 	local d = G.Data.profiles[player]
 	local isNew = (d.gods[god.id] or 0) == 0
 	d.gods[god.id] = (d.gods[god.id] or 0) + 1
-	table.insert(d.godList, { id = god.id, kg = kg or 100 })
+	if mut and not C.MUTATION_BY_ID[mut] then
+		mut = nil
+	end
+	table.insert(d.godList, { id = god.id, kg = kg or 100, mut = mut })
 	G.Data.trimGodList(d, C)
 	Core.invalidate(player)
 	if isNew and G.Quests then

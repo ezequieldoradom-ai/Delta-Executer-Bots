@@ -228,6 +228,9 @@ local function resolveArg(a)
 			return t(a.stat == "speed" and "speed" or (a.stat == "money" and "money" or "time"))
 		elseif a.mission then
 			return Locale.mission(a.mission, tonumber(a.goal))
+		elseif a.mutation then
+			local m = Config.MUTATION_BY_ID and Config.MUTATION_BY_ID[a.mutation]
+			return m and (m.icon .. " " .. string.upper(Locale.name(m))) or "?"
 		end
 		return "?"
 	end
@@ -1417,8 +1420,16 @@ local function doReveal(data)
 	ribbon.BackgroundColor3 = rc
 	ribbonLabel.Text = string.upper(Locale.name(rarity))
 	ribbonLabel.TextColor3 = (g.r == 7 or g.r == 12) and DARK or WHITE
+	-- Mutación (Dorado, Hielo, Diamante, Lava, Arcoíris): cinta del color de la mutación y su multiplicador
+	local mut = data.mut and Config.MUTATION_BY_ID and Config.MUTATION_BY_ID[data.mut]
+	if mut then
+		ribbon.BackgroundColor3 = mut.color
+		ribbonLabel.Text = string.format("%s %s · %s x%d", mut.icon, string.upper(Locale.name(mut)), string.upper(Locale.name(rarity)), mut.mult)
+		ribbonLabel.TextColor3 = DARK
+		godNameGrad.Color = ColorSequence.new(mut.color, rc)
+	end
 	local kg = data.kg or 100
-	godIncome.Text = string.format("⚖️ %d kg   💰 +%s/s", kg, Format.num(rarity.income * (kg / 100) * (state.moneyMult or 1)))
+	godIncome.Text = string.format("⚖️ %d kg   💰 +%s/s", kg, Format.num(rarity.income * (kg / 100) * (mut and mut.mult or 1) * (state.moneyMult or 1)))
 	godFact.Text = Locale.lang() == "es" and g.factEs or g.factEn
 	godNew.Text = data.isNew and t("gotNew") or ""
 	godCard.Visible = true
@@ -1427,6 +1438,12 @@ local function doReveal(data)
 	play("reward", 0.7)
 	if data.isNew then
 		bump(godNew, 1.6)
+	end
+	if mut then
+		bump(ribbon, 1.25)
+		if mut.mult >= 6 then
+			shake(0.6, 0.35)
+		end
 	end
 	task.wait(0.4)
 	revealing = false

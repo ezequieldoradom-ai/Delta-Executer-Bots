@@ -411,6 +411,38 @@ end
 function Config.kgMult(kg)
 	return (kg or 100) / 100
 end
+
+---------------------------------------------------------------------
+-- MUTACIONES: al conseguir un dios puede salir mutado y gana más dinero.
+-- Porcentajes y multiplicadores tomados de Brainrot Bay (licencia MIT):
+-- https://github.com/tothimai196xx-lgtm/brainrot-bay
+---------------------------------------------------------------------
+Config.MUTATIONS = {
+	{ id = "gold", es = "Dorado", en = "Golden", icon = "🟡", chance = 0.05, mult = 2, color = Color3.fromRGB(255, 215, 0) },
+	{ id = "ice", es = "Hielo", en = "Frozen", icon = "🧊", chance = 0.03, mult = 3, color = Color3.fromRGB(170, 220, 255) },
+	{ id = "diamond", es = "Diamante", en = "Diamond", icon = "💎", chance = 0.025, mult = 4, color = Color3.fromRGB(185, 242, 255) },
+	{ id = "lava", es = "Lava", en = "Lava", icon = "🌋", chance = 0.015, mult = 6, color = Color3.fromRGB(255, 90, 30) },
+	{ id = "rainbow", es = "Arcoíris", en = "Rainbow", icon = "🌈", chance = 0.01, mult = 8, color = Color3.fromRGB(255, 120, 200), rainbow = true },
+}
+Config.MUTATION_BY_ID = {}
+for _, m in ipairs(Config.MUTATIONS) do
+	Config.MUTATION_BY_ID[m.id] = m
+end
+-- Tira la mutación de un dios recién conseguido (nil = normal). rng opcional para las pruebas.
+function Config.rollMutation(rng)
+	local x = (rng or math.random)()
+	for _, m in ipairs(Config.MUTATIONS) do
+		if x < m.chance then
+			return m.id
+		end
+		x -= m.chance
+	end
+	return nil
+end
+function Config.mutMult(id)
+	local m = id and Config.MUTATION_BY_ID[id]
+	return m and m.mult or 1
+end
 function Config.kgScale(kg)
 	return math.clamp(0.75 + (kg or 100) / 400, 0.75, 2.6)
 end

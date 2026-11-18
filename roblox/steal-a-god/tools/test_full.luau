@@ -96,6 +96,34 @@ step("Estatuas en parcela", function()
 	G.World.altarVisible(plot, 5)
 end)
 
+step("Mutaciones: aspecto del dios mutado en la parcela", function()
+	local plot = G.World.plots[2]
+	for i, m in ipairs(G.Config.MUTATIONS) do
+		G.World.setStatue(plot, i, { god = G.Config.GODS[i * 7], kg = 200, mut = m.id })
+	end
+	for i, m in ipairs(G.Config.MUTATIONS) do
+		local model
+		for _, d in ipairs(workspace:GetDescendants()) do
+			if d:IsA("Model") and d:GetAttribute("Mutation") == m.id then
+				model = d
+				break
+			end
+		end
+		assert(model, "sin dios mutado " .. m.id)
+		assert(model:FindFirstChild("MutationFX", true), "sin efectos " .. m.id)
+		local base = G.Config.RARITIES[G.Config.GODS[i * 7].r].income * G.Config.kgMult(200)
+		assert(math.abs(model:GetAttribute("Income") - base * m.mult) < 1e-6, "ingreso sin multiplicar " .. m.id)
+		for _, acc in ipairs(model:GetDescendants()) do
+			if acc:IsA("BasePart") and acc:FindFirstAncestorOfClass("Accessory") then
+				assert(acc.Material ~= Enum.Material.CrackedLava or m.id == "lava", "pintó la ropa")
+			end
+		end
+	end
+	for i = 1, #G.Config.MUTATIONS do
+		G.World.setStatue(plot, i, nil)
+	end
+end)
+
 -- Probabilidades: 200.000 tiradas por zona
 step("Probabilidades de sobres", function()
 	for z = 1, #G.Config.ZONES do
@@ -436,6 +464,52 @@ step("Colección enorme: se recorta sin tocar el índice", function()
 	assert(#d.godList <= G.Data.GODLIST_MAX, "no recortó")
 	assert(d.godList[1].id == "zeus", "quitó el más valioso")
 	assert(d.gods.pan == 700, "tocó el índice")
+end)
+
+step("Mutaciones: probabilidades, guardado y multiplicador de ingresos", function()
+	-- Barrido uniforme de la tirada: cada mutación sale con su probabilidad exacta
+	local N, counts = 100000, {}
+	for k = 0, N - 1 do
+		local x = (k + 0.5) / N
+		local m = C.rollMutation(function()
+			return x
+		end)
+		if m then
+			counts[m] = (counts[m] or 0) + 1
+		end
+	end
+	local total = 0
+	for _, m in ipairs(C.MUTATIONS) do
+		assert(math.abs((counts[m.id] or 0) / N - m.chance) < 0.001, "probabilidad " .. m.id)
+		assert(C.mutMult(m.id) == m.mult, "multiplicador " .. m.id)
+		total += m.chance
+	end
+	assert(math.abs(total - 0.13) < 1e-9, "total de mutaciones")
+	assert(C.mutMult(nil) == 1 and C.mutMult("falsa") == 1, "sin mutación = x1")
+	-- Datos: guarda una mutación válida y quita una inventada
+	local d = G.Data.sanitize({ godList = { { id = "zeus", kg = 100, mut = "lava" }, { id = "hera", kg = 100, mut = "hackeada" } } }, C)
+	local lava = 0
+	for _, e in ipairs(d.godList) do
+		assert(e.mut == nil or C.MUTATION_BY_ID[e.mut], "mutación inventada")
+		lava += (e.mut == "lava") and 1 or 0
+	end
+	assert(lava == 1, "perdió la mutación")
+	-- Ingresos: el dios mutado vale más y va primero en la parcela
+	local fp, pd = fakePlayer(-120)
+	G.Core.addGod(fp, C.GOD_BY_ID.zeus, 100)
+	G.Core.addGod(fp, C.GOD_BY_ID.zeus, 100, "rainbow")
+	G.Core.addGod(fp, C.GOD_BY_ID.zeus, 100, "trampa")
+	local found = 0
+	for _, e in ipairs(pd.godList) do
+		if e.mut == "rainbow" then
+			found += 1
+		end
+		assert(e.mut == nil or e.mut == "rainbow", "guardó una mutación falsa")
+	end
+	assert(found == 1, "no guardó la mutación")
+	local placed = G.Core.computePlaced(fp)
+	assert(placed[1].mut == "rainbow", "el mutado no va primero")
+	assert(math.abs(placed[1].value - placed[2].value * 8) < 1e-6, "arcoíris no multiplica x8")
 end)
 
 step("Rendimiento: multiplicadores e ingresos en caché", function()

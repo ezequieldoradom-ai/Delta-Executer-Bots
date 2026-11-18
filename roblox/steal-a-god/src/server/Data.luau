@@ -123,7 +123,9 @@ function Data.sanitize(raw, C)
 	if type(raw.godList) == "table" then
 		for _, e in ipairs(raw.godList) do
 			if type(e) == "table" and C.GOD_BY_ID[e.id] then
-				table.insert(d.godList, { id = e.id, kg = math.floor(num(e.kg, 100, 1, 5000)) })
+				-- mutación solo si existe (Dorado, Hielo, Diamante, Lava, Arcoíris)
+				local mut = (type(e.mut) == "string" and C.MUTATION_BY_ID[e.mut]) and e.mut or nil
+				table.insert(d.godList, { id = e.id, kg = math.floor(num(e.kg, 100, 1, 5000)), mut = mut })
 			end
 		end
 	else
@@ -211,7 +213,7 @@ function Data.trimGodList(d, C)
 		return
 	end
 	table.sort(d.godList, function(a, b)
-		return C.RARITIES[C.GOD_BY_ID[a.id].r].income * a.kg > C.RARITIES[C.GOD_BY_ID[b.id].r].income * b.kg
+		return C.RARITIES[C.GOD_BY_ID[a.id].r].income * a.kg * C.mutMult(a.mut) > C.RARITIES[C.GOD_BY_ID[b.id].r].income * b.kg * C.mutMult(b.mut)
 	end)
 	for i = #d.godList, Data.GODLIST_MAX + 1, -1 do
 		d.godList[i] = nil
