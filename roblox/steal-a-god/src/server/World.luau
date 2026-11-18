@@ -1036,6 +1036,77 @@ local function decorZone(i, z0, zone)
 			end
 		end)
 	end
+
+	-- Monumentos DENTRO del pasillo (visto en Studio: lo de arriba queda detrás de las murallas de 56 studs
+	-- y desde dentro la zona era una explanada vacía). Pegados a las murallas, lejos de los sobres
+	-- (x = -42, 0, 42), del nido (z0+100) y del guardián (z0+175). Sin colisión: no estorban al correr.
+	local t = WALL_THEMES[i] or WALL_THEMES[1]
+	local edge = G.Config.CORRIDOR_HALF_WIDTH - 17
+	local MONUMENTS = {
+		{ shape = "column", mat = Enum.Material.Marble, color = t.pillar }, -- griega
+		{ shape = "menhir", mat = Enum.Material.Slate, color = Color3.fromRGB(110, 118, 110) }, -- celta
+		{ shape = "obelisk", mat = Enum.Material.Sandstone, color = t.pillar }, -- egipcia
+		{ shape = "steps", mat = Enum.Material.Rock, color = t.pillar }, -- azteca
+		{ shape = "column", mat = Enum.Material.Brick, color = t.body }, -- babilonia
+		{ shape = "obelisk", mat = Enum.Material.Basalt, color = t.pillar }, -- cósmica
+	}
+	local mon = MONUMENTS[i] or MONUMENTS[1]
+	local function nc(props)
+		props.CanCollide, props.CanQuery, props.CanTouch = false, false, false
+		return part(props)
+	end
+	for _, dz in ipairs({ 28, 62, 138, 152 }) do
+		for _, sx in ipairs({ -1, 1 }) do
+			local x, z = sx * edge, z0 + dz
+			local topY
+			if mon.shape == "column" then
+				nc({ Name = "MonBase", Size = Vector3.new(6, 1.4, 6), Position = Vector3.new(x, 0.7, z), Color = t.trim, Material = t.trimMat })
+				local c = nc({ Name = "MonColumn", Shape = Enum.PartType.Cylinder, Size = Vector3.new(14, 3.4, 3.4), Position = Vector3.new(x, 8.4, z), Color = mon.color, Material = mon.mat })
+				c.CFrame = CFrame.new(c.Position) * CFrame.Angles(0, 0, math.rad(90))
+				nc({ Name = "MonCap", Size = Vector3.new(5, 1.2, 5), Position = Vector3.new(x, 16, z), Color = t.trim, Material = t.trimMat })
+				topY = 16.6
+			elseif mon.shape == "menhir" then
+				nc({ Name = "MonStone", Size = Vector3.new(4.5, 15, 3), CFrame = CFrame.new(x, 7.5, z) * CFrame.Angles(0, 0, math.rad(sx * 4)), Color = mon.color, Material = mon.mat })
+				local rune = nc({ Name = "MonRune", Size = Vector3.new(0.2, 9, 2.4), CFrame = CFrame.new(x - sx * 2.3, 8, z), Color = t.glow, Material = Enum.Material.Neon, Transparency = 0.15 })
+				rune.CFrame = CFrame.new(rune.Position) * CFrame.Angles(0, 0, math.rad(sx * 4))
+				topY = 15.5
+			elseif mon.shape == "obelisk" then
+				nc({ Name = "MonBase", Size = Vector3.new(6, 2, 6), Position = Vector3.new(x, 1, z), Color = t.trim, Material = t.trimMat })
+				nc({ Name = "MonObelisk", Size = Vector3.new(3.2, 15, 3.2), Position = Vector3.new(x, 9.5, z), Color = mon.color, Material = mon.mat })
+				nc({ Name = "MonTip", Shape = Enum.PartType.Wedge, Size = Vector3.new(3.2, 2.5, 1.6), CFrame = CFrame.new(x, 18.25, z + 0.8), Color = GOLD, Material = Enum.Material.Foil })
+				nc({ Name = "MonTip", Shape = Enum.PartType.Wedge, Size = Vector3.new(3.2, 2.5, 1.6), CFrame = CFrame.new(x, 18.25, z - 0.8) * CFrame.Angles(0, math.pi, 0), Color = GOLD, Material = Enum.Material.Foil })
+				topY = 20
+			else -- steps
+				for s = 0, 3 do
+					local w = 9 - s * 2
+					nc({ Name = "MonStep", Size = Vector3.new(w, 2.2, w), Position = Vector3.new(x, 1.1 + s * 2.2, z), Color = s % 2 == 0 and mon.color or t.trim, Material = s % 2 == 0 and mon.mat or t.trimMat })
+				end
+				topY = 8.8
+			end
+			-- banda de luz del color de la zona (los distingue de los pilares de la muralla)
+			nc({ Name = "MonBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.7, 5.2, 5.2), CFrame = CFrame.new(x, topY * 0.55, z) * CFrame.Angles(0, 0, math.rad(90)), Color = t.glow, Material = Enum.Material.Neon, Transparency = 0.25 })
+			-- fuego del color de la zona encima y cristal que flota y gira (lo anima el cliente)
+			for _, pp in ipairs(brazier(Vector3.new(x, topY - 7.4 * 0.7 + 0.6, z), t.glow, nil, 0.7)) do
+				if pp.Name ~= "BrazierBowl" then
+					pp:Destroy()
+				else
+					pp.CanCollide = false
+				end
+			end
+			local crystal = nc({ Name = "MonCrystal", Size = Vector3.new(2.6, 5.2, 2.6), CFrame = CFrame.new(x, topY + 6.5, z) * CFrame.Angles(0, 0, math.rad(45)), Color = t.glow, Material = Enum.Material.Neon, Transparency = 0.1 })
+			crystal:SetAttribute("BobAmp", 0.8)
+			crystal:SetAttribute("BobPhase", dz * 0.1 + sx)
+			crystal:SetAttribute("SpinSpeed", 1.2)
+			CollectionService:AddTag(crystal, "FxBob")
+			CollectionService:AddTag(crystal, "FxSpin")
+			local cl = Instance.new("PointLight")
+			cl.Color = t.glow
+			cl.Range = 16
+			cl.Brightness = 1.4
+			cl.Shadows = false
+			cl.Parent = crystal
+		end
+	end
 end
 
 -- Guardianes construidos con piezas
