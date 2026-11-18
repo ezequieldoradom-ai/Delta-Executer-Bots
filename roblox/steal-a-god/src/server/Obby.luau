@@ -15,6 +15,7 @@
 -- Todo lo que se mueve usa workspace:GetServerTimeNow() para verse igual en todos los clientes.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local DataStoreService = game:GetService("DataStoreService")
 
 local Obby = {}
 local G, C, O
@@ -650,6 +651,158 @@ function Obby.finish(player)
 	return true
 end
 
+-- Compra "Saltar etapa": pasa al siguiente punto de control (sin el premio del tramo) y esa subida
+-- ya no cuenta para el récord. Si ya estás arriba, se compensa con dinero. Devuelve true si entrega algo.
+function Obby.skip(player)
+	local s = G.Core.sessions[player]
+	local d = G.Data.profiles[player]
+	if not s or not d then
+		return false
+	end
+	local od = obbyData(d)
+	if od.stage >= O.STAGES then
+		local amount = math.max(1000, math.floor(G.Core.income(player) * O.SECTION_MONEY_SECS))
+		G.Core.addMoney(player, amount)
+		G.Net.toast(player, "obbySkipTop", G.Format.num(amount))
+		return true
+	end
+	od.stage += 1
+	s.obbyRunStart = nil -- con saltos no hay récord
+	s.obbyLastCp = os.clock()
+	local hrp = s.inObby and hrpOf(player)
+	if hrp then
+		hrp.AssemblyLinearVelocity = Vector3.zero
+		hrp.CFrame = Obby.spawnCF(od.stage)
+	end
+	G.Net.toast(player, "obbySkipped", od.stage)
+	return true
+end
+
+---------------------------------------------------------------------
+-- Ranking: récord del Olimpo (mejor tiempo del 1 al 100 sin saltar etapas), en la plaza y en la isla
+---------------------------------------------------------------------
+Obby.boards = {}
+local store = nil
+local uploaded = {} -- [UserId] = mejor tiempo ya subido
+local names = {}
+
+local function nameOf(uid)
+	if names[uid] then
+		return names[uid]
+	end
+	local ok, n = pcall(function()
+		return Players:GetNameFromUserIdAsync(uid)
+	end)
+	names[uid] = ok and n or ("#" .. uid)
+	return names[uid]
+end
+
+local function buildBoard(cf, parent, scale)
+	scale = scale or 1
+	local m = Instance.new("Model")
+	m.Name = "OlympusBoard"
+	local gold = Color3.fromRGB(240, 196, 92)
+	local board = P({ Name = "BoardFace", Size = Vector3.new(14, 17, 1) * scale, CFrame = cf * CFrame.new(0, 11 * scale, 0), Color = Color3.fromRGB(24, 18, 40), Material = Enum.Material.SmoothPlastic }, m)
+	P({ Name = "BoardTrim", Size = Vector3.new(15, 1, 1.6) * scale, CFrame = cf * CFrame.new(0, 20 * scale, 0), Color = gold, Material = Enum.Material.Foil }, m)
+	for side = -1, 1, 2 do
+		P({ Name = "BoardColumn", Size = Vector3.new(1.8, 21, 1.8) * scale, CFrame = cf * CFrame.new(side * 7.9 * scale, 10.5 * scale, 0), Color = Color3.fromRGB(245, 240, 230), Material = Enum.Material.Marble }, m)
+	end
+	local sg = Instance.new("SurfaceGui")
+	sg.Name = "BoardGui"
+	sg.Face = Enum.NormalId.Front
+	sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	sg.PixelsPerStud = 34
+	sg.LightInfluence = 0
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.BackgroundTransparency = 1
+	title.Size = UDim2.fromScale(1, 0.15)
+	title.TextScaled = true
+	title.Font = Enum.Font.FredokaOne
+	title.TextColor3 = Color3.fromRGB(255, 220, 120)
+	title.Text = "🏛️ OLYMPUS RECORD\nRÉCORD DEL OLIMPO"
+	title.Parent = sg
+	local list = Instance.new("Frame")
+	list.Name = "List"
+	list.BackgroundTransparency = 1
+	list.Size = UDim2.fromScale(0.94, 0.82)
+	list.Position = UDim2.fromScale(0.03, 0.17)
+	local layout = Instance.new("UIListLayout")
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 3)
+	layout.Parent = list
+	list.Parent = sg
+	sg.Parent = board
+	m.Parent = parent
+	table.insert(Obby.boards, { model = m, list = list, title = title })
+	return m
+end
+
+local MEDALS = { Color3.fromRGB(255, 215, 0), Color3.fromRGB(200, 205, 215), Color3.fromRGB(205, 127, 50) }
+function Obby.renderBoards(rows)
+	for _, b in ipairs(Obby.boards) do
+		for _, c in ipairs(b.list:GetChildren()) do
+			if c:IsA("TextLabel") then
+				c:Destroy()
+			end
+		end
+		if #rows == 0 then
+			local l = Instance.new("TextLabel")
+			l.BackgroundTransparency = 1
+			l.Size = UDim2.new(1, 0, 0, 40)
+			l.Font = Enum.Font.GothamBold
+			l.TextScaled = true
+			l.TextColor3 = Color3.fromRGB(230, 220, 255)
+			l.Text = "— ¡Sé el primero! / Be the first! —"
+			l.Parent = b.list
+		end
+		for i, row in ipairs(rows) do
+			local l = Instance.new("TextLabel")
+			l.LayoutOrder = i
+			l.Size = UDim2.new(1, 0, 0, 40)
+			l.BackgroundTransparency = i % 2 == 0 and 1 or 0.85
+			l.BackgroundColor3 = Color3.new(1, 1, 1)
+			l.Font = Enum.Font.GothamBold
+			l.TextScaled = true
+			l.TextXAlignment = Enum.TextXAlignment.Left
+			l.TextColor3 = MEDALS[i] or Color3.new(1, 1, 1)
+			l.Text = string.format("  #%d  %s  —  ⏱ %s", i, row.name, G.Format.time(row.value))
+			l.Parent = b.list
+		end
+	end
+end
+
+local function updateBoards()
+	if not store then
+		return
+	end
+	-- subir los récords nuevos de los jugadores de este servidor
+	for player in pairs(G.Core.sessions) do
+		local d = G.Data.profiles[player]
+		local best = d and d.obby and d.obby.best or 0
+		if typeof(player) == "Instance" and best > 0 and uploaded[player.UserId] ~= best then
+			local ok = pcall(function()
+				store:SetAsync(tostring(player.UserId), best)
+			end)
+			if ok then
+				uploaded[player.UserId] = best
+			end
+		end
+	end
+	-- leer los 10 mejores (menos tiempo = mejor)
+	local ok, pages = pcall(function()
+		return store:GetSortedAsync(true, 10, 1)
+	end)
+	if ok and pages then
+		local rows = {}
+		for _, entry in ipairs(pages:GetCurrentPage()) do
+			local uid = tonumber(entry.key)
+			table.insert(rows, { name = uid and nameOf(uid) or entry.key, value = entry.value })
+		end
+		Obby.renderBoards(rows)
+	end
+end
+
 -- Cada 0,2 s: ¿ha llegado alguien al siguiente punto de control o a la cima?
 local function poll()
 	for player, s in pairs(G.Core.sessions) do
@@ -680,6 +833,27 @@ function Obby.init(g)
 	C = g.Config
 	O = C.OBBY
 	Obby.build()
+	-- ranking: junto al portal de la plaza y en la salida de la isla
+	buildBoard(CFrame.lookAt(O.BOARD, O.BOARD + Vector3.new(-0.35, 0, 1)), Obby.folder, 0.9)
+	local islandBoard = buildBoard(Obby.padCF(0) * CFrame.new(-14, -0.7, 0) * CFrame.Angles(0, math.rad(-90), 0), Obby.folder, 0.8)
+	P({ Name = "BoardBase", Size = Vector3.new(14, 1.2, 4), CFrame = Obby.padCF(0) * CFrame.new(-14, -1.3, 0) * CFrame.Angles(0, math.rad(-90), 0), Color = Color3.fromRGB(236, 230, 218), Material = Enum.Material.Marble }, islandBoard)
+	Obby.renderBoards({})
+	pcall(function()
+		store = DataStoreService:GetOrderedDataStore(O.BOARD_STORE)
+	end)
+	task.spawn(function()
+		task.wait(8)
+		while true do
+			pcall(updateBoards)
+			task.wait(60)
+		end
+	end)
+	-- compra "Saltar etapa"
+	if G.Shop and G.Shop.handlers then
+		G.Shop.handlers.obbySkip = function(player)
+			return Obby.skip(player)
+		end
+	end
 	G.Core.actions.obbyEnter = function(player)
 		Obby.enter(player)
 	end

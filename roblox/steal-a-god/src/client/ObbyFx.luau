@@ -3,6 +3,7 @@
 -- de la etapa. El servidor construye todo (src/server/Obby.luau) y decide los puntos de control.
 -- Todo lo que se mueve usa workspace:GetServerTimeNow(): lo ves igual que los demás jugadores.
 local CollectionService = game:GetService("CollectionService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
@@ -140,15 +141,24 @@ ObbyFx.respawn = respawn
 local function buildHud()
 	local new, corner, stroke, gradient = ui.new, ui.corner, ui.stroke, ui.gradient
 	local GOLD = ui.colors.GOLD
-	hud.bar = new("Frame", { Name = "ObbyBar", BackgroundColor3 = Color3.new(1, 1, 1), Size = UDim2.fromOffset(640, 64), Position = UDim2.new(0.5, 0, 1, -104), AnchorPoint = Vector2.new(0.5, 1), Visible = false, ZIndex = 6, Parent = ctx.gui }, {
+	hud.bar = new("Frame", { Name = "ObbyBar", BackgroundColor3 = Color3.new(1, 1, 1), Size = UDim2.fromOffset(740, 64), Position = UDim2.new(0.5, 0, 1, -104), AnchorPoint = Vector2.new(0.5, 1), Visible = false, ZIndex = 6, Parent = ctx.gui }, {
 		corner(18),
 		gradient(Color3.fromRGB(70, 50, 120), Color3.fromRGB(20, 14, 40), 90),
 		stroke(GOLD, 3),
 	})
-	hud.title = ui.heavy({ Parent = hud.bar, Text = "", Size = UDim2.new(1, -230, 0, 34), Position = UDim2.fromOffset(16, 4), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7 })
-	hud.sub = ui.label({ Parent = hud.bar, Font = ui.fonts.BTN, Text = "", Size = UDim2.new(1, -230, 0, 22), Position = UDim2.fromOffset(16, 38), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(230, 220, 255), ZIndex = 7 })
+	hud.title = ui.heavy({ Parent = hud.bar, Text = "", Size = UDim2.new(1, -330, 0, 34), Position = UDim2.fromOffset(16, 4), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7 })
+	hud.sub = ui.label({ Parent = hud.bar, Font = ui.fonts.BTN, Text = "", Size = UDim2.new(1, -330, 0, 22), Position = UDim2.fromOffset(16, 38), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(230, 220, 255), ZIndex = 7 })
 	hud.fillBack = new("Frame", { BackgroundColor3 = Color3.fromRGB(30, 22, 50), Size = UDim2.new(1, -24, 0, 6), Position = UDim2.new(0, 12, 1, -4), ZIndex = 7, Parent = hud.bar }, { corner(3) })
 	hud.fill = new("Frame", { BackgroundColor3 = GOLD, Size = UDim2.fromScale(0, 1), ZIndex = 8, Parent = hud.fillBack }, { corner(3) })
+	-- saltar etapa (compra de Robux; el servidor la entrega en Shop.processReceipt → Obby.skip)
+	local skip = C.PRODUCTS and C.PRODUCTS.obbySkip
+	hud.skip = ui.button({ Parent = hud.bar, Text = "⏭ " .. (skip and skip.price or ""), Size = UDim2.fromOffset(92, 48), Position = UDim2.new(1, -306, 0.5, -26), Color = Color3.fromRGB(255, 190, 60), ZIndex = 8, OnClick = function()
+		if skip and skip.id ~= 0 then
+			pcall(function()
+				MarketplaceService:PromptProductPurchase(ctx.player, skip.id)
+			end)
+		end
+	end })
 	ui.button({ Parent = hud.bar, Text = "↩", Size = UDim2.fromOffset(92, 48), Position = UDim2.new(1, -206, 0.5, -26), Color = Color3.fromRGB(90, 180, 255), ZIndex = 8, OnClick = function()
 		lastRespawn = 0
 		respawn("button")
@@ -176,6 +186,9 @@ local function updateHud(st)
 	local best = (ob.best or 0) > 0 and ("  ·  🏆 " .. ctx.Format.time(ob.best)) or ""
 	hud.sub.Text = t("obbySection", sec, sectionName(sec)) .. "   " .. timeTxt .. best
 	hud.fill.Size = UDim2.fromScale(math.clamp(stage / O.STAGES, 0, 1), 1)
+	if hud.skip then
+		hud.skip.Visible = stage < O.STAGES
+	end
 end
 
 -- Aros de los puntos de control ya superados: dorados (solo en tu pantalla)

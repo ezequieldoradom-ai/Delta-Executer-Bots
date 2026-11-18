@@ -736,11 +736,25 @@ step("Ascenso al Olimpo: isla, 101 puntos de control, 100 etapas variadas y nada
 	for _, h in ipairs(workspace:GetPartsInPart(bridge, ip)) do
 		assert(h.Name ~= "SummitColumn" and h.Name ~= "SummitAltar", "el puente choca con " .. h.Name)
 	end
-	-- el portal de la plaza no se mete en nada del mundo
+	-- el portal y el ranking de la plaza no se meten en nada del mundo
 	local portal = obby:FindFirstChild("ObbyPortal")
 	assert(portal, "sin portal en la plaza")
+	local boards, plazaBoard = {}, nil
+	for _, m in ipairs(obby:GetChildren()) do
+		if m.Name == "OlympusBoard" then
+			table.insert(boards, m)
+			if m:GetPivot().Position.Y < 100 then
+				plazaBoard = m
+			end
+		end
+	end
+	assert(#boards == 2 and plazaBoard, "faltan los rankings del Olimpo")
 	params.FilterDescendantsInstances = { obby }
-	for _, p in ipairs(portal:GetDescendants()) do
+	local plazaStuff = portal:GetDescendants()
+	for _, p in ipairs(plazaBoard:GetDescendants()) do
+		table.insert(plazaStuff, p)
+	end
+	for _, p in ipairs(plazaStuff) do
 		if p:IsA("BasePart") and p.CanCollide then
 			for _, h in ipairs(workspace:GetPartsInPart(p, params)) do
 				assert(not h.CanCollide or h.Name:find("^Plaza"), "el portal choca con " .. h:GetFullName())
@@ -834,6 +848,37 @@ step("Ascenso al Olimpo: cada etapa se puede pasar saltando (huecos ≤ 9, subid
 	end
 	add(string.format("   hueco más grande que hay que saltar: %.1f studs", worst))
 	assert(#bad == 0, "etapas que no se pueden pasar: " .. table.concat(bad, ", "))
+end)
+
+step("Ascenso al Olimpo: comprar Saltar etapa y ranking de récords", function()
+	local O = C.OBBY
+	local fp, d, s = fakePlayer(-128)
+	G.Obby.enter(fp)
+	d.obby.stage = 4
+	s.obbyRunStart = os.clock()
+	local res = G.Shop.processReceipt({ PlayerId = fp.UserId, ProductId = C.PRODUCTS.obbySkip.id, PurchaseId = "skip-1" }, fp)
+	assert(res == Enum.ProductPurchaseDecision.PurchaseGranted and d.obby.stage == 5, "no saltó la etapa")
+	assert(s.obbyRunStart == nil, "con saltos sigue contando para el récord")
+	res = G.Shop.processReceipt({ PlayerId = fp.UserId, ProductId = C.PRODUCTS.obbySkip.id, PurchaseId = "skip-1" }, fp)
+	assert(d.obby.stage == 5, "el mismo recibo saltó dos veces")
+	d.obby.stage = O.STAGES
+	local m0 = d.money
+	G.Shop.processReceipt({ PlayerId = fp.UserId, ProductId = C.PRODUCTS.obbySkip.id, PurchaseId = "skip-2" }, fp)
+	assert(d.obby.stage == O.STAGES and d.money > m0, "arriba: compensa con dinero")
+	G.Obby.leave(fp)
+	-- ranking: filas con medallas y aviso si está vacío
+	G.Obby.renderBoards({ { name = "Zeus", value = 754 }, { name = "Hera", value = 801 } })
+	for _, b in ipairs(G.Obby.boards) do
+		local texts = {}
+		for _, l in ipairs(b.list:GetChildren()) do
+			if l:IsA("TextLabel") then
+				table.insert(texts, l.Text)
+			end
+		end
+		assert(#texts == 2 and texts[1]:find("Zeus", 1, true) and texts[1]:find("12:34", 1, true), "filas del ranking: " .. table.concat(texts, " | "))
+	end
+	G.Obby.renderBoards({})
+	add("   producto Saltar etapa: " .. C.PRODUCTS.obbySkip.id .. " (" .. C.PRODUCTS.obbySkip.price .. " R$)")
 end)
 
 step("Ascenso al Olimpo: entrar, puntos de control seguidos, premios por tramo y Sobre del Olimpo", function()

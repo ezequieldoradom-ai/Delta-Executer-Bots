@@ -300,6 +300,8 @@ Config.OBBY = {
 	FALL = 18, -- si caes más de esto bajo tu punto de control, vuelves a él
 	MIN_STAGE_TIME = 1.2, -- segundos mínimos entre puntos de control (anti-trampas)
 	PORTAL = Vector3.new(0, 0, -46), -- portal de la plaza
+	BOARD = Vector3.new(21, 0, -50), -- ranking de récords junto al portal
+	BOARD_STORE = "LB_Olympus_v1", -- OrderedDataStore: mejor tiempo (en segundos) de subir del 1 al 100 sin saltar etapas
 	SECTION_MONEY_SECS = 150, -- dinero por tramo superado (segundos de tus ingresos), una vez al día
 	TOP_MONEY_SECS = 1800, -- dinero al llegar a la cima
 	TOP_RARITY_LUCK = 6, -- suerte para la rareza del Sobre del Olimpo
@@ -494,6 +496,7 @@ Config.PRODUCTS = {
 	openNowHigh = { id = 3732903384, price = 299, es = "Abrir ya (Primordial o más)", en = "Open now (Primordial+)" },
 	instantUpgrade = { id = 3732903393, price = 79, es = "Mejora de parcela instantánea", en = "Instant plot upgrade" },
 	divineShield = { id = 3732903400, price = 29, es = "Escudo divino (3 min)", en = "Divine Shield (3 min)" },
+	obbySkip = { id = 3733100507, price = 19, es = "Saltar etapa (Ascenso al Olimpo)", en = "Skip stage (Olympus Climb)" },
 }
 
 ---------------------------------------------------------------------

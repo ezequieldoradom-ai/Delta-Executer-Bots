@@ -197,6 +197,8 @@ local T = {
 	obbySectionDone = { es = "🏛️ Tramo %s superado (su premio vuelve mañana)", en = "🏛️ Section %s cleared (its prize comes back tomorrow)" },
 	obbyTopReward = { es = "🏆 ¡CIMA! Sobre del Olimpo %s en tu altar + 💰 $%s", en = "🏆 SUMMIT! Olympus Pack %s at your altar + 💰 $%s" },
 	obbyTopAgain = { es = "🏆 ¡Cima otra vez! El Sobre del Olimpo vuelve mañana · +💰 $%s", en = "🏆 Summit again! The Olympus Pack is back tomorrow · +💰 $%s" },
+	obbySkipped = { es = "⏭ ¡Etapa saltada! Ahora en la %s (esta subida no cuenta para el récord)", en = "⏭ Stage skipped! Now at %s (this run won't count for the record)" },
+	obbySkipTop = { es = "⏭ Ya estás arriba: te lo cambiamos por 💰 $%s", en = "⏭ You're already at the top: here's 💰 $%s instead" },
 	obbyWin = { es = "🏛️ ¡%s ha conquistado el Olimpo! (%s)", en = "🏛️ %s conquered Olympus! (%s)" },
 	rarityQ = { es = "¿%s?", en = "%s?" },
 	rarityBang = { es = "¡%s!", en = "%s!" },
