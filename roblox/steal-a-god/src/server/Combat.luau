@@ -147,6 +147,10 @@ function Combat.swing(player, tool)
 		vel = vel.Unit * 450
 	end
 	G.Net.Knock:FireClient(best, vel)
+	-- ¡FAHHH! lo oyen todos los que están cerca del golpe
+	if G.Net.Sfx then
+		G.Net.Sfx:FireAllClients({ kind = "hit", pos = ohrp.Position, victim = best.UserId, attacker = player.UserId })
+	end
 	if w.lightning then
 		lightning(hrp.Position, ohrp.Position)
 	end

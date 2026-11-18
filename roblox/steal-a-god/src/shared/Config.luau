@@ -650,6 +650,9 @@ Config.SOUNDS = {
 	chase = "rbxassetid://134426853581343", -- música de persecución original (bucle de 36 s; tools/audio/gen_chase.py)
 	bgm = "rbxassetid://123910427829548", -- música de fondo original, alegre y acogedora (bucle de 65 s; tools/audio/gen_bgm.py)
 	shouts = "rbxassetid://73369381252356", -- gritos de los guardianes: 6 frases en huecos de 5 s (tools/audio/make_shouts.sh)
+	-- "FAHHH" del meme al pegar a otro jugador: audio PÚBLICO de la Creator Store (subido por DarkShino13, gratis y
+	-- aprobado por Roblox). Si Roblox lo retirase algún día, solo deja de sonar (pon aquí otro id).
+	hit = "rbxassetid://139259088251978",
 }
 -- Grito de cada guardián al empezar a perseguirte: hueco del audio "shouts" y duración (s)
 Config.SHOUT_SLOT = 5

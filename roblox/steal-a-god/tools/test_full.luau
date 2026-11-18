@@ -529,7 +529,7 @@ step("Apertura 3D: un sobre de muestra por rareza y columna de luz en el altar",
 end)
 
 step("Música y gritos: pistas subidas, un grito por guardián y la línea segura", function()
-	for _, k in ipairs({ "chase", "bgm", "shouts" }) do
+	for _, k in ipairs({ "chase", "bgm", "shouts", "hit" }) do
 		assert(type(C.SOUNDS[k]) == "string" and C.SOUNDS[k]:match("^rbxassetid://%d+$"), "falta el audio " .. k)
 	end
 	local slots = {}
@@ -1552,8 +1552,12 @@ step("Misiones: robar, escapar, abrir, combo, dios nuevo y golpe suman (sin pasa
 	hrp.CFrame = CFrame.lookAt(Vector3.new(30, 3.2, 160), Vector3.new(30, 3.2, 170))
 	vhrp.CFrame = CFrame.new(30, 3.2, 164)
 	s.lastHit = 0
+	local sfx = {}
+	G.Net.Sfx = { FireAllClients = function(_, data) table.insert(sfx, data) end }
 	G.Combat.swing(fp, Instance.new("Folder"))
+	G.Net.Sfx = noop
 	assert(dv.playtime > 0 and progressOf(d, "hit") == 1, "golpear no sumó")
+	assert(#sfx == 1 and sfx[1].kind == "hit" and sfx[1].victim == fv.UserId and sfx[1].attacker == fp.UserId and typeof(sfx[1].pos) == "Vector3", "sin ¡FAHHH! al golpear")
 	forget(fp, fv)
 end)
 

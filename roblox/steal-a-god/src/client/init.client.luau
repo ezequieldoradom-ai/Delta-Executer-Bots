@@ -2050,7 +2050,41 @@ do
 			s:Destroy()
 		end)
 	end
+	-- ¡FAHHH! al pegar a alguien: en 3D donde fue el golpe; quien pega y quien recibe lo oyen en primer plano
+	local function playHit(data)
+		local id = Config.SOUNDS and Config.SOUNDS.hit
+		if type(id) ~= "string" or id == "" or typeof(data.pos) ~= "Vector3" then
+			return
+		end
+		local mine = data.victim == player.UserId or data.attacker == player.UserId
+		local att
+		local s = Instance.new("Sound")
+		s.SoundId = id
+		s.Volume = mine and 0.9 or 1.3
+		if mine then
+			s.Parent = SoundService
+		else
+			att = Instance.new("Attachment")
+			att.WorldPosition = data.pos
+			att.Parent = workspace.Terrain
+			s.RollOffMode = Enum.RollOffMode.InverseTapered
+			s.RollOffMinDistance = 12
+			s.RollOffMaxDistance = 160
+			s.Parent = att
+		end
+		s:Play()
+		task.delay(4, function()
+			s:Destroy()
+			if att then
+				att:Destroy()
+			end
+		end)
+	end
 	Remotes:WaitForChild("Sfx").OnClientEvent:Connect(function(data)
+		if type(data) == "table" and data.kind == "hit" and opt("sfx") then
+			playHit(data)
+			return
+		end
 		if type(data) ~= "table" or data.kind ~= "shout" or type(shoutId) ~= "string" or shoutId == "" or not opt("sfx") then
 			return
 		end
