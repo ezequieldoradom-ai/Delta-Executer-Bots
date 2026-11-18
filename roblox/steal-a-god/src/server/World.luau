@@ -1711,6 +1711,26 @@ function World.init(g)
 		local model, height = World.makeGuardian(i)
 		local home = World.zoneParts[i].guardianHome
 		model:PivotTo(CFrame.new(home + Vector3.new(0, height, 0)) * CFrame.Angles(0, 0, 0))
+		-- guardián intangible (petición del dueño): se le atraviesa; el robo y el golpe van por distancia, no por contacto
+		-- (el Humanoid vuelve a activar CanCollide en el cuerpo: por eso además va en un grupo de colisión
+		-- que no choca con nada)
+		local PS = game:GetService("PhysicsService")
+		pcall(function()
+			PS:RegisterCollisionGroup("Ghosts")
+		end)
+		PS:CollisionGroupSetCollidable("Ghosts", "Default", false)
+		PS:CollisionGroupSetCollidable("Ghosts", "Ghosts", false)
+		local function ghost(bp)
+			if bp:IsA("BasePart") then
+				bp.CanCollide = false
+				bp.CanTouch = false
+				bp.CollisionGroup = "Ghosts"
+			end
+		end
+		for _, bp in ipairs(model:GetDescendants()) do
+			ghost(bp)
+		end
+		model.DescendantAdded:Connect(ghost)
 		World.guardians[i] = { model = model, height = height, home = home + Vector3.new(0, height, 0), zone = i }
 	end
 end

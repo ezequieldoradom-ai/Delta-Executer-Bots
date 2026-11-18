@@ -872,10 +872,13 @@ local function guardianStep(guard, dt)
 		local hum = target.Character:FindFirstChildOfClass("Humanoid")
 		local ws = hum and hum.WalkSpeed or 16
 		local guardSpeed = C.ZONES[guard.zone].guardian.speed
+		-- El guardián corre como un jugador con su velocidad recomendada (la del cartel de la zona):
+		-- si tienes al menos esa ⚡ eres más rápido y escapas; si no, te alcanza (y más rápido cuanto más lejos estés).
+		local own = C.walkSpeedFor(guardSpeed)
 		if d and d.speed >= guardSpeed then
-			speed = math.max(18, ws * 0.82) -- eres más rápido: escapas
+			speed = math.min(own, ws * 0.9) -- eres más rápido: escapas
 		else
-			speed = ws * 1.18 + 4 -- te alcanza
+			speed = math.max(own, ws * 1.12 + 3) -- te alcanza
 		end
 		goal = Vector3.new(hrp.Position.X, guard.height, hrp.Position.Z)
 		if (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).Magnitude < 7 + guard.height * 0.3 then
@@ -959,13 +962,7 @@ function Packs.start()
 							hrp.CFrame = s.plot.spawnCF
 							G.Net.toast(player, "nightClosed")
 						else
-							local zi = G.World.zoneAt(p.Z)
-							local zone = C.ZONES[zi]
-							if zi > 1 and d.speed < zone.req then
-								local back = G.World.zoneStart(zi) - 10
-								hrp.CFrame = CFrame.new(Vector3.new(p.X, p.Y, back), Vector3.new(p.X, p.Y, back - 10))
-								G.Net.toast(player, "needSpeed", G.Format.num(zone.req), { zone = zi })
-							end
+							-- (sin barrera de velocidad entre zonas: el dueño quiere que se pueda pasar libremente)
 						end
 					end
 				end

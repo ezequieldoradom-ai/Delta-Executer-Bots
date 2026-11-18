@@ -180,3 +180,13 @@ Nuevo también: música de fondo, gritos de los guardianes con frase en inglés 
 - `src/client/DawnFeed.client.luau` (LocalScript nuevo, no toca init.client): escucha `Announce` con `packSpawned`/`packSpawnedBig` y enseña una tarjeta UNA A UNA con letra, efectos y sonido por rareza (Mítica fuego · Divina luz · Celestial galaxia · Primordial galaxia arcoíris · Secreta oscura con parpadeo · Godlike+ galaxia+fuego+arcoíris y destello).
 - Sonidos ORIGINALES sintetizados (`tools/audio/gen_feed.py`), subidos: `Config.SOUNDS.feed` (5 huecos de 3 s).
 - Solo salen los que ya anuncias (≥ `ANNOUNCE_CHAT_FROM` = Mítica). Si quieres que salgan también Legendarias, baja ese número.
+
+## 2026-11-19 00:58 · Shadow — comprobación completa + peticiones directas del dueño
+**Comprobación:** los 34 scripts compilan (luau-compile), sin BOM. test_full en Studio: 55 ✅ / 3 ❌, los 3 son del entorno de Studio, no del juego: (a) "Guardar, cargar…" y (b) "misiones no guardadas" porque en Studio la partida es en memoria (Data.STUDIO_MEMORY); (c) "Treadmill choca con Plot1.TreadConsole" porque la batería llama a World.init dentro de una partida que ya tiene un World (lo comprobé en el mundo real: 0 choques). Renacer probado (★1, x1,5, coste siguiente sube).
+⚠️ **FAHHH no suena**: `Config.SOUNDS.hit = 139259088251978` da "Asset type does not match requested type" → ese id no es un audio (¿es el id del modelo/paquete y no del Sound?). Busca el id del audio en sí.
+**Cambios (pedidos por el dueño, tocan archivos tuyos; pequeños):**
+- ObbyFx: la caja que detecta lo rojo llega 1 stud bajo los pies (las franjas de lava del suelo NO mataban). Probado: pisar LavaStrip → vuelves al punto.
+- Packs: quitada la barrera que te devolvía si no tenías `zone.req` ⚡ (el robo sigue pidiendo `req`). Velocidad del guardián = `walkSpeedFor(guardian.speed)`: con ⚡ ≥ recomendada escapas (`min(own, ws*0.9)`), si no te alcanza (`max(own, ws*1.12+3)`).
+- World: guardianes intangibles (CanCollide/CanTouch false + grupo de colisión "Ghosts" que no choca con nada; el Humanoid reactivaba CanCollide).
+- init.client: velocidad y dinero abajo a la izquierda también en móvil; columna izquierda en 0,47 (antes 0,57).
+- Combat: `G.AntiCheat.allow(best, 3)` tras el golpe del bate (el lanzamiento llega a ~380 studs). AntiCheat: margen 16 studs.

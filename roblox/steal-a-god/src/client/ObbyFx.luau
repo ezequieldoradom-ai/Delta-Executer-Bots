@@ -350,7 +350,7 @@ local function step(dt)
 	end
 	-- ¿tocas algo rojo?
 	if #reg.kill > 0 then
-		local hits = workspace:GetPartBoundsInBox(hrp.CFrame * CFrame.new(0, -0.4, 0), Vector3.new(2.4, 5.4, 1.8), killParams)
+		local hits = workspace:GetPartBoundsInBox(hrp.CFrame * CFrame.new(0, -1.3, 0), Vector3.new(2.6, 7.2, 2.2), killParams) -- (llega 1 stud bajo los pies: las franjas finas de lava del suelo no se detectaban)
 		if #hits > 0 then
 			respawn("kill")
 			return

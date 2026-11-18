@@ -17,7 +17,7 @@ local G
 
 AntiCheat.CHECK = 0.2 -- segundos entre comprobaciones
 AntiCheat.SPEED_FACTOR = 1.6 -- margen sobre tu WalkSpeed
-AntiCheat.SPEED_EXTRA = 9 -- studs de margen por comprobación (lag, saltos, rampas)
+AntiCheat.SPEED_EXTRA = 16 -- studs de margen por comprobación (lag, saltos, rampas)
 AntiCheat.AIR_SECS = 2.5 -- segundos en el aire sin caer = vuelo
 AntiCheat.KICK_STRIKES = 10 -- avisos en KICK_WINDOW segundos para expulsar
 AntiCheat.KICK_WINDOW = 60

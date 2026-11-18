@@ -310,11 +310,7 @@ local moneyLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 54), Positi
 local multLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 24), Position = UDim2.fromOffset(2, 102), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(255, 200, 90), StrokeThickness = 2 })
 -- En el móvil el joystick (abajo a la izquierda) tapaba la velocidad y el dinero: van arriba a la derecha
 if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
-	stats.Position = UDim2.new(1, -18, 0, 58)
-	stats.AnchorPoint = Vector2.new(1, 0)
-	for _, l in ipairs({ speedLabel, moneyLabel, multLabel }) do
-		l.TextXAlignment = Enum.TextXAlignment.Right
-	end
+	-- (el dueño los quiere en la esquina izquierda también en el móvil: abajo a la izquierda, como en PC)
 	-- y el chat de Roblox, más bajito para que no llegue a los botones de la izquierda
 	pcall(function()
 		local cfg = TextChatService:FindFirstChildOfClass("ChatWindowConfiguration")
@@ -407,7 +403,7 @@ end
 -- Paneles
 ---------------------------------------------------------------------
 -- (más abajo del centro: arriba a la izquierda está el chat de Roblox, que se come los toques aunque se desvanezca)
-local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Position = UDim2.new(0, 14, 0.57, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
+local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Position = UDim2.new(0, 14, 0.47, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
 	-- orden por LayoutOrder (explícito: Misiones va entre la Tienda y el Índice aunque se cree la última)
 	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
 })
