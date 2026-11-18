@@ -5,8 +5,12 @@
 --  * reintentos al guardar y al salir
 --  * límite de tamaño de la colección
 local DataStoreService = game:GetService("DataStoreService")
+local RunService = game:GetService("RunService")
 
 local Data = {}
+-- En Roblox Studio (Play) se juega con una partida en memoria que nunca se guarda:
+-- las pruebas no tocan las partidas reales y funcionan sin "acceso de Studio a las API".
+Data.STUDIO_MEMORY = RunService:IsStudio()
 Data.profiles = {} -- [player] = datos
 Data.elapsed = {} -- [player] = segundos fuera del juego
 Data.KEY_PREFIX = "u_"
@@ -205,6 +209,12 @@ end
 -- Devuelve: datos (o nil si hubo error y NO se debe jugar)
 ---------------------------------------------------------------------
 function Data.load(player, C)
+	if Data.STUDIO_MEMORY then
+		local d = Data.sanitize(nil, C)
+		Data.elapsed[player] = 0
+		Data.profiles[player] = d
+		return d, "new"
+	end
 	local s = getStore()
 	if not s then
 		return nil, "datastore"
@@ -270,6 +280,9 @@ end
 ---------------------------------------------------------------------
 function Data.save(player, releaseLock)
 	local d = Data.profiles[player]
+	if d and Data.STUDIO_MEMORY then
+		return true -- partida de prueba: no se guarda
+	end
 	local s = getStore()
 	if not d or not s then
 		return false
@@ -314,7 +327,7 @@ end
 
 -- Para jugadores que salieron mientras se cargaba su partida
 function Data.discard(player)
-	local s = getStore()
+	local s = not Data.STUDIO_MEMORY and getStore()
 	if s then
 		pcall(function()
 			s:UpdateAsync(key(player), function(old)
