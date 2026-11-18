@@ -168,6 +168,16 @@ for id, o in pairs(outfits) do
 			d:SetAccessories(acc, false) -- false: solo cambia la ropa 3D, no quita pelo/sombreros
 		end
 		local rig = Players:CreateHumanoidModelFromDescription(d, Enum.HumanoidRigType.R15)
+		-- coloca cada prenda sobre su unión (igual que Avatars.makeRig) para medir la altura real
+		for _, a in ipairs(rig:GetChildren()) do
+			if a:IsA("Accessory") then
+				local h = a:FindFirstChild("Handle")
+				local w = h and h:FindFirstChildWhichIsA("JointInstance")
+				if w and w.Part1 and w.Part0 == h then
+					h.CFrame = w.Part1.CFrame * w.C1 * w.C0:Inverse()
+				end
+			end
+		end
 		local got, names = 0, {}
 		for _, a in ipairs(rig:GetChildren()) do
 			if a:IsA("Accessory") then got += 1; table.insert(names, a.Name) end

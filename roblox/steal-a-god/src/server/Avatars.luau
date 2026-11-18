@@ -126,6 +126,22 @@ local function makeRig(L, god, outfit)
 		applyOutfit(d, outfit)
 	end
 	local rig = Players:CreateHumanoidModelFromDescription(d, Enum.HumanoidRigType.R15)
+	-- Las prendas del catálogo llegan con su pieza donde la dejó su creador (a veces a cientos de studs) y solo
+	-- se colocan al simularse. Las plantillas nunca se simulan (y en las tarjetas 3D del cliente flotarían):
+	-- se colocan aquí a mano sobre su unión.
+	for _, a in ipairs(rig:GetChildren()) do
+		if a:IsA("Accessory") then
+			local h = a:FindFirstChild("Handle")
+			local w = h and h:FindFirstChildWhichIsA("JointInstance")
+			if w and w.Part1 then
+				if w.Part0 == h then
+					h.CFrame = w.Part1.CFrame * w.C1 * w.C0:Inverse()
+				elseif w.Part1 == h and w.Part0 then
+					h.CFrame = w.Part0.CFrame * w.C0 * w.C1:Inverse()
+				end
+			end
+		end
+	end
 	return rig
 end
 
