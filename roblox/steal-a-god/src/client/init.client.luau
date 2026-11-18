@@ -2175,14 +2175,31 @@ local function locLabel(bb)
 end
 
 local PROMPT_TEXT = { steal = "steal", open = "open", upgradeLuck = "upgradeLuck", upgradeTreadmill = "upgradeTreadmill", obbyEnter = "obbyEnter", obbyLeave = "obbyLeave" }
+-- Avisos de los carteles: solo el dueño; el de la cinta se esconde mientras corres en ella
+-- (usa la misma tecla E que los toques del combo: se compraba sin querer)
+local treadPrompts = {}
 local function promptOwnerOnly(p)
 	local owner = p:GetAttribute("Owner")
-	p.Enabled = owner == player.UserId
+	local onBelt = p:GetAttribute("Kind") == "upgradeTreadmill" and (state.onTreadmill or state.afk)
+	p.Enabled = owner == player.UserId and not onBelt
 end
+task.spawn(function()
+	while true do
+		task.wait(0.2)
+		for _, p in ipairs(treadPrompts) do
+			if p.Parent then
+				promptOwnerOnly(p)
+			end
+		end
+	end
+end)
 local function locPrompt(p)
 	local kind = p:GetAttribute("Kind")
 	p.ActionText = t(PROMPT_TEXT[kind] or "open")
 	if kind == "upgradeLuck" or kind == "upgradeTreadmill" then
+		if kind == "upgradeTreadmill" then
+			table.insert(treadPrompts, p)
+		end
 		promptOwnerOnly(p)
 		p:GetAttributeChangedSignal("Owner"):Connect(function()
 			promptOwnerOnly(p)

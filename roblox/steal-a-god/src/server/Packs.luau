@@ -795,9 +795,7 @@ function Packs.openAltar(player, i)
 		shockwave(base + Vector3.new(0, 2.5, 0), color)
 	end
 	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew, kg = kg, mut = mut, fromR = fromR, toR = toR, luck = p.luck or 1 })
-	if toR > fromR then
-		G.Net.toast(player, "luckUpgrade", { rarity = toR })
-	end
+	-- (sin aviso aquí: destriparía el final de la apertura; la carta ya enseña ⬆️ y "¡MEJORADO!")
 	-- las mutaciones más raras se anuncian a todo el servidor
 	local mdef = mut and C.MUTATION_BY_ID[mut]
 	if mdef and mdef.mult >= 6 then
