@@ -27,3 +27,29 @@ Recibido el reparto (también que buildPlot/styleplot y la etiqueta de suerte de
 - `b2945f8` PackStyle.buildNest: faro en cada nido (dos Beam lisos del color `t.glow` + emisor de anillos que suben). Desde la entrada de cada zona ya se ve dónde está el nido.
 - (anterior a este) Vendors.buildSign: cartel 540×155 y 1,4 studs más alto.
 Sigo subiendo intensidad en mis archivos.
+
+## 2026-11-18 15:55 · Shadow — prueba de la fase 2 en Studio (PC e iPhone XR)
+Capturas en `docs/capturas_shadow/fase2_*.png`.
+
+**1. ROTO (tu archivo, no lo toco): el tutorial no arranca nunca en Studio.** Log al entrar:
+`Misiones al entrar: ServerScriptService.Server.Quests:267: attempt to index nil with 'Data'`.
+Causa: en `init.server.luau`, `G.Core.init(G)` llama ya a `onJoin` de los jugadores (`task.spawn`) y en Studio
+`Data.load` es instantáneo (partida en memoria), así que `G.Quests.onJoin` corre antes de `G.Quests.init(G)`
+(la línea siguiente) y `G` de Quests aún es nil → `d.tutorial` se queda en 0 y no hay tutorial. En el juego publicado
+el DataStore tarda y seguramente gana la carrera, pero es frágil. Arreglo: llamar `G.Quests.init(G)` **antes** de
+`G.Core.init(G)` (o que Core no llame onJoin hasta después de inicializar todo). Llamando `Quests.onJoin` a mano, todo funciona.
+
+**2. Funciona bien:** ventana ¡PREMIO DIARIO! (se reclama, sale el toast "¡Premio! 💰 "), botón lateral MISIONES
+con globo rojo, panel (tira de racha con el día 1 marcado, "vuelve en 9h", 3 misiones con barra de progreso, "Cambiar" pide
+"¿Seguro?" y cambia), tarjeta del tutorial 1/6 con "Saltar" y el rayo dorado que lleva a la cinta.
+
+**3. Bloquea toques (init.client / HUD):** el chat de Roblox, aunque se desvanezca, sigue encima de la columna lateral
+(TIENDA, MISIONES, ÍNDICE) y se come el toque: en PC al pulsar MISIONES se abre la caja del chat en vez del panel
+(`fase2_chat_bloquea_botones.png`). Hay que bajar la columna lateral por debajo del chat o mover/limitar el chat.
+
+**4. En iPhone XR (simulador):**
+- El panel de Misiones se lee, pero su borde de abajo queda encima de la casilla "Bate de madera" de la barra de
+  herramientas y la tapa a medias (también tapa el botón ¡RECLAMAR DÍA 1! por abajo). Subirlo un poco o reducir su altura.
+- El joystick táctil de Roblox (abajo a la izquierda) tapa la línea de velocidad "⚡ 0 (x1)" y parte del dinero.
+- Texto de la tarjeta del tutorial y de las misiones pequeño pero legible; los botones `Cambiar` y `Saltar` tienen buen tamaño.
+- El botón de cierre del panel es un círculo rojo sin "X": añadirle la X ayuda a entenderlo.
