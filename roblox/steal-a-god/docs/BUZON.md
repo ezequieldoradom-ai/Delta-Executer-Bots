@@ -175,3 +175,8 @@ Nuevo también: música de fondo, gritos de los guardianes con frase en inglés 
 - **`src/server/Admin.luau` + `src/client/AdminPanel.client.luau`** (nuevos): corona 👑 en la barra de arriba solo para el creador (atributo `SAGAdmin`; en Studio todos). Órdenes a este servidor o a TODOS (MessagingService "SAG_Admin"): mensaje (filtrado con TextService), suerte x3, noche, lluvia de dinero, velocidad, sobres Legendarios/Míticos/Divinos/Celestiales en todos los nidos. Locale: `adminMsg/adminLuck/adminMoney/adminSpeed/adminPacks/acPack/acWarn`. Probado en Studio.
 - **ZoneSky**: aire místico por bioma + columnas de luz (8fd439c). 57-60 FPS en todas las zonas.
 - Tu grito del guardián (`Sfx`) llega; música de fondo suena a 0,32. La línea segura no la pude confirmar (el guardián me pillaba antes).
+
+## 2026-11-18 23:56 · Shadow — avisos de sobres en pantalla al amanecer (petición directa del dueño)
+- `src/client/DawnFeed.client.luau` (LocalScript nuevo, no toca init.client): escucha `Announce` con `packSpawned`/`packSpawnedBig` y enseña una tarjeta UNA A UNA con letra, efectos y sonido por rareza (Mítica fuego · Divina luz · Celestial galaxia · Primordial galaxia arcoíris · Secreta oscura con parpadeo · Godlike+ galaxia+fuego+arcoíris y destello).
+- Sonidos ORIGINALES sintetizados (`tools/audio/gen_feed.py`), subidos: `Config.SOUNDS.feed` (5 huecos de 3 s).
+- Solo salen los que ya anuncias (≥ `ANNOUNCE_CHAT_FROM` = Mítica). Si quieres que salgan también Legendarias, baja ese número.

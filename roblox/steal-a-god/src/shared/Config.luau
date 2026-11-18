@@ -669,6 +669,7 @@ Config.SOUNDS = {
 	-- "FAHHH" del meme al pegar a otro jugador: audio PÚBLICO de la Creator Store (subido por DarkShino13, gratis y
 	-- aprobado por Roblox). Si Roblox lo retirase algún día, solo deja de sonar (pon aquí otro id).
 	hit = "rbxassetid://139259088251978",
+	feed = "rbxassetid://126337501768140", -- avisos de sobres al amanecer: 5 sonidos en huecos de 3 s (tools/audio/gen_feed.py)
 }
 -- Grito de cada guardián al empezar a perseguirte: hueco del audio "shouts" y duración (s)
 Config.SHOUT_SLOT = 5
