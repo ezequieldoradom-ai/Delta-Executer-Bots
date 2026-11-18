@@ -1008,6 +1008,20 @@ step("Misiones: cambiar una sin terminar (1 al día) y cambio de día", function
 	local m1 = d.money
 	Quests.tick(fp, s, d)
 	assert(#d.missions.list == Q.PER_DAY and d.money == m1, "la lista vacía de hoy no se rellena")
+	-- misiones de "mañana" (otro servidor con el reloj algo adelantado ya pasó la medianoche): se conservan,
+	-- ni se pagan ni se cambian por las de ayer (que se podrían volver a cobrar)
+	setMissions(d, { "steal", "open", "escape" })
+	d.missions.day = today + 1
+	d.missions.list[1].progress = d.missions.list[1].goal
+	d.missions.list[2].progress = 2
+	local m2 = d.money
+	Quests.tick(fp, s, d)
+	assert(d.missions.day == today + 1 and d.missions.list[1].id == "steal" and d.missions.list[2].progress == 2 and d.money == m2, "las de mañana se tiraron")
+	assert(Quests.claimMission(fp, 1) == true and d.money > m2, "no se pudo reclamar la de mañana")
+	-- más allá de mañana es un dato roto: salen las de hoy
+	d.missions.day = today + 5
+	Quests.tick(fp, s, d)
+	assert(d.missions.day == today, "un día roto no se corrige")
 	forget(fp)
 end)
 
@@ -1088,6 +1102,17 @@ step("Tutorial: avanza con lo que hace el jugador, vuelve atrás si pierde el so
 	Quests.event(fp, "open", 1)
 	Quests.onJoin(fp)
 	assert(d.tutorial == Q.TUTORIAL_DONE and d.money == m1, "el premio del tutorial se pagó dos veces")
+	-- "Salvar el sobre" (Robux) en el tutorial: el sobre ya está en casa → paso 5 (sin contar como escapar)
+	local fp3, d3, s3 = fakePlayer(-352)
+	Quests.onJoin(fp3)
+	setMissions(d3, { "escape", "steal", "open" })
+	d3.tutorial = 3
+	assert(G.Packs.savePurchased(fp3) == true and #d3.altarPacks + #d3.queue == 1, "la compra no dio el sobre")
+	Quests.tick(fp3, s3, d3)
+	assert(d3.tutorial == 5 and progressOf(d3, "escape") == 0, "tras salvar el sobre: paso " .. d3.tutorial)
+	d3.tutorial = Q.TUTORIAL_DONE
+	assert(G.Packs.savePurchased(fp3) == true and d3.tutorial == Q.TUTORIAL_DONE, "salvar el sobre cambió un tutorial terminado")
+	forget(fp3)
 	-- saltarlo: termina sin premio y no vuelve
 	local fp2, d2 = fakePlayer(-351)
 	Quests.onJoin(fp2)

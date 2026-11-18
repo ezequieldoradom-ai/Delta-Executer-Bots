@@ -123,14 +123,21 @@ local function rollMissions(player, d)
 	d.missions = { day = day, rr = 0, list = list }
 end
 
+-- ¿Son las misiones de hoy? (day = t + 1: las sacó otro servidor con el reloj algo adelantado que ya
+-- pasó la medianoche; si se tomaran por "viejas", aquí se volverían a sacar las de ayer sin reclamar)
+local function isCurrentDay(day)
+	local t = today()
+	return day == t or day == t + 1
+end
+
 -- Cambio de día: las misiones completadas sin reclamar se pagan solas y salen las nuevas
 local function ensureDay(player, d)
 	-- (una lista vacía de hoy solo sale de una partida rota o de un cambio en Config: se vuelven a sacar)
-	if d.missions.day == today() and #d.missions.list > 0 then
+	if isCurrentDay(d.missions.day) and #d.missions.list > 0 then
 		return
 	end
 	local paid = 0
-	if d.missions.day ~= 0 and d.missions.day ~= today() then
+	if d.missions.day ~= 0 and not isCurrentDay(d.missions.day) then
 		for _, m in ipairs(d.missions.list) do
 			local def = C.QUEST_BY_ID[m.id]
 			if def and not m.claimed and m.progress >= m.goal then
@@ -244,6 +251,15 @@ function Quests.tick(player, s, d)
 	end
 	if s.onTreadmill and not s.afk then
 		Quests.event(player, "train", 1)
+	end
+end
+
+-- Un sobre llegó a casa sin escapar (compra de "Salvar el sobre"): en el tutorial ya puede abrirlo.
+-- (no cuenta para la misión de escapar)
+function Quests.packHome(player)
+	local d = G.Data.profiles[player]
+	if d and (d.tutorial == 3 or d.tutorial == 4) then
+		d.tutorial = 5
 	end
 end
 

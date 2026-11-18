@@ -639,6 +639,10 @@ function Packs.savePurchased(player)
 		end
 	end
 	G.Net.toast(player, "bought")
+	-- tutorial: el sobre ya está en casa (si no, le pediría robar otro con este esperando en el altar)
+	if G.Quests then
+		G.Quests.packHome(player)
+	end
 	return true
 end
 
