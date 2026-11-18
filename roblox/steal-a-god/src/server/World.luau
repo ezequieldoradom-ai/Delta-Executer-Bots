@@ -1282,9 +1282,7 @@ local function buildCorridor()
 		zp.sign.MaxDistance = 140
 		zp.sign:SetAttribute("Zone", i)
 		CollectionService:AddTag(zp.sign, "Loc")
-		if i > 1 then
-			zp.curtain = part({ Name = "Curtain", Size = Vector3.new(W * 2, 68, 0.6), Position = Vector3.new(0, 34, z0), Color = archColor, Material = Enum.Material.ForceField, Transparency = 0.55, CanCollide = false })
-		end
+		-- (sin cortina de campo de fuerza entre zonas: el dueño quiere pasar libremente de una a otra)
 		-- puntos donde aparecen los sobres
 		zp.spots = {}
 		for row = 0, 1 do

@@ -1314,6 +1314,21 @@ renderers.settings = function()
 	end
 end
 
+-- Modo lento (petición del dueño): encima de la Tienda. Anda a velocidad normal aunque tengas mucha ⚡.
+-- (bloque propio: el nivel superior está al límite de 200 locales)
+do
+	local slowOn = false
+	local slowButton, slowFx
+	slowButton, slowFx = sideButton(0, "⚡", t("slowMode"), Color3.fromRGB(60, 190, 255), function()
+		slowOn = not slowOn
+		Action:FireServer("slow", slowOn)
+		slowFx.gui.Text = slowOn and "🐢" or "⚡"
+		slowFx.body.Color = slowOn and ColorSequence.new(Color3.fromRGB(120, 230, 140), Color3.fromRGB(30, 110, 60))
+			or ColorSequence.new(Color3.fromRGB(60, 190, 255):Lerp(WHITE, 0.15), darker(Color3.fromRGB(60, 190, 255), 0.5))
+		bump(slowButton, 1.15)
+		toast(t(slowOn and "slowOn" or "slowOff"), slowOn and GREEN or CYAN)
+	end)
+end
 sideButton(3, "💎", t("robux"), GREEN, function()
 	openPanel("robux", "💎 Robux", { { id = "passes", text = t("passes") }, { id = "products", text = t("products") } }, GREEN)
 end)

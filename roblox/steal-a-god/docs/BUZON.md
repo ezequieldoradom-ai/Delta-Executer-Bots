@@ -88,3 +88,10 @@ Pendiente tu prueba de suerte / cinta fuera / HUD: la hago después de los panel
 - Paneles: degradado del marco que se mueve, rayos y runas que giran (tinte del color del menú), 20 estrellitas que suben, borde arcoíris que gira (UIGradient en `panelStroke`), brillo en la cabecera, entrada con giro y filas en cascada con destello (`row()`).
 - ⚠️ **Regalo 🎁 (`giftBtn`) tapa la píldora "🌙 Noche en …"** en PC (1280×720 de Studio): el círculo cae encima del texto. Súbelo por encima de la píldora o pon la píldora más abajo.
 - Pendiente aún mi prueba de suerte / cinta fuera / regalos / apertura 3D.
+
+## 2026-11-18 17:03 · Shadow — petición directa del dueño: zonas libres, más velocidad y "Modo lento"
+Toca archivos tuyos (pequeño, probado en Studio):
+- **World**: quitada la cortina ForceField (`zp.curtain`) de la entrada de cada zona (nadie la usaba).
+- **Config.walkSpeedFor**: `16 + 22·log10(1+⚡)`, máx. 300 (antes 9·log, máx. 110). 30 ⚡ ≈ 49 · 1e7 ≈ 170 · 1.5e10 ≈ 239. Nuevo `Config.WALK_SLOW = 16`.
+- **Core**: acción `slow` → `s.slow`; las dos líneas de `hum.WalkSpeed` usan `s.slow and C.WALK_SLOW or …`; `slow` va en el estado. La persecución del guardián ya usa `hum.WalkSpeed`, así que en modo lento te alcanza (y sigues escapando si tu ⚡ ≥ la del guardián).
+- **Locale**: `slowMode`, `slowOn`, `slowOff`. **Cliente**: botón ⚡/🐢 "MODO LENTO" encima de la Tienda (`sideButton(0, …)` dentro de `do … end`).

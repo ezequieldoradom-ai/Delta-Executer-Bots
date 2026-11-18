@@ -597,6 +597,14 @@ function actions.afk(player, on)
 	Core.setAfk(player, on == true)
 end
 
+-- Modo lento: andar a velocidad normal aunque tengas mucha ⚡ (solo en esta sesión)
+function actions.slow(player, on)
+	local s = Core.sessions[player]
+	if s then
+		s.slow = on == true
+	end
+end
+
 function actions.rejoin(player)
 	local s = Core.sessions[player]
 	if not s or not s.afk or s.rejoining then
@@ -843,7 +851,7 @@ local function onCharacter(player, char)
 		task.wait(0.1)
 		hrp.CFrame = s.plot.spawnCF
 	end
-	hum.WalkSpeed = C.walkSpeedFor(d.speed)
+	hum.WalkSpeed = s.slow and C.WALK_SLOW or C.walkSpeedFor(d.speed)
 	hum.Died:Connect(function()
 		if s.carrying then
 			G.Packs.dropCarried(player, false)
@@ -1109,6 +1117,7 @@ function Core.sendState(player)
 		passes = s.passes,
 		carrying = s.carrying and s.carrying.rarity or nil,
 		afk = s.afk,
+		slow = s.slow == true,
 		night = G.DayNight.isNight(),
 		cycleLeft = G.DayNight.timeLeft(),
 		speedMult = speedMult,
@@ -1153,7 +1162,7 @@ local function tick(dt)
 				end
 			end
 			if hum then
-				hum.WalkSpeed = C.walkSpeedFor(d.speed)
+				hum.WalkSpeed = s.slow and C.WALK_SLOW or C.walkSpeedFor(d.speed)
 			end
 			if hrp then
 				s.zone = G.World.zoneAt(hrp.Position.Z)
