@@ -412,11 +412,11 @@ Config.NEST_OFFSET = 100 -- distancia desde el inicio de la zona hasta el centro
 Config.NEST_RADIUS = 9 -- radio del anillo donde se colocan los sobres
 
 ---------------------------------------------------------------------
--- VENDEDORES: dos dioses junto a la entrada del pasillo
+-- VENDEDORES: dos dioses a los lados de los rankings (fondo de la plaza)
 ---------------------------------------------------------------------
 Config.VENDORS = {
-	aura = { es = "Hécate", en = "Hecate", titleEs = "Diosa de la magia", titleEn = "Goddess of magic", pos = Vector3.new(-56, 0, 95), color = Color3.fromRGB(190, 110, 255) },
-	coach = { es = "Quirón", en = "Chiron", titleEs = "Maestro de héroes", titleEn = "Trainer of heroes", pos = Vector3.new(56, 0, 95), color = Color3.fromRGB(255, 190, 70) },
+	aura = { es = "Hécate", en = "Hecate", titleEs = "Diosa de la magia", titleEn = "Goddess of magic", pos = Vector3.new(-58, 0, -110), color = Color3.fromRGB(190, 110, 255) },
+	coach = { es = "Quirón", en = "Chiron", titleEs = "Maestro de héroes", titleEn = "Trainer of heroes", pos = Vector3.new(58, 0, -110), color = Color3.fromRGB(255, 190, 70) },
 }
 
 ---------------------------------------------------------------------

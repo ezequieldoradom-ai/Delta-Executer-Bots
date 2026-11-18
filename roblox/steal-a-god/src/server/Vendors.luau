@@ -18,7 +18,7 @@ local UP = CFrame.Angles(0, 0, math.rad(90)) -- pone de pie un cilindro (su eje 
 local FACING = CFrame.Angles(0, math.rad(90), 0) -- disco de cilindro mirando al frente (eje a lo largo de Z)
 
 Vendors.RADIUS = 8.5 -- todo lo sólido cabe en este radio alrededor del vendedor
-Vendors.LOOK_AT = Vector3.new(0, 0, 68) -- los dos miran hacia la fuente de la plaza
+Vendors.LOOK_AT = Vector3.new(0, 0, -62) -- los dos miran hacia el centro de la plaza, junto a los rankings
 Vendors.shrines = {} -- [clave] = { folder, npc, prompt, sign, cf }
 Vendors.errors = {} -- fallos al construir (el juego arranca igualmente)
 

@@ -37,7 +37,6 @@ local stateAt = os.clock()
 ---------------------------------------------------------------------
 local TITLE = Enum.Font.LuckiestGuy
 local BTN = Enum.Font.FredokaOne
-local BODY = Enum.Font.GothamBlack
 local DARK = Color3.fromRGB(18, 12, 38)
 local GOLD = Color3.fromRGB(255, 210, 63)
 local CYAN = Color3.fromRGB(94, 231, 255)
@@ -51,7 +50,8 @@ local function rcolor(r)
 	if not rr then
 		return WHITE
 	end
-	return rr.id == 10 and Color3.fromRGB(200, 120, 255) or rr.color
+	-- Secreta (casi negra) y ??? (negra) usan su color de acento para que se lean
+	return rr.id == 10 and Color3.fromRGB(200, 120, 255) or rr.id == 14 and Color3.fromRGB(255, 40, 60) or rr.color
 end
 
 local function new(class, props, children)
@@ -294,7 +294,6 @@ local speedLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 44), Positi
 local moneyLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 54), Position = UDim2.fromOffset(0, 44), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = GREEN, StrokeThickness = 3.5 })
 local multLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 24), Position = UDim2.fromOffset(2, 102), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(255, 200, 90), StrokeThickness = 2 })
 local moneyPill = moneyLabel
-local speedPill = speedLabel
 
 -- Abajo a la derecha: reloj de la noche
 local cyclePill = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(250, 62), Position = UDim2.new(1, -18, 1, -150), AnchorPoint = Vector2.new(1, 1), Parent = gui }, {
@@ -306,7 +305,13 @@ local cycleIcon = label({ Parent = cyclePill, Text = "🌙", Font = TITLE, Size 
 local cycleLabel = heavy({ Parent = cyclePill, Size = UDim2.new(1, -66, 1, -14), Position = UDim2.fromOffset(58, 7), TextXAlignment = Enum.TextXAlignment.Left })
 
 local zoneLabel = heavy({ Parent = gui, Size = UDim2.new(0, 560, 0, 30), Position = UDim2.new(0.5, 0, 0, 10), AnchorPoint = Vector2.new(0.5, 0) })
-local carryLabel = heavy({ Parent = gui, Size = UDim2.new(0, 640, 0, 40), Position = UDim2.new(0.5, 0, 0, 44), AnchorPoint = Vector2.new(0.5, 0) })
+-- Aviso del sobre que llevas: una píldora oscura con el borde del color de su rareza
+local carryPill = new("Frame", { BackgroundColor3 = WHITE, BackgroundTransparency = 0.15, Size = UDim2.new(0, 640, 0, 40), Position = UDim2.new(0.5, 0, 0, 44), AnchorPoint = Vector2.new(0.5, 0), Visible = false, Parent = gui }, {
+	corner(20),
+	gradient(Color3.fromRGB(44, 30, 92), Color3.fromRGB(14, 10, 32), 90),
+	stroke(GOLD, 3),
+})
+local carryLabel = heavy({ Parent = carryPill, Size = UDim2.new(1, -28, 1, -8), Position = UDim2.fromOffset(14, 4) })
 
 -- Mensajes cortos que entran deslizando
 local toastHolder = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 540, 0, 240), Position = UDim2.new(0.5, 0, 0, 92), AnchorPoint = Vector2.new(0.5, 0), Parent = gui }, {
@@ -389,12 +394,33 @@ titleGrad.Parent = panelTitle
 local tabs = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -36, 0, 42), Position = UDim2.fromOffset(18, 62), ZIndex = 11, Parent = panel }, {
 	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) }),
 })
+-- Franja de ayuda (ocupa el hueco de las pestañas): consejo del vendedor y tu dinero
+local hint = { bar = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, -36, 0, 42), Position = UDim2.fromOffset(18, 62), Visible = false, ZIndex = 11, Parent = panel }) }
+hint.label = label({ Parent = hint.bar, Font = BTN, Size = UDim2.new(0.72, -12, 1, 0), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(228, 218, 250), ZIndex = 11 })
+new("UITextSizeConstraint", { MaxTextSize = 22, Parent = hint.label })
+hint.chip = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(0.28, 0, 1, -4), Position = UDim2.new(1, 0, 0, 2), AnchorPoint = Vector2.new(1, 0), ZIndex = 11, Parent = hint.bar }, {
+	corner(12),
+	gradient(Color3.fromRGB(34, 84, 52), Color3.fromRGB(14, 32, 24), 90),
+	stroke(GREEN, 2),
+})
+hint.money = heavy({ Parent = hint.chip, Size = UDim2.new(1, -16, 1, -8), Position = UDim2.fromOffset(8, 4), TextColor3 = Color3.fromRGB(190, 255, 200), ZIndex = 12, StrokeThickness = 2 })
 local content = new("ScrollingFrame", { BackgroundTransparency = 1, Size = UDim2.new(1, -36, 1, -122), Position = UDim2.fromOffset(18, 112), ScrollBarThickness = 8, ScrollBarImageColor3 = GOLD, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ZIndex = 11, Parent = panel })
 
+-- closing = se está cerrando (animación) · token = para que un cierre antiguo no esconda un panel recién abierto
+local panelState = { closing = false, token = 0 }
 local function closePanel()
+	if not panel.Visible or panelState.closing then
+		return
+	end
+	panelState.closing = true
+	panelState.token += 1
+	local my = panelState.token
 	TweenService:Create(panelScale, TweenInfo.new(0.15), { Scale = 0.7 }):Play()
 	task.delay(0.15, function()
-		panel.Visible = false
+		if my == panelState.token then
+			panel.Visible = false
+			panelState.closing = false
+		end
 	end)
 end
 button({ Parent = panel, Text = "✕", Size = UDim2.fromOffset(50, 50), Position = UDim2.new(1, -60, 0, 10), Color = Color3.fromRGB(255, 70, 100), ZIndex = 12, Radius = 25, OnClick = closePanel })
@@ -402,8 +428,11 @@ button({ Parent = panel, Text = "✕", Size = UDim2.fromOffset(50, 50), Position
 local currentPanel, currentTab = nil, nil
 local renderers = {}
 local signatures = {}
+-- vistas previas animadas de las auras (las mueve el bucle de RenderStepped mientras el panel está abierto)
+local auraPreviews = {}
 
 local function clearContent()
+	table.clear(auraPreviews)
 	for _, c in ipairs(content:GetChildren()) do
 		c:Destroy()
 	end
@@ -425,9 +454,7 @@ local function render(force)
 	content.CanvasPosition = pos
 end
 
-local tabList = {}
 local function setTabs(list)
-	tabList = list
 	for _, c in ipairs(tabs:GetChildren()) do
 		if c:IsA("TextButton") then
 			c:Destroy()
@@ -444,16 +471,31 @@ local function setTabs(list)
 	end
 end
 
-local function openPanel(name, title, list, color)
-	if panel.Visible and currentPanel == name then
-		closePanel()
+-- tip = consejo bajo el título (paneles de vendedor) · keepOpen = si ya está abierto, no lo cierres
+local function openPanel(name, title, list, color, tip, keepOpen)
+	if panel.Visible and not panelState.closing and currentPanel == name then
+		if not keepOpen then
+			closePanel()
+		end
 		return
 	end
+	panelState.token += 1
+	panelState.closing = false
 	currentPanel = name
 	currentTab = list and list[1] and list[1].id or nil
 	panelTitle.Text = title
 	panelStroke.Color = color or GOLD
+	titleGrad.Color = tip and ColorSequence.new(WHITE, color or GOLD) or ColorSequence.new(GOLD, Color3.fromRGB(255, 130, 60))
 	setTabs(list or {})
+	-- sin pestañas ni consejo, el contenido sube y aprovecha el hueco
+	local hasTabs = list ~= nil and #list > 0
+	local top = (hasTabs or tip) and 112 or 68
+	tabs.Visible = hasTabs
+	hint.bar.Visible = not hasTabs and tip ~= nil
+	hint.label.Text = tip or ""
+	hint.money.Text = string.format("%s 💰 %s", t("youHave"), Format.num(state.money or 0))
+	content.Position = UDim2.fromOffset(18, top)
+	content.Size = UDim2.new(1, -36, 1, -(top + 10))
 	panel.Visible = true
 	panelScale.Scale = 0.6
 	TweenService:Create(panelScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
@@ -496,80 +538,240 @@ local function sectionTitle(order, text, color)
 end
 
 ---------------------------------------------------------------------
--- Tienda
+-- Tienda (solo mejoras: las auras y los entrenadores los venden Hécate y Quirón)
 ---------------------------------------------------------------------
-local function moneyBucket()
-	return math.floor(math.log10(math.max(1, state.money or 0)) * 20)
+signatures.shop = function()
+	local money = state.money or 0
+	local tm, pl, al = state.treadmill or 1, state.plot or 1, state.altarsBought or Config.ALTARS_BASE
+	return table.concat({ tm, pl, al, state.queue or 0, tostring(money >= Config.treadmillCost(tm + 1)), tostring(money >= Config.plotCost(pl + 1)), tostring(money >= Config.altarCost(al + 1)) }, "|")
 end
 
-signatures.shop = function(tab)
-	return table.concat({ tab, moneyBucket(), state.treadmill or 0, state.plot or 0, state.altarsBought or 0, state.aura or "", tostring(state.queue) }, "|") .. (function()
-		local s = ""
-		for k, v in pairs(state.coaches or {}) do
-			s ..= k .. v
-		end
-		for k in pairs(state.auras or {}) do
-			s ..= k
-		end
-		return s
-	end)()
-end
-
-renderers.shop = function(tab)
+renderers.shop = function()
 	listLayout()
-	if tab == "up" then
-		local tm = state.treadmill or 1
-		local tmMax = tm >= Config.TREADMILL_MAX
-		local tmCost = not tmMax and Config.treadmillCost(tm + 1) or 0
-		row(1, "🏃", string.format("%s · %s %d", t("treadmill"), t("level"), tm), string.format("⚡ +%s/s → +%s/s", Format.num(Config.treadmillGain(tm)), tmMax and "—" or Format.num(Config.treadmillGain(tm + 1))), tmMax and t("max") or ("💰 " .. Format.num(tmCost)), CYAN, not tmMax and state.money >= tmCost, function()
-			Action:FireServer("buyTreadmill")
-		end, CYAN)
-		local pl = state.plot or 1
-		local plMax = pl >= Config.PLOT_MAX
-		local plCost = not plMax and Config.plotCost(pl + 1) or 0
-		row(2, "🏛️", string.format("%s · %s %d", t("plot"), t("level"), pl), string.format("%d %s → %d", Config.pedestalsFor(pl), t("pedestals"), plMax and Config.pedestalsFor(pl) or Config.pedestalsFor(pl + 1)), plMax and t("max") or ("💰 " .. Format.num(plCost)), GOLD, not plMax and state.money >= plCost, function()
-			Action:FireServer("buyPlot")
-		end, GOLD)
-		local al = state.altarsBought or Config.ALTARS_BASE
-		local alMax = al >= Config.ALTARS_MAX
-		local alCost = not alMax and Config.altarCost(al + 1) or 0
-		row(3, "🔮", string.format("%s · %d / %d", t("altar"), al, Config.ALTARS_MAX), string.format("%s: %d", t("queue"), state.queue or 0), alMax and t("max") or ("💰 " .. Format.num(alCost)), PURPLE, not alMax and state.money >= alCost, function()
-			Action:FireServer("buyAltar")
-		end, PURPLE)
-	elseif tab == "coach" then
-		local order = 0
-		local tierColors = { CYAN, GOLD, PINK, Color3.fromRGB(120, 255, 120) }
-		for _, co in ipairs(Config.COACHES) do
-			order += 1
-			row(order, "🏋️", Locale.name(co), string.format("+%d%% ⚡", co.bonus * 100), "💰 " .. Format.num(co.cost), CYAN, state.money >= co.cost, function()
-				Action:FireServer("buyCoach", co.id)
-			end, CYAN)
-			for tier, tierInfo in ipairs(Config.COACH_TIERS) do
-				local count = state.coaches[co.id .. ":" .. tier] or 0
-				if count > 0 then
-					order += 1
-					local canFuse = count >= 2 and tier < #Config.COACH_TIERS
-					row(order, "⭐", string.format("%s %s ×%d", Locale.name(co), Locale.name(tierInfo), count), string.format("+%s%% ⚡", Format.num(co.bonus * tierInfo.mult * 100)), canFuse and t("fuse") or nil, PINK, canFuse, function()
-						Action:FireServer("fuseCoach", co.id, tier)
-					end, tierColors[tier])
-				end
+	local money = state.money or 0
+	local tm = state.treadmill or 1
+	local tmMax = tm >= Config.TREADMILL_MAX
+	local tmCost = not tmMax and Config.treadmillCost(tm + 1) or 0
+	row(1, "🏃", string.format("%s · %s %d", t("treadmill"), t("level"), tm), string.format("⚡ +%s/s → +%s/s", Format.num(Config.treadmillGain(tm)), tmMax and "—" or Format.num(Config.treadmillGain(tm + 1))), tmMax and t("max") or ("💰 " .. Format.num(tmCost)), CYAN, not tmMax and money >= tmCost, function()
+		Action:FireServer("buyTreadmill")
+	end, CYAN)
+	local pl = state.plot or 1
+	local plMax = pl >= Config.PLOT_MAX
+	local plCost = not plMax and Config.plotCost(pl + 1) or 0
+	row(2, "🏛️", string.format("%s · %s %d", t("plot"), t("level"), pl), string.format("%d %s → %d", Config.pedestalsFor(pl), t("pedestals"), plMax and Config.pedestalsFor(pl) or Config.pedestalsFor(pl + 1)), plMax and t("max") or ("💰 " .. Format.num(plCost)), GOLD, not plMax and money >= plCost, function()
+		Action:FireServer("buyPlot")
+	end, GOLD)
+	local al = state.altarsBought or Config.ALTARS_BASE
+	local alMax = al >= Config.ALTARS_MAX
+	local alCost = not alMax and Config.altarCost(al + 1) or 0
+	row(3, "🔮", string.format("%s · %d / %d", t("altar"), al, Config.ALTARS_MAX), string.format("%s: %d", t("queue"), state.queue or 0), alMax and t("max") or ("💰 " .. Format.num(alCost)), PURPLE, not alMax and money >= alCost, function()
+		Action:FireServer("buyAltar")
+	end, PURPLE)
+	-- aviso: dónde se compran ahora las auras y los entrenadores
+	local info = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -14, 0, 74), LayoutOrder = 4, ZIndex = 11, Parent = content }, {
+		corner(16),
+		gradient(Color3.fromRGB(58, 40, 112), Color3.fromRGB(26, 18, 50), 0),
+		stroke(Config.VENDORS.aura.color, 2, 0.35),
+	})
+	label({ Parent = info, Text = "🧭", Font = TITLE, Size = UDim2.fromOffset(48, 48), Position = UDim2.fromOffset(12, 13), ZIndex = 12, Stroke = false })
+	local infoText = label({ Parent = info, Font = BTN, Text = t("vendorMoved"), Size = UDim2.new(1, -90, 1, -16), Position = UDim2.fromOffset(72, 8), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(228, 218, 250), ZIndex = 12 })
+	new("UITextSizeConstraint", { MaxTextSize = 24, Parent = infoText })
+end
+
+---------------------------------------------------------------------
+-- Vendedores: auras de Hécate y entrenadores de Quirón
+-- (se abren al hablar con ellos: ProximityPrompt con la etiqueta "VendorPrompt")
+---------------------------------------------------------------------
+local VENDOR_PANELS = { auraShop = "aura", coachShop = "coach" }
+local GREY = Color3.fromRGB(90, 88, 110)
+
+-- porcentaje redondeado (0.15 * 6 * 100 no da 90 exacto)
+local function pct(x)
+	return Format.num(math.floor(x * 100 + 0.5))
+end
+
+signatures.auraShop = function()
+	local money = state.money or 0
+	local mine = state.auras or {}
+	local s = tostring(state.aura)
+	for _, a in ipairs(Config.AURAS) do
+		s ..= mine[a.id] and "o" or (money >= a.cost and "y" or "n")
+	end
+	return s
+end
+
+renderers.auraShop = function()
+	new("UIGridLayout", { CellSize = UDim2.fromOffset(264, 216), CellPadding = UDim2.fromOffset(12, 12), HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder, Parent = content })
+	new("UIPadding", { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 8), Parent = content })
+	local money = state.money or 0
+	local mine = state.auras or {}
+	local n = #Config.AURAS
+	local function img(parent, tex, color, size, z, tr)
+		return new("ImageLabel", { BackgroundTransparency = 1, Image = tex, ImageColor3 = color, ImageTransparency = tr or 0, Size = UDim2.fromOffset(size, size), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = z, Parent = parent })
+	end
+	for i, a in ipairs(Config.AURAS) do
+		local k = n > 1 and (i - 1) / (n - 1) or 0 -- 0 = la más barata · 1 = la más cara
+		local c = a.color
+		local light = c:Lerp(WHITE, 0.5)
+		-- un aura blanca (la Divina) lleva el fondo violeta para que no quede gris
+		local _, sat = c:ToHSV()
+		local bg = sat < 0.15 and Color3.fromRGB(165, 130, 255) or c
+		local owned = mine[a.id] and true or false
+		local eq = state.aura == a.id
+		-- marco: cuanto más cara, borde más grueso, fondo más vivo y más estrellas
+		local card = new("Frame", { BackgroundColor3 = WHITE, LayoutOrder = i, ZIndex = 11, Parent = content }, {
+			corner(18),
+			gradient(darker(bg, 0.3 + 0.28 * k), Color3.fromRGB(16, 11, 34), 90),
+		})
+		local cardStroke = stroke(c, 2 + 3 * k)
+		cardStroke.Parent = card
+		-- vista previa animada: halo, rayos que giran, círculo mágico, núcleo que late y chispas en órbita
+		local view = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 108), ZIndex = 1, Parent = card })
+		local halo = img(view, Config.VFX.glow, c, 104, 1, 0.5)
+		halo.Size = UDim2.fromOffset(200 + 56 * k, 104)
+		local rays = img(view, Config.VFX.rays, c, 98 + 10 * k, 2, 0.05)
+		local ring = nil
+		if i >= 5 then
+			ring = img(view, Config.VFX.runes, light, 104, 3, 0)
+		elseif i >= 3 then
+			ring = img(view, Config.VFX.ring, light, 80 + 12 * k, 3, 0.2)
+		end
+		local coreSize = 84 + 20 * k
+		local core = img(view, Config.VFX.glow, light, coreSize, 4, 0)
+		local sparks = {}
+		for j = 1, 1 + math.floor(i * 0.6) do
+			table.insert(sparks, {
+				img = img(view, Config.VFX.sparkle, WHITE, 40, 5, 0),
+				radius = 30 + 4 * j + 8 * k,
+				speed = (j % 2 == 0 and -1 or 1) * (0.9 + 0.22 * j),
+				phase = j * 2.4 + i,
+				size = 38 + 16 * k,
+			})
+		end
+		local stars = {}
+		if i >= 3 then
+			-- {escala X, píxeles X, escala Y, píxeles Y}: las dos de arriba; las 2 auras más caras, las cuatro esquinas
+			local spots = { { 0, 5, 0, 5 }, { 1, -5, 0, 5 }, { 0, 5, 1, -5 }, { 1, -5, 1, -5 } }
+			for j = 1, i >= 5 and 4 or 2 do
+				local sp = spots[j]
+				local star = img(card, Config.VFX.sparkle, j % 2 == 0 and WHITE or light, 46, 6, 0.1)
+				star.Position = UDim2.new(sp[1], sp[2], sp[3], sp[4])
+				table.insert(stars, star)
 			end
 		end
-	elseif tab == "aura" then
-		for i, a in ipairs(Config.AURAS) do
-			local owned = state.auras[a.id]
-			local eq = state.aura == a.id
-			local eff = {}
-			if a.speed then
-				table.insert(eff, string.format("+%d%% ⚡", a.speed * 100))
+		table.insert(auraPreviews, { halo = halo, rays = rays, ring = ring, core = core, coreSize = coreSize, sparks = sparks, stars = stars, stroke = cardStroke, rainbow = i == n and n > 1, speed = 0.8 + 0.5 * k, phase = i * 1.3 })
+		-- nivel del aura (estrellas) y si ya es tuya
+		local rating = string.format('<font color="#FFD23F">%s</font>', string.rep("★", i))
+		if i < n then
+			rating ..= string.format('<font color="#6A5F8C">%s</font>', string.rep("★", n - i))
+		end
+		label({ Parent = card, Font = BTN, Text = rating, Size = UDim2.fromOffset(110, 18), Position = UDim2.fromOffset(18, 8), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 7, StrokeThickness = 1.5 })
+		if owned then
+			label({ Parent = card, Font = BTN, Text = t("owned"), Size = UDim2.fromOffset(100, 18), Position = UDim2.new(1, -18, 0, 8), AnchorPoint = Vector2.new(1, 0), TextXAlignment = Enum.TextXAlignment.Right, TextColor3 = eq and GREEN or Color3.fromRGB(215, 205, 245), ZIndex = 7, StrokeThickness = 1.5 })
+		end
+		label({ Parent = card, Font = TITLE, Text = Locale.name(a), Size = UDim2.new(1, -20, 0, 28), Position = UDim2.fromOffset(10, 106), TextColor3 = WHITE, ZIndex = 7 })
+		local eff = {}
+		if a.speed then
+			table.insert(eff, string.format("+%s%% ⚡", pct(a.speed)))
+		end
+		if a.money then
+			table.insert(eff, string.format("+%s%% 💰", pct(a.money)))
+		end
+		label({ Parent = card, Font = BTN, Text = table.concat(eff, "   "), Size = UDim2.new(1, -20, 0, 22), Position = UDim2.fromOffset(10, 135), TextColor3 = light, ZIndex = 7, StrokeThickness = 2 })
+		-- un solo botón: comprar (verde si te llega el dinero), equipar o "equipada"
+		local btnText, btnColor, onClick
+		if eq then
+			btnText, btnColor = "✅ " .. t("equipped"), GREY
+		elseif owned then
+			btnText, btnColor = t("equip"), Config.VENDORS.aura.color
+			onClick = function()
+				Action:FireServer("equipAura", a.id)
 			end
-			if a.money then
-				table.insert(eff, string.format("+%d%% 💰", a.money * 100))
+		else
+			-- en gris también se puede tocar: el servidor responde "no tienes suficiente dinero"
+			btnText, btnColor = "💰 " .. Format.num(a.cost), money >= a.cost and GREEN or GREY
+			onClick = function()
+				Action:FireServer("buyAura", a.id)
 			end
-			local txt = eq and t("equipped") or (owned and t("equip") or ("💰 " .. Format.num(a.cost)))
-			row(i, "✨", Locale.name(a), table.concat(eff, "  "), txt, eq and Color3.fromRGB(90, 88, 110) or a.color, (owned and not eq) or (not owned and state.money >= a.cost), function()
-				Action:FireServer(owned and "equipAura" or "buyAura", a.id)
-			end, a.color)
+		end
+		button({ Parent = card, Text = btnText, Size = UDim2.new(1, -24, 0, 46), Position = UDim2.new(0, 12, 1, -56), Color = btnColor, ZIndex = 7, OnClick = onClick })
+	end
+end
+
+signatures.coachShop = function()
+	local money = state.money or 0
+	local mine = state.coaches or {}
+	local s = ""
+	for _, co in ipairs(Config.COACHES) do
+		s ..= money >= co.cost and "y" or "n"
+		for tier = 1, #Config.COACH_TIERS do
+			s ..= "," .. tostring(mine[co.id .. ":" .. tier] or 0)
+		end
+		s ..= "|"
+	end
+	return s
+end
+
+renderers.coachShop = function()
+	listLayout()
+	local money = state.money or 0
+	local mine = state.coaches or {}
+	local vc = Config.VENDORS.coach.color
+	-- misma regla que el servidor (Core.computeMults): cada pila cuenta hasta COACH_EQUIP copias
+	-- y se suman los COACH_EQUIP mejores
+	local list = {}
+	for _, co in ipairs(Config.COACHES) do
+		for tier, tierInfo in ipairs(Config.COACH_TIERS) do
+			local key = co.id .. ":" .. tier
+			for _ = 1, math.min(tonumber(mine[key]) or 0, Config.COACH_EQUIP) do
+				table.insert(list, { key = key, bonus = co.bonus * tierInfo.mult, name = tier > 1 and (Locale.name(co) .. " " .. Locale.name(tierInfo)) or Locale.name(co) })
+			end
+		end
+	end
+	table.sort(list, function(x, y)
+		if x.bonus ~= y.bonus then
+			return x.bonus > y.bonus
+		end
+		return x.key < y.key
+	end)
+	local total, used, names = 0, {}, {}
+	for j = 1, math.min(Config.COACH_EQUIP, #list) do
+		total += list[j].bonus
+		used[list[j].key] = true
+		table.insert(names, list[j].name)
+	end
+	-- cabecera: bonus total de tus mejores entrenadores
+	local head = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.new(1, -14, 0, 80), LayoutOrder = 0, ZIndex = 11, Parent = content }, {
+		corner(16),
+		gradient(darker(vc, 0.6), Color3.fromRGB(34, 22, 52), 0),
+		stroke(vc, 3),
+	})
+	label({ Parent = head, Font = TITLE, Text = string.format("%s · %d / %d", t("coaches"), #names, Config.COACH_EQUIP), Size = UDim2.new(0.64, -24, 0, 34), Position = UDim2.fromOffset(14, 8), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = WHITE, ZIndex = 12 })
+	label({ Parent = head, Font = BTN, Text = #names > 0 and table.concat(names, "  +  ") or "—", Size = UDim2.new(0.64, -24, 0, 26), Position = UDim2.fromOffset(14, 46), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(255, 232, 190), ZIndex = 12 })
+	label({ Parent = head, Font = TITLE, Text = string.format("+%s%% ⚡", pct(total)), Size = UDim2.new(0.36, -14, 1, -18), Position = UDim2.new(0.64, 0, 0, 9), TextColor3 = CYAN, ZIndex = 12, StrokeThickness = 3 })
+	-- un entrenador por fila para comprar y, debajo, tus pilas por nivel con el botón de fusionar
+	local order = 0
+	local tierColors = { CYAN, GOLD, PINK, Color3.fromRGB(120, 255, 120) }
+	for _, co in ipairs(Config.COACHES) do
+		order += 1
+		local have = 0
+		for tier = 1, #Config.COACH_TIERS do
+			have += tonumber(mine[co.id .. ":" .. tier]) or 0
+		end
+		-- en gris también se puede tocar: el servidor responde "no tienes suficiente dinero"
+		row(order, "🏋️", Locale.name(co), string.format("+%s%% ⚡   ·   %s: %d", pct(co.bonus), t("youHave"), have), "💰 " .. Format.num(co.cost), money >= co.cost and GREEN or GREY, true, function()
+			Action:FireServer("buyCoach", co.id)
+		end, vc)
+		for tier, tierInfo in ipairs(Config.COACH_TIERS) do
+			local key = co.id .. ":" .. tier
+			local count = tonumber(mine[key]) or 0
+			if count > 0 then
+				order += 1
+				local canFuse = count >= 2 and tier < #Config.COACH_TIERS
+				row(order, used[key] and "✅" or "⭐", string.format("%s %s ×%d", Locale.name(co), Locale.name(tierInfo), count), string.format("+%s%% ⚡", pct(co.bonus * tierInfo.mult)), canFuse and t("fuse") or nil, PINK, canFuse, function()
+					Action:FireServer("fuseCoach", co.id, tier)
+				end, tierColors[tier] or CYAN)
+			end
 		end
 	end
 end
@@ -741,19 +943,21 @@ local function sideButton(order, emoji, text, color, onClick)
 	return b
 end
 
-sideButton(2, "📖", t("index"), GOLD, function()
+local function openShop()
+	openPanel("shop", "🛒 " .. t("shop") .. " · " .. t("upgrades"), nil, CYAN)
+end
+local function openIndex()
 	openPanel("index", "📖 " .. t("indexTitle"), { { id = "gods", text = t("index") }, { id = "rewards", text = "🎁" }, { id = "odds", text = "🎲 " .. t("odds") } }, GOLD)
-end)
-sideButton(1, "🛒", t("shop"), Color3.fromRGB(255, 80, 60), function()
-	openPanel("shop", "🛒 " .. t("shop"), { { id = "up", text = t("upgrades") }, { id = "coach", text = t("coaches") }, { id = "aura", text = t("auras") } }, CYAN)
-end)
+end
+sideButton(2, "📖", t("index"), GOLD, openIndex)
+sideButton(1, "🛒", t("shop"), Color3.fromRGB(255, 80, 60), openShop)
 signatures.settings = function()
 	local st = state.settings or {}
-	return string.format("%s%s%s%s%s%s%s", tostring(st.sfx), tostring(st.particles), tostring(st.shake), tostring(st.othersAuras), tostring(st.ui), tostring(st.ownerPasses), tostring(state.isOwner))
+	return string.format("%s%s%s%s%s%s%s%s", tostring(st.sfx), tostring(st.music), tostring(st.particles), tostring(st.shake), tostring(st.othersAuras), tostring(st.ui), tostring(st.ownerPasses), tostring(state.isOwner))
 end
 renderers.settings = function()
 	listLayout()
-	local st = state.settings or { sfx = true, particles = true, shake = true, othersAuras = true, ui = 2 }
+	local st = state.settings or { sfx = true, music = true, particles = true, shake = true, othersAuras = true, ui = 2 }
 	local function send(key, value)
 		local copy = {}
 		for k, v in pairs(st) do
@@ -767,6 +971,7 @@ renderers.settings = function()
 	end
 	local rows = {
 		{ "🔊", "sfx", t("sfx") },
+		{ "🎵", "music", t("music") },
 		{ "✨", "particles", t("particlesOpt") },
 		{ "📳", "shake", t("shakeOpt") },
 		{ "🌀", "othersAuras", t("othersAuras") },
@@ -790,10 +995,11 @@ renderers.settings = function()
 	end, CYAN)
 	local pad = UserInputService.GamepadEnabled
 	sectionTitle(20, "🎮 " .. t("controls"), GOLD)
+	local use = string.format("%s / %s / %s", t("steal"), t("open"), t("talk"))
 	local lines = pad and {
-		"R2 / X · " .. t("tap"), "L2 · " .. t("dropPack"), "Y · " .. t("shop"), "↑ · " .. t("index"), "← · " .. t("afk"), "→ · " .. t("settings"), "B · " .. t("close"),
+		"R2 / X · " .. t("tap"), "X · " .. use, "L2 · " .. t("dropPack"), "Y · " .. t("shop"), "↑ · " .. t("index"), "← · " .. t("afk"), "→ · " .. t("settings"), "B · " .. t("close"),
 	} or {
-		"E · " .. t("tap"), "Q · " .. t("dropPack"), "B · " .. t("shop"), "I · " .. t("index"), "F · " .. t("afk"), "G · " .. t("settings"), "X · " .. t("close"),
+		"E · " .. t("tap"), "E · " .. use, "Q · " .. t("dropPack"), "B · " .. t("shop"), "I · " .. t("index"), "F · " .. t("afk"), "G · " .. t("settings"), "X · " .. t("close"),
 	}
 	for i, l in ipairs(lines) do
 		label({ Parent = content, LayoutOrder = 20 + i, Size = UDim2.new(1, -14, 0, 26), Font = BTN, TextXAlignment = Enum.TextXAlignment.Left, Text = "   " .. l, ZIndex = 11 })
@@ -816,21 +1022,15 @@ sideButton(5, "⚙️", t("settings"), Color3.fromRGB(150, 150, 175), openSettin
 ---------------------------------------------------------------------
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
-local actionsMap = {}
+-- fn devuelve true si la acción hizo algo. Si no, la tecla sigue su camino (Pass) para que
+-- la reciban los ProximityPrompt (robar, abrir, hablar con un vendedor) y el resto del juego.
 local function bind(name, fn, ...)
-	actionsMap[name] = fn
 	ContextActionService:BindAction(name, function(_, inputState)
-		if inputState == Enum.UserInputState.Begin then
-			fn()
+		if inputState == Enum.UserInputState.Begin and fn() then
+			return Enum.ContextActionResult.Sink
 		end
-		return Enum.ContextActionResult.Sink
+		return Enum.ContextActionResult.Pass
 	end, false, ...)
-end
-local function openShop()
-	openPanel("shop", "🛒 " .. t("shop"), { { id = "up", text = t("upgrades") }, { id = "coach", text = t("coaches") }, { id = "aura", text = t("auras") } }, CYAN)
-end
-local function openIndex()
-	openPanel("index", "📖 " .. t("indexTitle"), { { id = "gods", text = t("index") }, { id = "rewards", text = "🎁" }, { id = "odds", text = "🎲 " .. t("odds") } }, GOLD)
 end
 local function focusPanel()
 	if UserInputService.GamepadEnabled and panel.Visible then
@@ -844,37 +1044,7 @@ local function focusPanel()
 		end)
 	end
 end
-bind("SAG_Tap", function()
-	if tread.Visible then
-		doTap()
-	end
-end, Enum.KeyCode.E, Enum.KeyCode.ButtonR2, Enum.KeyCode.ButtonX)
-bind("SAG_Drop", function()
-	if state.carrying then
-		Action:FireServer("dropPack")
-	end
-end, Enum.KeyCode.Q, Enum.KeyCode.ButtonL2)
-bind("SAG_Shop", function()
-	openShop()
-	focusPanel()
-end, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
-bind("SAG_Index", function()
-	openIndex()
-	focusPanel()
-end, Enum.KeyCode.I, Enum.KeyCode.DPadUp)
-bind("SAG_AFK", function()
-	Action:FireServer("afk", not state.afk)
-end, Enum.KeyCode.F, Enum.KeyCode.DPadLeft)
-bind("SAG_Settings", function()
-	openSettings()
-	focusPanel()
-end, Enum.KeyCode.G, Enum.KeyCode.DPadRight)
-bind("SAG_Close", function()
-	if panel.Visible then
-		closePanel()
-		GuiService.SelectedObject = nil
-	end
-end, Enum.KeyCode.X, Enum.KeyCode.ButtonB)
+-- (las teclas se enlazan más abajo, después de la cinta: usan `tread` y `doTap`)
 
 ---------------------------------------------------------------------
 -- Minijuego de la cinta (combo)
@@ -924,6 +1094,50 @@ local function doTap()
 	end
 end
 tapButton.Activated:Connect(doTap)
+
+-- Teclas y botones del mando. Van aquí, DESPUÉS de declarar `tread` y `doTap`: una función que
+-- nombra un local declarado más abajo no lo captura (leería un global nil).
+bind("SAG_Tap", function()
+	if tread.Visible then
+		doTap()
+		return true
+	end
+	return false
+end, Enum.KeyCode.E, Enum.KeyCode.ButtonR2, Enum.KeyCode.ButtonX)
+bind("SAG_Drop", function()
+	if state.carrying then
+		Action:FireServer("dropPack")
+		return true
+	end
+	return false
+end, Enum.KeyCode.Q, Enum.KeyCode.ButtonL2)
+bind("SAG_Shop", function()
+	openShop()
+	focusPanel()
+	return true
+end, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
+bind("SAG_Index", function()
+	openIndex()
+	focusPanel()
+	return true
+end, Enum.KeyCode.I, Enum.KeyCode.DPadUp)
+bind("SAG_AFK", function()
+	Action:FireServer("afk", not state.afk)
+	return true
+end, Enum.KeyCode.F, Enum.KeyCode.DPadLeft)
+bind("SAG_Settings", function()
+	openSettings()
+	focusPanel()
+	return true
+end, Enum.KeyCode.G, Enum.KeyCode.DPadRight)
+bind("SAG_Close", function()
+	if panel.Visible and not panelState.closing then
+		closePanel()
+		GuiService.SelectedObject = nil
+		return true
+	end
+	return false
+end, Enum.KeyCode.X, Enum.KeyCode.ButtonB)
 
 ---------------------------------------------------------------------
 -- Apertura de sobres: rayos, temblor, destello, explosión y carta 3D
@@ -1212,6 +1426,8 @@ Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 	if s.comboTarget then
 		targetCenter = s.comboTarget
 	end
+	-- el panel abierto se repinta en cuanto cambia algo suyo (compras, dinero suficiente…)
+	render(false)
 end)
 
 ---------------------------------------------------------------------
@@ -1223,6 +1439,24 @@ local function locLabel(bb)
 		return
 	end
 	l.Font = TITLE
+	-- Cartel de un vendedor: arriba lo que vende (grande) y debajo su nombre y título (más pequeño)
+	local vendorKey = bb:GetAttribute("Vendor")
+	if vendorKey then
+		local v = Config.VENDORS[vendorKey]
+		if v then
+			local sub = bb:FindFirstChild("SubLabel")
+			if not sub then
+				l.Size = UDim2.fromScale(1, 0.62)
+				l.Position = UDim2.new()
+				sub = new("TextLabel", { Name = "SubLabel", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 0.36), Position = UDim2.fromScale(0, 0.64), Font = BTN, TextScaled = true, TextStrokeTransparency = 0.2, Parent = bb })
+			end
+			l.TextColor3 = v.color
+			l.Text = t(vendorKey == "aura" and "auraSign" or "coachSign")
+			sub.TextColor3 = v.color:Lerp(WHITE, 0.6)
+			sub.Text = string.format("%s · %s", Locale.name(v), Locale.lang() == "es" and v.titleEs or v.titleEn)
+		end
+		return
+	end
 	if bb:GetAttribute("Overhead") then
 		l.FontFace = HEAVY
 		l.Text = string.format('<font color="#FFB347">[%s]</font>\n<font color="#7CFF8A">$%s/s</font>', t("title" .. (bb:GetAttribute("Title") or 1)), Format.num(bb:GetAttribute("Income") or 0))
@@ -1263,24 +1497,48 @@ for _, p in ipairs(CollectionService:GetTagged("LocPrompt")) do
 end
 CollectionService:GetInstanceAddedSignal("LocPrompt"):Connect(locPrompt)
 
----------------------------------------------------------------------
--- Efectos de velocidad
----------------------------------------------------------------------
-local trail
-local function setupTrail(char)
-	local hrp = char:WaitForChild("HumanoidRootPart", 10)
-	if not hrp then
-		return
+-- Vendedores (Hécate y Quirón): al hablar con ellos (ProximityPrompt "VendorPrompt") se abre su panel
+do
+	local function openVendor(key)
+		if key == "aura" then
+			openPanel("auraShop", "✨ " .. t("auraShop"), nil, Config.VENDORS.aura.color, t("auraHint"), true)
+		elseif key == "coach" then
+			openPanel("coachShop", "🏋️ " .. t("coachShop"), nil, Config.VENDORS.coach.color, t("coachHint"), true)
+		else
+			return
+		end
+		focusPanel()
 	end
-	local a0 = new("Attachment", { Position = Vector3.new(0, 1.6, 0), Parent = hrp })
-	local a1 = new("Attachment", { Position = Vector3.new(0, -2.2, 0), Parent = hrp })
-	trail = new("Trail", { Texture = Config.VFX.streak, TextureMode = Enum.TextureMode.Stretch, Lifetime = 0.45, Attachment0 = a0, Attachment1 = a1, LightEmission = 1, Color = ColorSequence.new(WHITE, CYAN), Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) }), Enabled = false, Parent = hrp })
-end
-player.CharacterAdded:Connect(setupTrail)
-if player.Character then
-	task.spawn(setupTrail, player.Character)
+	local bound = setmetatable({}, { __mode = "k" })
+	local function vendorPrompt(p)
+		if bound[p] or not p:IsA("ProximityPrompt") then
+			return
+		end
+		bound[p] = true
+		local function localize()
+			local key = p:GetAttribute("Vendor")
+			local v = key and Config.VENDORS[key]
+			if v then
+				p.ObjectText = Locale.name(v)
+				p.ActionText = key == "aura" and t("auras") or t("coaches")
+			end
+		end
+		localize()
+		p:GetAttributeChangedSignal("Vendor"):Connect(localize)
+		-- en el cliente, Triggered solo salta cuando lo activa el jugador local
+		p.Triggered:Connect(function()
+			openVendor(p:GetAttribute("Vendor"))
+		end)
+	end
+	for _, p in ipairs(CollectionService:GetTagged("VendorPrompt")) do
+		vendorPrompt(p)
+	end
+	CollectionService:GetInstanceAddedSignal("VendorPrompt"):Connect(vendorPrompt)
 end
 
+---------------------------------------------------------------------
+-- Efectos de velocidad (la estela la dibuja el módulo Fx para todos los jugadores)
+---------------------------------------------------------------------
 RunService.RenderStepped:Connect(function(dt)
 	local cam = workspace.CurrentCamera
 	local char = player.Character
@@ -1289,9 +1547,6 @@ RunService.RenderStepped:Connect(function(dt)
 		local v = Vector3.new(hrp.AssemblyLinearVelocity.X, 0, hrp.AssemblyLinearVelocity.Z).Magnitude
 		local goal = 70 + math.clamp((v - 16) / 3, 0, 28)
 		cam.FieldOfView += (goal - cam.FieldOfView) * math.min(1, dt * 4)
-		if trail then
-			trail.Enabled = v > 40
-		end
 	end
 	if tread.Visible then
 		marker.Position = UDim2.new(markerPos(), -5, 0, -6)
@@ -1311,10 +1566,38 @@ RunService.RenderStepped:Connect(function(dt)
 	if reveal.Visible then
 		rays.Rotation += dt * 25
 	end
+	-- vistas previas de las auras: solo se mueven mientras el panel de Hécate está abierto
+	if panel.Visible and currentPanel == "auraShop" then
+		for _, p in ipairs(auraPreviews) do
+			local tt = now * p.speed + p.phase
+			local pulse = 0.5 + 0.5 * math.sin(tt * 2.6)
+			p.rays.Rotation = (tt * 24) % 360
+			if p.ring then
+				p.ring.Rotation = (-tt * 15) % 360
+			end
+			local cs = p.coreSize * (0.88 + 0.2 * pulse)
+			p.core.Size = UDim2.fromOffset(cs, cs)
+			p.halo.ImageTransparency = 0.62 - 0.22 * pulse
+			for _, s in ipairs(p.sparks) do
+				local a = tt * s.speed + s.phase
+				local sz = s.size * (0.55 + 0.6 * (0.5 + 0.5 * math.sin(tt * 4.5 + s.phase * 3)))
+				s.img.Position = UDim2.new(0.5, math.cos(a) * s.radius, 0.5, math.sin(a) * s.radius * 0.62)
+				s.img.Size = UDim2.fromOffset(sz, sz)
+				s.img.Rotation = (tt * 30) % 360
+			end
+			for j, star in ipairs(p.stars) do
+				star.ImageTransparency = 0.05 + 0.55 * (0.5 + 0.5 * math.sin(tt * 3 + j * 1.7))
+				star.Rotation = math.sin(tt * 1.4 + j) * 25
+			end
+			if p.rainbow then
+				p.stroke.Color = Color3.fromHSV((now * 0.18) % 1, 0.5, 1)
+			end
+		end
+	end
 end)
 
 ---------------------------------------------------------------------
--- Modo persecución: pantalla roja, ¡CORRE! y soltar sobre
+-- Modo persecución: viñeta roja que late, ¡CORRE! y soltar sobre
 ---------------------------------------------------------------------
 local chaseCC = new("ColorCorrectionEffect", { TintColor = WHITE, Parent = game:GetService("Lighting") })
 local runBadge = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromOffset(300, 70), Position = UDim2.new(0.5, 0, 0, 90), AnchorPoint = Vector2.new(0.5, 0), Visible = false, ZIndex = 15, Parent = gui }, {
@@ -1330,9 +1613,63 @@ end })
 dropBtn.FontFace = HEAVY
 dropBtn.Visible = false
 
+-- Viñeta: cuatro bordes rojos degradados en su propia pantalla, por debajo del HUD y sin recibir toques.
+-- Cuanto más cerca está el guardián (state.chase), más fuerte y más rápido late.
+local chaseFx = { phase = 0, danger = 0, edges = {}, carryStroke = carryPill:FindFirstChildOfClass("UIStroke") }
+do
+	local fxGui = new("ScreenGui", { Name = "ChaseFx", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = -1, Enabled = false, Parent = gui.Parent })
+	pcall(function()
+		fxGui.ScreenInsets = Enum.ScreenInsets.None -- cubre también la zona de la muesca del móvil
+	end)
+	chaseFx.gui = fxGui
+	local function edge(size, pos, anchor, rot)
+		local f = new("Frame", { BackgroundColor3 = Color3.fromRGB(255, 24, 40), BackgroundTransparency = 1, BorderSizePixel = 0, Active = false, Size = size, Position = pos, AnchorPoint = anchor, Parent = fxGui }, {
+			new("UIGradient", { Rotation = rot, Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.4, 0.62), NumberSequenceKeypoint.new(1, 1) }) }),
+		})
+		table.insert(chaseFx.edges, f)
+	end
+	edge(UDim2.fromScale(1, 0.26), UDim2.fromScale(0, 0), Vector2.new(0, 0), 90) -- arriba
+	edge(UDim2.fromScale(1, 0.26), UDim2.fromScale(0, 1), Vector2.new(0, 1), 270) -- abajo
+	edge(UDim2.fromScale(0.17, 1), UDim2.fromScale(0, 0), Vector2.new(0, 0), 0) -- izquierda
+	edge(UDim2.fromScale(0.17, 1), UDim2.fromScale(1, 0), Vector2.new(1, 0), 180) -- derecha
+end
+
+-- Latido (cada fotograma, solo mientras llevas un sobre)
+RunService.RenderStepped:Connect(function(dt)
+	local carried = state.carrying
+	if carried == nil then
+		return
+	end
+	-- peligro de 0 a 1: guardián a 170 bloques o más = 0 · a 30 o menos = 1
+	local goal = state.chase and math.clamp((170 - state.chase) / 140, 0, 1) or 0.15
+	chaseFx.danger += (goal - chaseFx.danger) * math.min(1, dt * 3)
+	local d = chaseFx.danger
+	-- de 0.8 a 2.2 latidos por segundo: rápido, pero nunca un parpadeo molesto
+	chaseFx.phase += dt * (5 + 9 * d)
+	local pulse = 0.5 + 0.5 * math.sin(chaseFx.phase)
+	local alpha = 0.2 + 0.32 * d + (0.14 + 0.2 * d) * pulse
+	for _, f in ipairs(chaseFx.edges) do
+		f.BackgroundTransparency = 1 - alpha
+	end
+	local gb = 0.9 - 0.18 * d - 0.07 * pulse
+	chaseCC.TintColor = Color3.new(1, gb, gb)
+	runBadge.Rotation = math.sin(chaseFx.phase * 1.2) * 3
+	carryPill.Rotation = math.sin(chaseFx.phase * 0.6) * 1.5
+	-- las rarezas arcoíris o con destellos cambian de color sin parar (el resto lo pinta el bucle de 10 Hz)
+	local rarity = Config.RARITIES[carried]
+	if rarity and (rarity.rainbow or rarity.sparkle) then
+		local hue = Color3.fromHSV((os.clock() * 0.5) % 1, 0.7, 1)
+		carryLabel.TextColor3 = hue
+		if chaseFx.carryStroke then
+			chaseFx.carryStroke.Color = hue
+		end
+	end
+end)
+
 local function updateChase()
 	local carrying = state.carrying ~= nil
 	if carrying and not runBadge.Visible then
+		chaseFx.phase, chaseFx.danger = 0, 0
 		bump(runBadge, 1.5)
 		play("whoosh", 1.4)
 		play("reward", 1.5)
@@ -1345,47 +1682,81 @@ local function updateChase()
 	end
 	runBadge.Visible = carrying
 	dropBtn.Visible = carrying
+	chaseFx.gui.Enabled = carrying
 	distLabel.Visible = carrying and state.chase ~= nil
 	if carrying then
-		local pulse = 0.5 + 0.5 * math.sin(os.clock() * 8)
-		chaseCC.TintColor = Color3.new(1, 0.72 + 0.12 * pulse, 0.72 + 0.12 * pulse)
-		runBadge.Rotation = math.sin(os.clock() * 10) * 3
 		if state.chase then
-			distLabel.Text = t("guardianDist", state.chase)
-			distLabel.TextColor3 = state.chase < 40 and Color3.fromRGB(255, 90, 90) or WHITE
+			local near = state.chase < 40
+			distLabel.Text = (near and "⚠️ " or "") .. t("guardianDist", state.chase)
+			distLabel.TextColor3 = near and Color3.fromRGB(255, 90, 90) or WHITE
 		end
 	else
 		chaseCC.TintColor = WHITE
 	end
 end
 
--- Título grande al entrar en una zona
+-- Título grande al entrar en una zona: degradado (color de la zona → blanco) y entrada con rebote
 local zoneTitle = heavy({ Parent = gui, Size = UDim2.fromOffset(800, 80), Position = UDim2.fromScale(0.5, 0.3), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 14, StrokeThickness = 5 })
 local zoneSub = heavy({ Parent = zoneTitle, Size = UDim2.new(1, 0, 0, 30), Position = UDim2.new(0, 0, 1, 0), TextColor3 = CYAN, ZIndex = 14 })
-local zoneToken = 0
+local zoneFx = {
+	token = 0,
+	scale = new("UIScale", { Parent = zoneTitle }),
+	grad = new("UIGradient", { Rotation = 90, Parent = zoneTitle }),
+	-- "⚔️ ZONA 2" encima del nombre
+	tag = heavy({ Parent = zoneTitle, Size = UDim2.new(1, 0, 0, 26), Position = UDim2.new(0, 0, 0, -22), ZIndex = 14, StrokeThickness = 2.5 }),
+	-- raya de luz que se abre bajo el subtítulo
+	rule = new("Frame", { BackgroundColor3 = WHITE, BorderSizePixel = 0, Size = UDim2.new(0, 0, 0, 4), Position = UDim2.new(0.5, 0, 1, 36), AnchorPoint = Vector2.new(0.5, 0), ZIndex = 14, Parent = zoneTitle }, {
+		new("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0), NumberSequenceKeypoint.new(1, 1) }) }),
+	}),
+}
 local zoneGrade = new("ColorCorrectionEffect", { Name = "ZoneGrade", Parent = game:GetService("Lighting") })
+-- Ambiente de cada zona. Los números de la luz salen de Config.LIGHT (los mismos que usa el servidor).
 local function zoneMood(zi)
 	local zone = Config.ZONES[zi]
+	local light = Config.LIGHT
 	local atm = game:GetService("Lighting"):FindFirstChildOfClass("Atmosphere")
 	local info = TweenInfo.new(1.5, Enum.EasingStyle.Sine)
-	TweenService:Create(zoneGrade, info, { TintColor = zone and zone.tint or WHITE, Saturation = zone and 0.12 or 0 }):Play()
+	TweenService:Create(zoneGrade, info, { TintColor = zone and zone.tint or WHITE, Saturation = zone and 0.1 or 0 }):Play()
 	if atm then
-		TweenService:Create(atm, info, { Color = zone and zone.atmo or Color3.fromRGB(255, 215, 170), Density = zone and (zone.cosmic and 0.45 or 0.32) or 0.28 }):Play()
+		TweenService:Create(atm, info, {
+			Color = zone and zone.atmo or light.atmo.color,
+			Density = zone and (zone.cosmic and light.cosmicDensity or light.zoneDensity) or light.atmo.density,
+		}):Play()
 	end
 end
 local function showZone(zi)
 	local zone = Config.ZONES[zi]
 	zoneMood(zi)
-	zoneToken += 1
-	local my = zoneToken
+	zoneFx.token += 1
+	local my = zoneFx.token
+	-- color de la zona, aclarado si es oscuro para que se lea sobre el juego
+	local h, s, v = zone.accent:ToHSV()
+	local accent = Color3.fromHSV(h, s, math.max(v, 0.9))
 	zoneTitle.Text = string.upper(Locale.name(zone))
-	zoneTitle.TextColor3 = zone.accent
-	zoneSub.Text = zi > 1 and t("recommended", Format.num(Config.ZONES[zi].guardian.speed)) or t("recommended", Format.num(zone.guardian.speed))
+	zoneTitle.TextColor3 = WHITE
+	zoneFx.grad.Color = ColorSequence.new(accent, WHITE)
+	zoneFx.tag.Text = string.format("⚔️ %s %d", string.upper(t("zone")), zi)
+	zoneFx.tag.TextColor3 = accent
+	zoneFx.rule.BackgroundColor3 = accent
+	zoneFx.rule.Size = UDim2.new(0, 0, 0, 4)
+	zoneSub.Text = t("recommended", Format.num(zone.guardian.speed))
 	zoneTitle.Visible = true
-	bump(zoneTitle, 1.6)
+	-- entrada: crece con rebote mientras se endereza y la raya se abre
+	zoneTitle.Rotation = -5
+	zoneFx.scale.Scale = 0.3
+	local pop = TweenInfo.new(0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	TweenService:Create(zoneFx.scale, pop, { Scale = 1 }):Play()
+	TweenService:Create(zoneTitle, pop, { Rotation = 0 }):Play()
+	TweenService:Create(zoneFx.rule, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Size = UDim2.new(0.5, 0, 0, 4) }):Play()
 	play("whoosh", 0.9)
 	task.delay(2.5, function()
-		if my == zoneToken then
+		if my ~= zoneFx.token then
+			return
+		end
+		-- salida: se encoge (si entras en otra zona mientras tanto, el nuevo tween de escala manda)
+		TweenService:Create(zoneFx.scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.In), { Scale = 0 }):Play()
+		task.wait(0.24)
+		if my == zoneFx.token then
 			zoneTitle.Visible = false
 		end
 	end)
@@ -1704,10 +2075,28 @@ task.spawn(function()
 		if state.carrying then
 			local r = Config.RARITIES[state.carrying]
 			carryLabel.Text = "📦 " .. t("carrying", string.upper(Locale.name(r)))
-			carryLabel.TextColor3 = rcolor(state.carrying)
-			carryLabel.Rotation = math.sin(os.clock() * 6) * 2
+			-- las rarezas arcoíris o con destellos las colorea el latido de la persecución
+			if not (r and (r.rainbow or r.sparkle)) then
+				local rc = rcolor(state.carrying)
+				carryLabel.TextColor3 = rc
+				carryPill:FindFirstChildOfClass("UIStroke").Color = rc
+			end
+			carryPill.Visible = true
 		else
-			carryLabel.Text = ""
+			carryPill.Visible = false
+		end
+		-- paneles de los vendedores: tu dinero al momento y cierre automático al alejarte
+		if panel.Visible and hint.bar.Visible then
+			hint.money.Text = string.format("%s 💰 %s", t("youHave"), Format.num(state.money or 0))
+		end
+		local vendorKey = panel.Visible and VENDOR_PANELS[currentPanel]
+		if vendorKey and not panelState.closing then
+			local char = player.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			local off = hrp and (hrp.Position - Config.VENDORS[vendorKey].pos)
+			if not off or Vector3.new(off.X, 0, off.Z).Magnitude > 28 then
+				closePanel()
+			end
 		end
 		local showTread = state.onTreadmill == true and not state.afk
 		if showTread and not tread.Visible then
@@ -1755,6 +2144,37 @@ task.spawn(function()
 		task.wait(30)
 		if os.clock() - lastInput >= Config.AFK_REJOIN_AFTER then
 			tryRejoin()
+		end
+	end
+end)
+
+---------------------------------------------------------------------
+-- Módulos opcionales del cliente: Fx (animaciones del mundo, estelas…) y Music (música).
+-- Son hijos de este script; si alguno no existe o falla, el HUD sigue funcionando.
+---------------------------------------------------------------------
+task.spawn(function()
+	-- `state` se sustituye con cada mensaje del servidor: por eso se entrega con getState()
+	local ctx = {
+		player = player,
+		Config = Config,
+		Locale = Locale,
+		t = t,
+		opt = opt,
+		gui = gui,
+		play = play,
+		getState = function()
+			return state
+		end,
+	}
+	for _, name in ipairs({ "Fx", "Music" }) do
+		local m = script:FindFirstChild(name)
+		if m then
+			local ok, err = pcall(function()
+				require(m).start(ctx)
+			end)
+			if not ok then
+				warn("[SAG] " .. name .. ": " .. tostring(err))
+			end
 		end
 	end
 end)
