@@ -343,9 +343,10 @@ end
 local function buildSign(S)
 	local st = S.st
 	local sign = piece(S, {
-		Name = "Sign", Size = Vector3.new(1, 1, 1), CFrame = polar(S, math.pi, RING_MID, RING_TOP + 7.2), Transparency = 1,
+		Name = "Sign", Size = Vector3.new(1, 1, 1), CFrame = polar(S, math.pi, RING_MID, RING_TOP + 8.6), Transparency = 1,
 	})
-	local bb = G.World.billboard(sign, "", S.V.color, UDim2.fromOffset(380, 110), Vector3.new(0, 0, 0))
+	-- (visto en Studio: desde la plaza el cartel se leía mal; un 40 % más grande y algo más alto)
+	local bb = G.World.billboard(sign, "", S.V.color, UDim2.fromOffset(540, 155), Vector3.new(0, 0, 0))
 	bb.Name = "Nameplate"
 	bb.MaxDistance = 240
 	bb:SetAttribute("Vendor", S.key)
