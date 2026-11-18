@@ -478,6 +478,11 @@ Config.MUTATIONS = {
 	{ id = "diamond", es = "Diamante", en = "Diamond", icon = "💎", chance = 0.025, mult = 4, color = Color3.fromRGB(185, 242, 255) },
 	{ id = "lava", es = "Lava", en = "Lava", icon = "🌋", chance = 0.015, mult = 6, color = Color3.fromRGB(255, 90, 30) },
 	{ id = "rainbow", es = "Arcoíris", en = "Rainbow", icon = "🌈", chance = 0.01, mult = 8, color = Color3.fromRGB(255, 120, 200), rainbow = true },
+	-- mitológicas (más raras que el arcoíris; pedidas por el dueño)
+	{ id = "storm", es = "Tormenta", en = "Storm", icon = "⚡", chance = 0.006, mult = 10, color = Color3.fromRGB(120, 200, 255) },
+	{ id = "underworld", es = "Inframundo", en = "Underworld", icon = "💀", chance = 0.004, mult = 12, color = Color3.fromRGB(110, 255, 140) },
+	{ id = "cosmic", es = "Cósmico", en = "Cosmic", icon = "🌌", chance = 0.0025, mult = 15, color = Color3.fromRGB(170, 110, 255) },
+	{ id = "divine", es = "Divino", en = "Divine", icon = "✨", chance = 0.001, mult = 20, color = Color3.fromRGB(255, 236, 160) },
 }
 Config.MUTATION_BY_ID = {}
 for _, m in ipairs(Config.MUTATIONS) do
