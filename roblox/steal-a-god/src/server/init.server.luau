@@ -58,6 +58,15 @@ if G.Obby then
 	G.Obby.init(G) -- construye la isla y registra obbyEnter/obbyLeave
 end
 G.Core.init(G)
+-- anti-trampas de movimiento y panel de administrador (módulos opcionales, de Shadow)
+G.AntiCheatMod = optional("AntiCheat")
+if G.AntiCheatMod then
+	G.AntiCheatMod.init(G)
+end
+G.AdminMod = optional("Admin")
+if G.AdminMod then
+	G.AdminMod.init(G)
+end
 
 -- Solo en Roblox Studio: enganche para revisar el juego desde la barra de comandos
 -- (la barra carga sus propias copias de los módulos y no ve las partidas). Ejemplos:
