@@ -379,8 +379,11 @@ function Config.tapMult(hits)
 	return m
 end
 
+-- Velocidad al andar según tu ⚡ (petición del dueño: que se note mucho más):
+-- 30 ⚡ ≈ 49 · 2e4 ≈ 111 · 6e6 ≈ 165 · 1.5e10 ≈ 239 (máx. 300). Con "modo lento" se anda a WALK_SLOW.
+Config.WALK_SLOW = 16
 function Config.walkSpeedFor(speed)
-	return math.clamp(16 + 9 * math.log10(1 + speed), 16, 110)
+	return math.clamp(16 + 22 * math.log10(1 + speed), 16, 300)
 end
 
 Config.PLOT_MAX = 25
