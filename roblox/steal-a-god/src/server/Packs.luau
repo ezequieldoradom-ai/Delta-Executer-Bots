@@ -139,13 +139,15 @@ local function makePackPart(pack)
 		light.Parent = p
 	end
 	-- cartel con la rareza y el peso: encima de todos los adornos y más grande cuanto más pesa
-	local gui = G.World.billboard(p, "", accent, UDim2.fromOffset(170 + 50 * k, 42 + 13 * k), Vector3.new(0, 0, 0))
+	-- (más estrecho que la separación entre sobres del nido para que los carteles no se monten)
+	local gui = G.World.billboard(p, "", accent, UDim2.fromOffset(120 + 36 * k, 32 + 10 * k), Vector3.new(0, 0, 0))
 	gui.StudsOffsetWorldSpace = Vector3.new(0, top * k + 0.7 + 0.55 * k, 0)
 	if pack.beam then
 		-- hacia la cámara, por delante de la columna de luz, para que se lea
 		gui.StudsOffset = Vector3.new(0, 0, pack.beam.Size.Y / 2 + 0.4)
 	end
-	gui.MaxDistance = 90 + pack.rarity * 6
+	-- de lejos solo se ven los raros; los comunes aparecen al acercarse (evita la maraña de carteles)
+	gui.MaxDistance = 40 + pack.rarity * 5
 	gui:SetAttribute("Rarity", pack.rarity)
 	gui:SetAttribute("Kg", pack.kg)
 	gui:SetAttribute("Dawn", pack.dawn == true)
