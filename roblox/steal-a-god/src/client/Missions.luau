@@ -381,6 +381,14 @@ local function openPopup(q)
 		task.delay(1.4, closePopup)
 	end })
 	claimBtn.FontFace = ui.fonts.HEAVY
+	-- con mando: el botón de reclamar queda seleccionado (A para reclamar)
+	if game:GetService("UserInputService").GamepadEnabled then
+		task.defer(function()
+			if claimBtn.Parent then
+				game:GetService("GuiService").SelectedObject = claimBtn
+			end
+		end)
+	end
 	button({ Parent = frame, Text = "✕", Size = UDim2.fromOffset(52, 52), Position = UDim2.new(1, -12, 0, 12), AnchorPoint = Vector2.new(1, 0), Color = Color3.fromRGB(255, 70, 100), ZIndex = z + 3, Radius = 26, OnClick = closePopup })
 	TweenService:Create(popup.scale, TweenInfo.new(0.5, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	ctx.play("pop")
@@ -569,6 +577,13 @@ local function guideTarget(step, from)
 		if altar and altar:IsA("BasePart") then
 			return altar.Position + Vector3.new(0, altar.Size.Y / 2 + 0.6, 0), "🔮 " .. t("altar"), 5.5, "altar" .. pick
 		end
+	elseif step == 6 then
+		-- la cinta se mejora en su cartel, delante de la parcela (ya no en la tienda)
+		local sign = plot and plot:FindFirstChild("TreadSign")
+		if sign and sign:IsA("BasePart") then
+			local front = sign.Position + sign.CFrame.LookVector * -3.5
+			return Vector3.new(front.X, 0.45, front.Z), "🏃 " .. t("upgradeTreadmill"), 6, "treadsign"
+		end
 	end
 	return nil
 end
@@ -669,15 +684,6 @@ local function setRowGlow(st)
 		rowGlow.stroke.Thickness = rowGlow.thickness
 	end
 	rowGlow = { stroke = st, color = st and st.Color, thickness = st and st.Thickness }
-end
-
-local function treadmillRowStroke()
-	for _, c in ipairs(ctx.panel.content:GetChildren()) do
-		if c:IsA("Frame") and c.LayoutOrder == 1 then
-			return c:FindFirstChildOfClass("UIStroke")
-		end
-	end
-	return nil
 end
 
 ---------------------------------------------------------------------
@@ -857,10 +863,6 @@ local function updateTutorial(q, now)
 	local refs = ctx.refs or {}
 	if step == 2 and st.onTreadmill and refs.tapButton then
 		setHalo(refs.tapButton, nil)
-	elseif step == 6 and refs.shopButton then
-		local inShop = ctx.panel.current() == "shop"
-		setHalo(refs.shopButton, (not inShop) and ("👈 " .. t("tutHere")) or nil)
-		setRowGlow(inShop and treadmillRowStroke() or nil)
 	else
 		setHalo(nil)
 	end

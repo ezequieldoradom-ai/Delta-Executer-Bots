@@ -444,16 +444,12 @@ step("Paso 5 (abrir): cuenta atrás y luego guía al altar con el sobre listo", 
 	add("   paso 5:", d.cardText)
 end)
 
-step("Paso 6 (mejorar): brilla la tienda con flecha; dentro, late la fila de la cinta", function()
+step("Paso 6 (mejorar): la guía lleva al cartel de la cinta, delante de la parcela", function()
 	setState({ quests = quests(6), altarPacks = {} })
-	task.wait(0.3)
+	task.wait(0.4)
 	local d = Missions.debug()
-	assert(d.guide == nil and d.halo == shopButton.Name and d.pointer, "brillo de la tienda: " .. tostring(d.halo))
-	find("side:" .. t("shop")).fn()
-	task.wait(0.3)
-	d = Missions.debug()
-	assert(d.rowGlow and not d.pointer, "fila de la cinta " .. tostring(d.rowGlow) .. " flecha " .. tostring(d.pointer))
-	find("side:" .. t("shop")).fn() -- cerrar
+	assert(d.guide == "treadsign" and d.beam, "guía al cartel de la cinta: " .. tostring(d.guide))
+	assert(d.halo == nil and not d.rowGlow, "sigue brillando la tienda")
 	add("   paso 6:", d.cardText)
 end)
 

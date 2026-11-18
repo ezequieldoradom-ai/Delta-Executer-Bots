@@ -189,7 +189,7 @@ local T = {
 	tut4 = { es = "¡Corre a tu parcela antes de que te pille el guardián!", en = "Run back to your plot before the guardian catches you!" },
 	tut5 = { es = "¡Tu sobre está listo! Ábrelo en tu altar 🔮", en = "Your pack is ready! Open it at your altar 🔮" },
 	tut5wait = { es = "Tu sobre se abre en tu altar 🔮 Listo en %s", en = "Your pack opens at your altar 🔮 Ready in %s" },
-	tut6 = { es = "Abre la Tienda 🛒 y mejora tu cinta (💰 %s)", en = "Open the Shop 🛒 and upgrade your treadmill (💰 %s)" },
+	tut6 = { es = "Mejora tu cinta en su cartel, delante de tu parcela 🏃 (💰 %s)", en = "Upgrade your treadmill at its sign, in front of your plot 🏃 (💰 %s)" },
 	tutGo = { es = "¡Ve!", en = "Go!" },
 	tutCorridor = { es = "Pasillo", en = "Corridor" },
 	tutHome = { es = "Tu parcela", en = "Your plot" },

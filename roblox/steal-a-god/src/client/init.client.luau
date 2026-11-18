@@ -179,14 +179,17 @@ local function bump(gui, amount)
 	TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 end
 
+local CLOSE_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy)
 local function button(props)
 	local base = props.Color or GOLD
+	-- el símbolo ✕ no está en las fuentes de Roblox (en el iPhone salía un círculo vacío): se usa una X gruesa
+	local isClose = props.Text == "✕"
 	local b = new("TextButton", {
 		AutoButtonColor = false,
 		BackgroundColor3 = WHITE,
 		Font = BTN,
 		TextScaled = true,
-		Text = props.Text or "",
+		Text = isClose and "X" or (props.Text or ""),
 		TextColor3 = props.TextColor3 or WHITE,
 		Size = props.Size,
 		Position = props.Position or UDim2.new(),
@@ -201,6 +204,9 @@ local function button(props)
 		new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 5), PaddingBottom = UDim.new(0, 5) }),
 	})
 	textStroke(darker(base, 0.3), 2).Parent = b
+	if isClose then
+		b.FontFace = CLOSE_FONT
+	end
 	pressable(b)
 	if props.OnClick then
 		b.Activated:Connect(function()
@@ -302,6 +308,21 @@ local stats = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset
 local speedLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 44), Position = UDim2.fromOffset(0, 0), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = CYAN })
 local moneyLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 54), Position = UDim2.fromOffset(0, 44), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = GREEN, StrokeThickness = 3.5 })
 local multLabel = heavy({ Parent = stats, Size = UDim2.new(1, 0, 0, 24), Position = UDim2.fromOffset(2, 102), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(255, 200, 90), StrokeThickness = 2 })
+-- En el móvil el joystick (abajo a la izquierda) tapaba la velocidad y el dinero: van arriba a la derecha
+if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+	stats.Position = UDim2.new(1, -18, 0, 58)
+	stats.AnchorPoint = Vector2.new(1, 0)
+	for _, l in ipairs({ speedLabel, moneyLabel, multLabel }) do
+		l.TextXAlignment = Enum.TextXAlignment.Right
+	end
+	-- y el chat de Roblox, más bajito para que no llegue a los botones de la izquierda
+	pcall(function()
+		local cfg = TextChatService:FindFirstChildOfClass("ChatWindowConfiguration")
+		if cfg then
+			cfg.HeightScale = 0.75
+		end
+	end)
+end
 local moneyPill = moneyLabel
 
 -- Abajo a la derecha: reloj de la noche
@@ -385,12 +406,13 @@ end
 ---------------------------------------------------------------------
 -- Paneles
 ---------------------------------------------------------------------
-local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Position = UDim2.new(0, 14, 0.4, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
+-- (más abajo del centro: arriba a la izquierda está el chat de Roblox, que se come los toques aunque se desvanezca)
+local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Position = UDim2.new(0, 14, 0.57, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
 	-- orden por LayoutOrder (explícito: Misiones va entre la Tienda y el Índice aunque se cree la última)
 	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
 })
 
-local panel = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromScale(0.64, 0.74), Position = UDim2.fromScale(0.5, 0.53), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 10, Parent = gui }, {
+local panel = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromScale(0.64, 0.7), Position = UDim2.fromScale(0.5, 0.47), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 10, Parent = gui }, {
 	corner(24),
 	gradient(Color3.fromRGB(52, 30, 110), Color3.fromRGB(14, 10, 32), 90),
 	new("UISizeConstraint", { MinSize = Vector2.new(360, 300), MaxSize = Vector2.new(880, 640) }),
@@ -1004,9 +1026,9 @@ renderers.settings = function()
 	sectionTitle(20, "🎮 " .. t("controls"), GOLD)
 	local use = string.format("%s / %s / %s", t("steal"), t("open"), t("talk"))
 	local lines = pad and {
-		"R2 / X · " .. t("tap"), "X · " .. use, "L2 · " .. t("dropPack"), "Y · " .. t("shop"), "↑ · " .. t("index"), "← · " .. t("afk"), "→ · " .. t("settings"), "B · " .. t("close"),
+		"R2 · " .. t("tap"), "X · " .. use, "A · " .. t("jumpButton"), "L2 · " .. t("dropPack"), "Y · " .. t("shop"), "↑ · " .. t("index"), "↓ · " .. t("missions"), "← · " .. t("afk"), "→ · " .. t("settings"), "B · " .. t("close"),
 	} or {
-		"E · " .. t("tap"), "E · " .. use, "Q · " .. t("dropPack"), "B · " .. t("shop"), "I · " .. t("index"), "F · " .. t("afk"), "G · " .. t("settings"), "X · " .. t("close"),
+		"E · " .. t("tap"), "E · " .. use, t("spaceKey") .. " · " .. t("jumpButton"), "Q · " .. t("dropPack"), "B · " .. t("shop"), "I · " .. t("index"), "M · " .. t("missions"), "F · " .. t("afk"), "G · " .. t("settings"), "X · " .. t("close"),
 	}
 	for i, l in ipairs(lines) do
 		label({ Parent = content, LayoutOrder = 20 + i, Size = UDim2.new(1, -14, 0, 26), Font = BTN, TextXAlignment = Enum.TextXAlignment.Left, Text = "   " .. l, ZIndex = 11 })
@@ -1265,6 +1287,15 @@ bind("SAG_Settings", function()
 	focusPanel()
 	return true
 end, Enum.KeyCode.G, Enum.KeyCode.DPadRight)
+local missionsMod = nil -- se rellena al arrancar el módulo Missions (abajo)
+bind("SAG_Missions", function()
+	if missionsMod and missionsMod.open then
+		missionsMod.open()
+		focusPanel()
+		return true
+	end
+	return false
+end, Enum.KeyCode.M, Enum.KeyCode.DPadDown)
 bind("SAG_Close", function()
 	if panel.Visible and not panelState.closing then
 		closePanel()
@@ -2542,7 +2573,11 @@ task.spawn(function()
 		local m = script:FindFirstChild(name)
 		if m then
 			local ok, err = pcall(function()
-				require(m).start(ctx)
+				local mod = require(m)
+				mod.start(ctx)
+				if name == "Missions" then
+					missionsMod = mod
+				end
 			end)
 			if not ok then
 				warn("[SAG] " .. name .. ": " .. tostring(err))
