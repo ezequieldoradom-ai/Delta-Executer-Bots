@@ -49,6 +49,28 @@ G.Shop.init(G)
 G.Boards.init(G)
 G.Core.init(G)
 
+-- Solo en Roblox Studio: enganche para revisar el juego desde la barra de comandos
+-- (la barra carga sus propias copias de los módulos y no ve las partidas). Ejemplos:
+--   ServerStorage.StudioDebug:Invoke("Core.addGod", jugador, Config.GOD_BY_ID.zeus, 300)
+--   ServerStorage.StudioDebug:Invoke("profile", jugador, { money = 1e12, plot = 12 })
+if game:GetService("RunService"):IsStudio() then
+	local debug = Instance.new("BindableFunction")
+	debug.Name = "StudioDebug"
+	debug.OnInvoke = function(cmd, a, b, c, d)
+		if cmd == "profile" then
+			local prof = G.Data.profiles[a]
+			for k, v in pairs(b or {}) do
+				prof[k] = v
+			end
+			G.Core.invalidate(a)
+			return true
+		end
+		local mod, fn = string.match(cmd, "^(%w+)%.(%w+)$")
+		return G[mod][fn](a, b, c, d)
+	end
+	debug.Parent = game:GetService("ServerStorage")
+end
+
 G.DayNight.start()
 G.Packs.start()
 G.Core.start()
