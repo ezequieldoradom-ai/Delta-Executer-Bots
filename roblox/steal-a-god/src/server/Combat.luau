@@ -136,6 +136,9 @@ function Combat.swing(player, tool)
 		return
 	end
 	vs.invulnUntil = now + C.HIT_INVULN
+	if G.Quests then
+		G.Quests.event(player, "hit", 1)
+	end
 	local ohrp = best.Character.HumanoidRootPart
 	local dir = Vector3.new(ohrp.Position.X - hrp.Position.X, 0, ohrp.Position.Z - hrp.Position.Z)
 	dir = dir.Magnitude > 0.1 and dir.Unit or hrp.CFrame.LookVector

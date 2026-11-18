@@ -31,6 +31,8 @@ local t = Locale.t
 
 local state = { money = 0, speed = 0, income = 0, combo = 1, gods = {}, coaches = {}, auras = {}, passes = {}, altarPacks = {}, cycleLeft = 0 }
 local stateAt = os.clock()
+-- Ganchos del módulo Missions (estado nuevo y avisos). Se declaran aquí, antes de los manejadores que los llaman.
+local hooks = {}
 
 ---------------------------------------------------------------------
 -- Estilo
@@ -224,6 +226,8 @@ local function resolveArg(a)
 			return Locale.name(Config.WEAPONS[a.weapon])
 		elseif a.stat then
 			return t(a.stat == "speed" and "speed" or (a.stat == "money" and "money" or "time"))
+		elseif a.mission then
+			return Locale.mission(a.mission, tonumber(a.goal))
 		end
 		return "?"
 	end
@@ -376,8 +380,9 @@ end
 ---------------------------------------------------------------------
 -- Paneles
 ---------------------------------------------------------------------
-local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 300), Position = UDim2.new(0, 14, 0.4, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
-	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center }),
+local side = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0, 210, 0, 420), Position = UDim2.new(0, 14, 0.4, 0), AnchorPoint = Vector2.new(0, 0.5), Parent = gui }, {
+	-- orden por LayoutOrder (explícito: Misiones va entre la Tienda y el Índice aunque se cree la última)
+	new("UIListLayout", { Padding = UDim.new(0, 10), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
 })
 
 local panel = new("Frame", { BackgroundColor3 = WHITE, Size = UDim2.fromScale(0.64, 0.74), Position = UDim2.fromScale(0.5, 0.53), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 10, Parent = gui }, {
@@ -829,7 +834,7 @@ local function ownedCount()
 end
 
 signatures.index = function(tab)
-	local s = tab .. tostring(state.luck)
+	local s = tab .. tostring(state.spawnLuck)
 	for _, g in ipairs(Config.GODS) do
 		s ..= (state.gods[g.id] or 0)
 	end
@@ -903,7 +908,8 @@ renderers.index = function(tab)
 		listLayout()
 		for zi, zone in ipairs(Config.ZONES) do
 			sectionTitle(zi * 100, string.format("%s %d · %s", t("zone"), zi, Locale.name(zone)), CYAN)
-			local odds = Config.odds(zi, state.luck or 1)
+			-- lo que aparece en el mundo solo depende de la suerte del servidor (tu suerte mejora los sobres al llegar a casa)
+			local odds = Config.odds(zi, state.spawnLuck or 1)
 			local order = zi * 100
 			for r = 1, #Config.RARITIES do
 				local chance = odds[r]
@@ -923,7 +929,8 @@ end
 local floaters = {}
 local badges = {}
 local function sideButton(order, emoji, text, color, onClick)
-	local b = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(200, 60), LayoutOrder = order, Parent = side }, {
+	-- LayoutOrder = order × 10: deja hueco para meter botones entre medias (Misiones va en el 15)
+	local b = new("TextButton", { Text = "", AutoButtonColor = false, BackgroundColor3 = WHITE, Size = UDim2.fromOffset(200, 60), LayoutOrder = order * 10, Parent = side }, {
 		corner(16),
 		gradient(color, darker(color, 0.45), 100),
 		stroke(darker(color, 0.25), 3.5),
@@ -950,7 +957,7 @@ local function openIndex()
 	openPanel("index", "📖 " .. t("indexTitle"), { { id = "gods", text = t("index") }, { id = "rewards", text = "🎁" }, { id = "odds", text = "🎲 " .. t("odds") } }, GOLD)
 end
 sideButton(2, "📖", t("index"), GOLD, openIndex)
-sideButton(1, "🛒", t("shop"), Color3.fromRGB(255, 80, 60), openShop)
+local shopButton = sideButton(1, "🛒", t("shop"), Color3.fromRGB(255, 80, 60), openShop)
 signatures.settings = function()
 	local st = state.settings or {}
 	return string.format("%s%s%s%s%s%s%s%s", tostring(st.sfx), tostring(st.music), tostring(st.particles), tostring(st.shake), tostring(st.othersAuras), tostring(st.ui), tostring(st.ownerPasses), tostring(state.isOwner))
@@ -1355,11 +1362,16 @@ Remotes:WaitForChild("Announce").OnClientEvent:Connect(function(payload)
 	end
 end)
 
+-- avisos de premio (misiones, racha, tutorial): en verde y con sonido
+local GOOD_TOASTS = { bought = true, afkOn = true, missionDone = true, missionAuto = true, tutorialDone = true, rewardMoney = true, rewardLuck = true, rewardSpeed = true, rewardPack = true, luckUpgrade = true }
 Remotes:WaitForChild("Toast").OnClientEvent:Connect(function(key, args)
-	local good = key == "bought" or key == "afkOn"
+	local good = GOOD_TOASTS[key] == true
 	toast(fmtKey(key, args), good and GREEN or (key == "notEnough" and Color3.fromRGB(255, 90, 100) or GOLD))
 	if good then
 		play("reward", 1.2)
+	end
+	if hooks.toast then
+		pcall(hooks.toast, key, args)
 	end
 end)
 
@@ -1421,6 +1433,10 @@ Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 		bump(moneyPill, 1.06)
 	end
 	lastMoney = s.money or 0
+	-- las misiones solo llegan cuando cambian: si no vienen, se conservan las anteriores
+	if s.quests == nil then
+		s.quests = state.quests
+	end
 	state = s
 	stateAt = os.clock()
 	if s.comboTarget then
@@ -1428,6 +1444,9 @@ Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 	end
 	-- el panel abierto se repinta en cuanto cambia algo suyo (compras, dinero suficiente…)
 	render(false)
+	if hooks.state then
+		pcall(hooks.state, s)
+	end
 end)
 
 ---------------------------------------------------------------------
@@ -2045,7 +2064,15 @@ task.spawn(function()
 		local left = math.max(0, (state.cycleLeft or 0) - (os.clock() - stateAt))
 		moneyLabel.Text = string.format('$%s <font size="24" color="#C8FFB0">+$%s/s</font>', Format.num(state.money or 0), Format.num(state.income or 0))
 		speedLabel.Text = string.format('⚡ %s <font size="22" color="#C9A6FF">(x%s)</font>', Format.num(state.speed or 0), Format.num(state.speedMult or 1))
-		multLabel.Text = string.format("💰 x%s   🍀 x%s", Format.num(state.moneyMult or 1), Format.num(state.luck or 1))
+		-- multiplicadores y, si hay boosts activos (premios de misiones o compras), su tiempo
+		local boosts = ""
+		if (state.luckLeft or 0) > 0 then
+			boosts ..= string.format('   <font color="#7CFF8A">🍀 %s</font>', Format.time(state.luckLeft))
+		end
+		if (state.boostLeft or 0) > 0 then
+			boosts ..= string.format('   <font color="#9BE7FF">⚡x3 %s</font>', Format.time(state.boostLeft))
+		end
+		multLabel.Text = string.format("💰 x%s   🍀 x%s%s", Format.num(state.moneyMult or 1), Format.num(state.luck or 1), boosts)
 		cycleLabel.Text = string.format('%s <font color="#FFD23F">%s</font>', state.night and t("dawnIn") or t("nightIn"), Format.time(left))
 		-- "NEW" en la tienda si puedes comprar una mejora
 		local canBuy = (state.money or 0) >= Config.treadmillCost((state.treadmill or 1) + 1) or (state.money or 0) >= Config.plotCost((state.plot or 1) + 1)
@@ -2149,7 +2176,8 @@ task.spawn(function()
 end)
 
 ---------------------------------------------------------------------
--- Módulos opcionales del cliente: Fx (animaciones del mundo, estelas…) y Music (música).
+-- Módulos opcionales del cliente: Fx (animaciones del mundo, estelas…), Music (música) y
+-- Missions (misiones diarias, racha diaria y tutorial).
 -- Son hijos de este script; si alguno no existe o falla, el HUD sigue funcionando.
 ---------------------------------------------------------------------
 task.spawn(function()
@@ -2158,6 +2186,7 @@ task.spawn(function()
 		player = player,
 		Config = Config,
 		Locale = Locale,
+		Format = Format,
 		t = t,
 		opt = opt,
 		gui = gui,
@@ -2165,8 +2194,48 @@ task.spawn(function()
 		getState = function()
 			return state
 		end,
+		send = function(name, a, b)
+			Action:FireServer(name, a, b)
+		end,
+		myPlot = myPlot,
+		-- piezas de estilo del HUD (Missions dibuja con ellas para que todo se vea igual)
+		ui = {
+			new = new,
+			corner = corner,
+			stroke = stroke,
+			gradient = gradient,
+			darker = darker,
+			label = label,
+			heavy = heavy,
+			button = button,
+			bump = bump,
+			toast = toast,
+			showBanner = showBanner,
+			floatText = floatText,
+			fonts = { TITLE = TITLE, BTN = BTN, HEAVY = HEAVY },
+			colors = { GOLD = GOLD, GREEN = GREEN, CYAN = CYAN, PINK = PINK, PURPLE = PURPLE, WHITE = WHITE },
+		},
+		panel = {
+			open = openPanel,
+			render = render,
+			renderers = renderers,
+			signatures = signatures,
+			content = content,
+			-- nombre del panel abierto (nil si no hay ninguno)
+			current = function()
+				return (panel.Visible and not panelState.closing) and currentPanel or nil
+			end,
+		},
+		sideButton = sideButton,
+		badges = badges,
+		refs = { shopButton = shopButton, tapButton = tapButton, toastHolder = toastHolder },
+		-- hay otra ventana importante delante (dinero offline o apertura de un sobre)
+		isBusy = function()
+			return offlinePopup.Visible or reveal.Visible
+		end,
+		hooks = hooks,
 	}
-	for _, name in ipairs({ "Fx", "Music" }) do
+	for _, name in ipairs({ "Fx", "Music", "Missions" }) do
 		local m = script:FindFirstChild(name)
 		if m then
 			local ok, err = pcall(function()

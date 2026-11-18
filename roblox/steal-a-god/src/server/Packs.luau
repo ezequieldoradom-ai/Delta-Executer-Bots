@@ -441,6 +441,7 @@ function Packs.grab(player, pack)
 	end
 	pack.state = "carried"
 	pack.carrier = player
+	pack.lucky = nil -- la tirada de suerte es de quien lo lleve a casa
 	pack.loosePos = nil
 	pack.looseDir = nil
 	s.carrying = pack
@@ -458,6 +459,36 @@ function Packs.grab(player, pack)
 	if pack.rarity >= C.ANNOUNCE_CHAT_FROM then
 		G.Net.announce("all", "stoleBig", { player.DisplayName, { rarity = pack.rarity }, { guardian = pack.zone } }, { color = G.Format.hex(C.RARITIES[pack.rarity].color) })
 	end
+	-- misión "robar": cada sobre cuenta una vez por jugador (soltarlo y cogerlo otra vez no suma)
+	pack.stolenBy = pack.stolenBy or {}
+	if G.Quests and not pack.stolenBy[player.UserId] then
+		pack.stolenBy[player.UserId] = true
+		G.Quests.event(player, "steal", 1)
+	end
+end
+
+-- La suerte propia (pase Suerte x2 o boost de las misiones) puede mejorar el sobre al llegar a casa:
+-- 12 % con suerte x2, 24 % con x4… (máximo 40 %) y solo hasta la rareza más alta de su zona.
+-- roll = número de 0 a 1 para las pruebas (si no, al azar).
+function Packs.luckUpgrade(player, zoneIndex, item, roll)
+	local luck = G.Core.personalLuck(player)
+	local zone = C.ZONES[zoneIndex]
+	if luck <= 1 or not zone then
+		return false
+	end
+	local maxR = 0
+	for r in pairs(zone.weights) do
+		maxR = math.max(maxR, r)
+	end
+	if item.r >= maxR then
+		return false
+	end
+	if (roll or math.random()) < math.min(0.4, 0.12 * math.log(luck, 2)) then
+		item.r += 1
+		item.rem = C.RARITIES[item.r].open
+		return true
+	end
+	return false
 end
 
 -- Suelta el sobre que lleva el jugador. loose=true lo deja en el suelo (golpe); false lo devuelve a su sitio
@@ -496,6 +527,12 @@ end
 local function deliver(player, pack)
 	local s = G.Core.sessions[player]
 	local item = { r = pack.rarity, rem = C.RARITIES[pack.rarity].open, dawn = pack.dawn == true, kg = pack.kg }
+	-- se tira la suerte una sola vez por sobre (si no cabe y se reintenta, no se vuelve a tirar)
+	if pack.lucky == nil then
+		pack.lucky = Packs.luckUpgrade(player, pack.zone, item) and item.r or false
+	elseif pack.lucky then
+		item.r, item.rem = pack.lucky, C.RARITIES[pack.lucky].open
+	end
 	local ok, where = Packs.givePack(player, item)
 	if not ok then
 		-- avisar como mucho cada 3 s (antes se repetía en cada fotograma)
@@ -516,7 +553,13 @@ local function deliver(player, pack)
 	if pack.rarity >= C.ANNOUNCE_CHAT_FROM then
 		G.Net.announce("all", "escaped", { player.DisplayName, { rarity = pack.rarity } }, { color = G.Format.hex(C.RARITIES[pack.rarity].color) })
 	end
+	if pack.lucky then
+		G.Net.toast(player, "luckUpgrade", { rarity = pack.lucky })
+	end
 	destroyPack(pack)
+	if G.Quests then
+		G.Quests.event(player, "escape", 1)
+	end
 	return true
 end
 
@@ -598,6 +641,10 @@ function Packs.savePurchased(player)
 		end
 	end
 	G.Net.toast(player, "bought")
+	-- tutorial: el sobre ya está en casa (si no, le pediría robar otro con este esperando en el altar)
+	if G.Quests then
+		G.Quests.packHome(player)
+	end
 	return true
 end
 
@@ -704,6 +751,9 @@ function Packs.openAltar(player, i)
 		game:GetService("Debris"):AddItem(att, 2)
 	end
 	G.Net.Reveal:FireClient(player, { god = god.id, isNew = isNew, kg = kg })
+	if G.Quests then
+		G.Quests.event(player, "open", 1)
+	end
 	if god.r >= C.ANNOUNCE_CHAT_FROM then
 		local color = G.Format.hex(C.RARITIES[god.r].color)
 		G.Net.announce("all", "gotGod", { player.DisplayName, { god = god.id }, { rarity = god.r } }, { color = color, big = god.r >= C.ANNOUNCE_BIG_FROM })

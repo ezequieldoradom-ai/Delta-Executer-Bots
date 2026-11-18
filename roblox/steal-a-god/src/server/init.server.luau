@@ -16,6 +16,7 @@ local G = {
 	DayNight = require(script.DayNight),
 	Boards = require(script.Boards),
 	Shop = require(script.Shop),
+	Quests = require(script.Quests), -- misiones diarias, racha diaria y tutorial
 	serverLuckUntil = 0,
 }
 
@@ -48,6 +49,7 @@ G.Packs.init(G)
 G.Shop.init(G)
 G.Boards.init(G)
 G.Core.init(G)
+G.Quests.init(G) -- registra sus acciones en G.Core.actions
 
 -- Solo en Roblox Studio: enganche para revisar el juego desde la barra de comandos
 -- (la barra carga sus propias copias de los módulos y no ve las partidas). Ejemplos:
