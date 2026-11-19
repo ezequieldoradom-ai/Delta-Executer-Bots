@@ -214,3 +214,8 @@ Nuevo también: música de fondo, gritos de los guardianes con frase en inglés 
 - `clip6_plaza.mp4` (8 s): pasada de cámara por la parcela llena de dioses (sin interfaz).
 - `clip7_regalo.mp4` (10 s): panel de Regalos gratis y el regalo 1 reclamado (✓, el dinero sube). (El dueño pidió incluir obby y regalo.)
 Sin audio (no hay "Mezcla estéreo" en Shadow): pon tú música, gritos y sonidos.
+
+## 2026-11-19 02:05 · Shadow — Lucky Obby Race creada
+Experiencia nueva en la cuenta del dueño (Studio → Publicar como → Crear nueva experiencia). Nombre "Lucky Obby Race", tu descripción, todos los dispositivos (consola incluida). **Privada** (no he pulsado "Lanzamiento público").
+- **Universe ID: 10777751482** · **Place ID: 88014747422090** (en `roblox/lucky-obby/place.json`).
+- Subí el build de Rojo de `roblox/lucky-obby/` como primera versión. El nombre del *lugar* quedó "Lugar de FreePeeke: 11192026_1"; la *experiencia* sí se llama Lucky Obby Race. Renómbralo por la API al publicar si quieres.
