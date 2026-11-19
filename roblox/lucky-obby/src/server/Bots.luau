@@ -641,7 +641,43 @@ end
 
 local function slapLoop(bot)
 	while bot.alive do
-		task.wait(3 + math.random() * 3)
+		task.wait(2 + math.random() * 2)
+		-- ¿hay una PERSONA esperando sola (o con sitio) en una mesa que aún no ha empezado? → ir con ella
+		local humanTable
+		for k = 1, G.Slap.COUNT do
+			local st = G.Slap.station(k)
+			local humans = 0
+			for _, m in ipairs(st.members) do
+				if not (type(m) == "table" and m.IsBot) then
+					humans += 1
+				end
+			end
+			if humans > 0 and not st.match and #st.members < 4 then
+				humanTable = k
+				break
+			end
+		end
+		local mine = G.Slap.stationOf(bot)
+		if humanTable and mine ~= humanTable and bot.alive and bot.Character then
+			local cur = mine and G.Slap.station(mine)
+			local curHasHuman = false
+			if cur then
+				for _, m in ipairs(cur.members) do
+					if not (type(m) == "table" and m.IsBot) then
+						curHasHuman = true
+					end
+				end
+			end
+			-- solo se cambia si en su mesa no hay personas y no está sentado ni pegando
+			if not cur or (not curHasHuman and cur.seated ~= bot and cur.slapper ~= bot) then
+				if mine then
+					G.Slap.leave(bot)
+				end
+				if G.Slap.join(bot, humanTable) then
+					continue
+				end
+			end
+		end
 		if bot.alive and not G.Slap.stationOf(bot) and bot.Character then
 			-- buscar mesa: la que ya tenga bots o gente y sitio (deja siempre un hueco para jugadores)
 			-- mesas por preferencia (las que ya tienen gente primero); si una le rechaza (eliminado), prueba otra

@@ -179,7 +179,7 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		local k
 		waitFor(function()
 			for kk = 1, 6 do
-				if G.Slap.freeSlots(kk) >= 1 and G.Slap.freeSlots(kk) <= 2 then
+				if not G.Slap.station(kk).match and G.Slap.freeSlots(kk) >= 1 then
 					if G.Slap.join(p, kk) then
 						k = kk
 						return true
@@ -220,8 +220,11 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 			task.wait(0.3)
 			G.Slap.stop(p, nil)
 			waitFor(function()
-				return G.Slap.lastResult ~= nil
+				return G.Slap.lastResult ~= nil and G.Slap.lastResult.slapper == p
 			end, 6)
+			if G.Slap.lastResult and G.Slap.lastResult.slapper ~= p then
+				G.Slap.lastResult = nil
+			end
 			task.wait(0.4)
 			return G.Slap.lastResult, victim, vh, hp0
 		end

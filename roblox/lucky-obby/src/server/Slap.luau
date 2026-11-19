@@ -637,7 +637,7 @@ function Slap.resolve(st)
 	else
 		Slap.stats.hits += 1
 	end
-	Slap.lastResult = { power = st.power, supreme = st.supreme, dodged = st.dodged, victim = victim }
+	Slap.lastResult = { power = st.power, supreme = st.supreme, dodged = st.dodged, victim = victim, slapper = slapper }
 	if st.dodged then
 		-- se agacha y el guantazo da al aire: ahora se sienta el que iba a pegar
 		setPhase(st, "result")
