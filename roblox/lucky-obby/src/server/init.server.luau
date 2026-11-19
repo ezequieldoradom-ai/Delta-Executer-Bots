@@ -80,6 +80,10 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			return table.concat(t, " | ") .. " || kinds=" .. table.concat(G.Course.kinds or {}, ",")
 		end
+		if cmd == "slapnow" then -- me toca pegar ya (si estoy de pie en una mesa esperando)
+			local ok = G.Slap.request(player)
+			return ok
+		end
 		if cmd == "finishnow" then
 			return G.Race.finish(player)
 		end

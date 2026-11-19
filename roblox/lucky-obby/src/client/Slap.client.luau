@@ -997,6 +997,12 @@ Net.OnClientEvent:Connect(function(kind, d)
 		elseif station.phase ~= "guessing" then
 			guessPanel.Visible = false
 		end
+		-- si la barra se paró sola (o ya no me toca), se quita de la pantalla
+		if charging and (not station or station.phase ~= "charging" or station.slapper ~= player.UserId) then
+			charging = nil
+			bar.Visible = false
+			tapLayer.Visible = false
+		end
 		updateUI()
 	elseif kind == "bar" and type(d) == "table" then
 		charging = { t0 = os.clock(), period = tonumber(d.period) or 0.9 }

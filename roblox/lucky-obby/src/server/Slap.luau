@@ -321,6 +321,7 @@ end
 -- GANADOR: cuando en una partida empezada solo queda uno, gana la mesa
 local function declareWinner(st, w)
 	local hadKills = st.eliminated ~= nil and next(st.eliminated) ~= nil
+	local wasOut = st.eliminated or {}
 	st.match = false
 	st.eliminated = {}
 	local big = (st.matchSize or 0) >= 3
@@ -331,9 +332,10 @@ local function declareWinner(st, w)
 	if big then -- premio solo en partidas de 3 o más (con 2 sería fácil de granjear)
 		reward(w, 25)
 	end
+	-- solo lo ven los de esta mesa (y el eliminado que mira desde cerca)
 	for _, p in ipairs(Players:GetPlayers()) do
 		local h = hrpOf(p)
-		if h and (h.Position - st.cf.Position).Magnitude < 140 then
+		if table.find(st.members, p) or wasOut[p] or (h and (h.Position - st.cf.Position).Magnitude < 25) then
 			send(p, "winner", { name = w.DisplayName, id = w.UserId, station = st.id })
 		end
 	end
@@ -524,6 +526,12 @@ function Slap.stop(p, clientPos)
 	local round = st.round
 	task.delay(math.max(0, air - DODGE_WINDOW - 0.15), function()
 		if st.round ~= round or st.phase ~= "windup" then
+			return
+		end
+		if st.supreme then
+			-- el SUPREMO no se puede esquivar: cae directamente
+			st.dodgeSentAt = nil
+			Slap.resolve(st)
 			return
 		end
 		st.dodgeSentAt = os.clock()
@@ -875,8 +883,14 @@ function Slap.init(g)
 				for i = #st.members, 1, -1 do
 					local p = st.members[i]
 					local hrp = hrpOf(p)
-					if hrp and p ~= st.seated and p ~= st.slapper and (hrp.Position - st.cf.Position).Magnitude > AREA then
-						Slap.leave(p)
+					-- ya nadie se va andando (están quietos): si alguien acaba lejos (salto épico, empujón), al
+					-- aterrizar vuelve a su sitio. Nunca se le echa de la mesa por esto.
+					local hum = humOf(p)
+					if hrp and hum and hum.Health > 0 and p ~= st.seated and p ~= st.slapper
+						and hum.FloorMaterial ~= Enum.Material.Air
+						and (hrp.Position - st.cf.Position).Magnitude > 9
+						and os.clock() - (st.phaseAt or 0) > 1 then
+						hold(st, p)
 					end
 				end
 				if st.seated and st.phase ~= "result" then
