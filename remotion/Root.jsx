@@ -12,6 +12,7 @@ import { Dia05, MiniaturaDia05, DURATION as CIV05_DURATION } from './civilizacio
 import { Edad20000, DURATION as YT20000_DURATION } from './yt/Edad20000';
 import { MiniaturaA, MiniaturaB, MiniaturaC, MiniaturaFosaA, MiniaturaFosaB, MiniaturaFosaC } from './yt/Miniaturas';
 import { Fosa, DURATION as FOSA_DURATION } from './yt/Fosa';
+import { ShortStealAGod, SAG_SHORT_DURATION } from './roblox/ShortStealAGod';
 import { Short20000, SHORT_20000_DURATION, ShortFosa, SHORT_FOSA_DURATION, ShortFuturo, SHORT_FUT_DURATION } from './yt/Clips';
 import { Futuro, DURATION as FUTURO_DURATION } from './yt/Futuro';
 import { DemoCine, DEMO_DURATION } from './yt/DemoCine';
@@ -112,6 +113,7 @@ export const RemotionRoot = () => {
       <Composition id="Demo-Cine" component={DemoCine} durationInFrames={Math.round(DEMO_DURATION * FPS)} fps={FPS} width={1920} height={1080} />
       <Composition id="Short-Futuro" component={ShortFuturo} durationInFrames={Math.round(SHORT_FUT_DURATION * FPS)} fps={FPS} width={1080} height={1920} />
       <Composition id="Short-20000" component={Short20000} durationInFrames={Math.round(SHORT_20000_DURATION * FPS)} fps={FPS} width={1080} height={1920} />
+      <Composition id="Short-StealAGod" component={ShortStealAGod} durationInFrames={Math.round(SAG_SHORT_DURATION * FPS)} fps={FPS} width={1080} height={1920} />
       <Composition id="Short-Fosa" component={ShortFosa} durationInFrames={Math.round(SHORT_FOSA_DURATION * FPS)} fps={FPS} width={1080} height={1920} />
       {[
         ['Miniatura-20000-A', MiniaturaA],
