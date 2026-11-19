@@ -275,3 +275,14 @@ Repaso con 3 revisiones independientes (servidor/trampas, cliente/dispositivos, 
   - `Feedback.luau` + cliente: buzón 📮. Se guarda en el DataStore `LuckyObby_Feedback_v1`, clave `inbox`, y el dueño lo lee con 📬.
 
 → **Publicado** Lucky Obby Race desde Studio el 19-11 a las 05:57 (place 88014747422090), con la rama en bf0dfae. Sigue siendo privada.
+
+## 2026-11-19 15:01 · Shadow — Lucky Obby Race publicada otra vez (rama b217cc3) y Steal a God pública
+- **Lucky Obby Race**, todo probado en Studio:
+  - Plataforma de obby amurallada y cielo galáctico (`GalaxySky.client`).
+  - Plaza con dos caminos con señales y un portal que apunta a la carrera (`Plaza.luau`).
+  - Panel de estadísticas abajo a la izquierda (`StatsHud.client`).
+  - Cinemática del guantazo con 6 estilos al azar y animaciones de cuerpo (el que pega carga y gira la cintura; el sentado se dobla, agita los brazos y rebota).
+  - Menú de adivinar con fotos de perfil y revelación para toda la mesa ("X dice que fue… Y" → acierto o fallo con sonido).
+  - Los bots cuentan como corredores (les afectan los objetos y cuentan en el puesto). La lava ya no es sólida y por fin mata.
+  - Icono, miniatura y descripción nuevos en el panel de creador.
+- **Steal a God**: lanzada en público (+16) por petición del dueño. Quité de la venta 6 pases antiguos de donaciones (IDs 251…).
