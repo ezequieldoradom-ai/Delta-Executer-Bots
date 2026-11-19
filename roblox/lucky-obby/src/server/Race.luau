@@ -184,6 +184,7 @@ function Race.loop()
 			local s = Race.sessions[p]
 			s.racing, s.finished, s.progress, s.item, s.rolling = true, false, 0, nil, false
 			s.shieldUntil, s.frozenUntil, s.finishTime = 0, nil, nil
+			s.immuneUntil, s.speedUntil = nil, nil -- (Shadow) que no se arrastren efectos de la carrera anterior
 			s.nextLucky = os.clock() + R.COUNTDOWN + 3
 			setCheckpoint(p, s, 0)
 			local col = (i - 1) % 6

@@ -96,13 +96,16 @@ local function refreshBoards()
 		if b.store then
 			for p, d in pairs(G.Data.profiles) do
 				if typeof(p) == "Instance" and p.UserId > 0 then
-					pcall(function()
-						b.store:SetAsync(tostring(p.UserId), d[b.stat] or 0)
-					end)
+					local v = b.toStore and b.toStore(d[b.stat] or 0) or (d[b.stat] or 0)
+					if not b.asc or v > 0 then
+						pcall(function()
+							b.store:SetAsync(tostring(p.UserId), v)
+						end)
+					end
 				end
 			end
 			local ok, pages = pcall(function()
-				return b.store:GetSortedAsync(false, 10)
+				return b.store:GetSortedAsync(b.asc == true, 10)
 			end)
 			if ok and pages then
 				for _, e in ipairs(pages:GetCurrentPage()) do
@@ -113,17 +116,21 @@ local function refreshBoards()
 		-- 2) sin DataStore (Studio) o vacío: los jugadores del servidor
 		if #rows == 0 then
 			for p, d in pairs(G.Data.profiles) do
-				if typeof(p) == "Instance" then
-					table.insert(rows, { name = p.DisplayName, value = d[b.stat] or 0 })
+				local v = typeof(p) == "Instance" and (b.toStore and b.toStore(d[b.stat] or 0) or (d[b.stat] or 0))
+				if v and (not b.asc or v > 0) then
+					table.insert(rows, { name = p.DisplayName, value = v })
 				end
 			end
 			table.sort(rows, function(a, c)
+				if b.asc then
+					return a.value < c.value
+				end
 				return a.value > c.value
 			end)
 		end
 		for i = 1, 10 do
 			local r = rows[i]
-			row(b.body, i, 10, r and string.format("#%d  %s", i, r.name) or "", r and tostring(r.value) or "", MEDAL[i])
+			row(b.body, i, 10, r and string.format("#%d  %s", i, r.name) or "", r and (b.fmt and b.fmt(r.value) or tostring(r.value)) or "", MEDAL[i])
 		end
 	end
 end
@@ -271,16 +278,29 @@ function Hub.init(g)
 	local coinsBody = board(f, ringCF(210, 26) * CFrame.new(0, 11, 0), 20, 16, "🪙 MONEDAS", Color3.fromRGB(255, 170, 60))
 	buildHelp(f, ringCF(90, 27) * CFrame.new(0, 11, 0))
 	buildLuck(f, ringCF(270, 22))
+	-- récords: detrás y por encima de los otros dos, mirando al centro
+	local bestBody = board(f, ringCF(180, 33) * CFrame.new(0, 19, 0), 20, 14, "⏱ RÉCORDS", Color3.fromRGB(120, 230, 255))
 	f.Parent = workspace
-	local wins, coins
+	local wins, coins, best
 	if not RunService:IsStudio() then
 		pcall(function()
 			wins = DataStoreService:GetOrderedDataStore("LuckyObby_Wins_v1")
 			coins = DataStoreService:GetOrderedDataStore("LuckyObby_Coins_v1")
+			best = DataStoreService:GetOrderedDataStore("LuckyObby_Best_v1")
 		end)
 	end
 	table.insert(boards, { body = winsBody, stat = "wins", store = wins })
 	table.insert(boards, { body = coinsBody, stat = "coins", store = coins })
+	table.insert(boards, {
+		body = bestBody, stat = "best", store = best, asc = true,
+		toStore = function(sec) -- segundos -> centésimas (entero para OrderedDataStore)
+			return math.floor((tonumber(sec) or 0) * 100)
+		end,
+		fmt = function(cs)
+			local secs = cs / 100
+			return string.format("%d:%05.2f", math.floor(secs / 60), secs % 60)
+		end,
+	})
 	-- nivel de suerte de cada jugador (para su cartel) y refresco de tablones
 	local function onPlayer(p)
 		task.spawn(function()

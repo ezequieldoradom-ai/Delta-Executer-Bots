@@ -31,7 +31,7 @@ local function stats(player)
 end
 
 function Data.load(player)
-	local d = { coins = 0, wins = 0, luck = 0 }
+	local d = { coins = 0, wins = 0, luck = 0, best = 0, trails = {}, trail = "" }
 	if store and typeof(player) == "Instance" then
 		local ok, raw = pcall(function()
 			return store:GetAsync(key(player))
@@ -40,6 +40,15 @@ function Data.load(player)
 			d.coins = math.max(0, math.floor(tonumber(raw.coins) or 0))
 			d.wins = math.max(0, math.floor(tonumber(raw.wins) or 0))
 			d.luck = math.clamp(math.floor(tonumber(raw.luck) or 0), 0, 10)
+			d.best = math.max(0, tonumber(raw.best) or 0) -- mejor tiempo en segundos (0 = sin récord)
+			if type(raw.trails) == "table" then
+				for _, id in ipairs(raw.trails) do
+					if type(id) == "string" then
+						table.insert(d.trails, id)
+					end
+				end
+			end
+			d.trail = type(raw.trail) == "string" and raw.trail or ""
 		end
 	end
 	Data.profiles[player] = d
@@ -53,7 +62,7 @@ function Data.save(player)
 		return false
 	end
 	local ok = pcall(function()
-		store:SetAsync(key(player), { coins = d.coins, wins = d.wins, luck = d.luck or 0 })
+		store:SetAsync(key(player), { coins = d.coins, wins = d.wins, luck = d.luck or 0, best = d.best or 0, trails = d.trails or {}, trail = d.trail or "" })
 	end)
 	return ok
 end

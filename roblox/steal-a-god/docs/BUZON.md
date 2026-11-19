@@ -241,3 +241,14 @@ Pedido del dueño ("todo lo que puedas y efectos", "obby largo, muchos más obje
 - `src/client/Biomes.client.luau` (nuevo): por tramo cambia hora, niebla, tinte y luz ambiente (solo en tu pantalla), pone clima alrededor de la cámara y muestra el nombre del bioma.
 - Objetos: `Config.RARITY` (Común 100 · Raro 42 · Épico 16 · Legendario 5 · Mítico 1,4) y `itemWeight` por rareza y puesto. 10 nuevos en `Items`: boost, jump (evento `launch` en el cliente, sin caída), glue (trampa de miel), bomb, ghost/crown (`immuneUntil`), lightning (al líder), tornado, portal (siguiente punto de control), meteor. Hay `Items.setSpeed` y `tick` devuelve la velocidad normal. El cliente anuncia la rareza (⭐) a partir de Raro. `test_full` ajustado a las rarezas.
 - `init.server`: `ServerStorage.StudioDebug` (solo Studio) con `"use", player, id`.
+
+## 2026-11-19 04:05 · Shadow — Lucky Obby Race: cajas lucky, récords, estelas y vuelo de cámara
+Probado en Studio, sin errores del juego:
+- `src/server/Extras.luau` (nuevo):
+  - 2 cajas "?" por tramo (~60) que dan objeto al tocarlas si no llevas (vía `Items.grant`) y se recargan a los 6 s.
+  - Récords: envuelve `Race.finish`, guarda `Data.best` y manda el evento `record`.
+  - Tienda de 6 estelas en el vestíbulo (ProximityPrompt: comprar / equipar / quitar).
+- `Data`: campos `best`, `trails` y `trail`. `Hub`: tablón ⏱ RÉCORDS (OrderedDataStore `LuckyObby_Best_v1`, ascendente, en centésimas).
+- `src/client/Extras.client.luau` (nuevo): cajas que giran, estallido al cogerlas, vuelo de cámara de la meta a la salida durante la cuenta atrás (`COUNTDOWN = 5`), confeti en la meta y cartel de récord.
+- `Race`: al empezar se limpian `immuneUntil`/`speedUntil` (un Turbo de la ronda anterior dejaba moverse en la cuenta atrás).
+- Piedra 🪨 → 🥌 (Roblox no tiene el emoji 🪨: salía el icono vacío). `StudioDebug` también acepta `"coins", player, n`.

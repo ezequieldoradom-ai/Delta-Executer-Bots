@@ -35,6 +35,10 @@ local decor = script:FindFirstChild("Decor")
 if decor then
 	require(decor).init(G)
 end
+local extras = script:FindFirstChild("Extras")
+if extras then
+	require(extras).init(G) -- cajas lucky, récords y tienda de estelas (Shadow)
+end
 G.Items.init(G)
 G.Race.init(G)
 G.Race.start()
@@ -45,6 +49,10 @@ if game:GetService("RunService"):IsStudio() then
 	local bf = Instance.new("BindableFunction")
 	bf.Name = "StudioDebug"
 	bf.OnInvoke = function(cmd, player, arg)
+		if cmd == "coins" then
+			G.Data.addCoins(player, arg)
+			return G.Data.coins(player)
+		end
 		if cmd == "use" then
 			local s = G.Race.sessions[player]
 			if not s then
