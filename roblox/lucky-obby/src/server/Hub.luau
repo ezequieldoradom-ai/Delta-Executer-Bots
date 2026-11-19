@@ -294,17 +294,31 @@ function Hub.init(g)
 	end
 	-- récords: detrás y por encima de los otros dos, mirando al centro
 	local bestBody = board(f, ringCF(180, 50) * CFrame.new(0, 11, 0), 20, 16, "⏱ RÉCORDS", Color3.fromRGB(120, 230, 255))
+	-- RANKING DE GUANTAZOS: en el borde de la plaza de "¿Quién ha sido?", mirando a las mesas
+	local Decor = require(script.Parent.Decor)
+	local slapBody
+	if Decor.PLAZA then
+		local pz = Decor.PLAZA
+		local lobbyFlat = Vector3.new(C.LOBBY.X, 0, C.LOBBY.Z)
+		local away = (Vector3.new(pz.X, 0, pz.Z) - lobbyFlat).Unit -- lado contrario a la entrada
+		local pos = Vector3.new(pz.X, 0, pz.Z) + away * 40 + Vector3.new(0, 10, 0)
+		slapBody = board(f, CFrame.lookAt(pos, Vector3.new(pz.X, 10, pz.Z)), 18, 14, "🖐️ REYES DEL GUANTAZO", Color3.fromRGB(255, 120, 200))
+	end
 	f.Parent = workspace
-	local wins, coins, best
+	local wins, coins, best, slaps
 	if not RunService:IsStudio() then
 		pcall(function()
 			wins = DataStoreService:GetOrderedDataStore("LuckyObby_Wins_v1")
 			coins = DataStoreService:GetOrderedDataStore("LuckyObby_Coins_v1")
 			best = DataStoreService:GetOrderedDataStore("LuckyObby_Best_v1")
+			slaps = DataStoreService:GetOrderedDataStore("LuckyObby_SlapWins_v1")
 		end)
 	end
 	table.insert(boards, { body = winsBody, stat = "wins", store = wins })
 	table.insert(boards, { body = coinsBody, stat = "coins", store = coins })
+	if slapBody then
+		table.insert(boards, { body = slapBody, stat = "slapWins", store = slaps })
+	end
 	table.insert(boards, {
 		body = bestBody, stat = "best", store = best, asc = true,
 		toStore = function(sec) -- segundos -> centésimas (entero para OrderedDataStore)

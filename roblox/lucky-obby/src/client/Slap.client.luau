@@ -267,7 +267,7 @@ revealScale.Parent = reveal
 local revealId = 0
 
 -- textos grandes
-local big = text(gui, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.28), Size = UDim2.fromOffset(900, 110), Text = "", TextTransparency = 1, TextStrokeTransparency = 1, ZIndex = 9 })
+local big = text(gui, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.22), Size = UDim2.fromOffset(560, 54), Text = "", TextTransparency = 1, TextStrokeTransparency = 1, ZIndex = 9 })
 local bigScale = Instance.new("UIScale")
 bigScale.Parent = big
 local function shout(t, color, secs)

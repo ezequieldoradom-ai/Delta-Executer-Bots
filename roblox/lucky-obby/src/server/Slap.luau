@@ -335,6 +335,9 @@ local function declareWinner(st, w)
 	end
 	if big then -- premio solo en partidas de 3 o más (con 2 sería fácil de granjear)
 		reward(w, 25)
+		if not isBot(w) then
+			G.Data.addSlapWin(w) -- para el ranking de guantazos
+		end
 	end
 	-- solo lo ven los de esta mesa (y el eliminado que mira desde cerca)
 	for _, p in ipairs(Players:GetPlayers()) do

@@ -93,7 +93,7 @@ local topLabel = label({ Parent = top, Size = UDim2.new(1, -20, 1, -6), Position
 local barBack = new("Frame", { BackgroundColor3 = Color3.fromRGB(30, 22, 54), Size = UDim2.fromOffset(320, 8), Position = UDim2.new(0.5, 0, 0, 42), AnchorPoint = Vector2.new(0.5, 0), Visible = false, Parent = gui }, { corner(6), stroke(WHITE, 2) })
 local barFill = new("Frame", { BackgroundColor3 = Color3.fromRGB(110, 255, 150), Size = UDim2.fromScale(0, 1), Parent = barBack }, { corner(6) })
 -- Centro: avisos grandes
-local big = label({ Parent = gui, Size = UDim2.fromOffset(900, 110), Position = UDim2.fromScale(0.5, 0.3), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 5 })
+local big = label({ Parent = gui, Size = UDim2.fromOffset(560, 54), Position = UDim2.fromScale(0.5, 0.2), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 5 })
 local function shout(text, color, seconds)
 	big.Text = text
 	big.TextColor3 = color or WHITE
@@ -108,9 +108,9 @@ local function shout(text, color, seconds)
 end
 big.Visible = false
 -- Avisos pequeños
-local feed = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(520, 200), Position = UDim2.new(0.5, 0, 0, 100), AnchorPoint = Vector2.new(0.5, 0), Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 6), HorizontalAlignment = Enum.HorizontalAlignment.Center }) })
+local feed = new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(420, 160), Position = UDim2.new(0.5, 0, 0, 58), AnchorPoint = Vector2.new(0.5, 0), Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 6), HorizontalAlignment = Enum.HorizontalAlignment.Center }) })
 local function toast(text, color)
-	local l = label({ Parent = feed, Text = text, Size = UDim2.fromOffset(520, 34), TextColor3 = color or WHITE, ZIndex = 4 })
+	local l = label({ Parent = feed, Text = text, Size = UDim2.fromOffset(420, 24), TextColor3 = color or WHITE, ZIndex = 4 })
 	task.delay(3, function()
 		TweenService:Create(l, TweenInfo.new(0.4), { TextTransparency = 1 }):Play()
 		task.wait(0.45)
@@ -280,9 +280,9 @@ Remotes:WaitForChild("Event").OnClientEvent:Connect(function(kind, d)
 			table.insert(lines, string.format("%d. %s", r.rank or i, r.name or "?"))
 		end
 		shout(table.concat(lines, "\n"), WHITE, 5)
-		big.Size = UDim2.fromOffset(700, 320)
+		big.Size = UDim2.fromOffset(440, 210)
 		task.delay(5, function()
-			big.Size = UDim2.fromOffset(900, 110)
+			big.Size = UDim2.fromOffset(560, 54)
 		end)
 	elseif kind == "gustFx" and typeof(d.pos) == "Vector3" then
 		local p = new("Part", { Anchored = true, CanCollide = false, CanQuery = false, Shape = Enum.PartType.Ball, Size = Vector3.new(4, 4, 4), CFrame = CFrame.new(d.pos), Color = Color3.fromRGB(220, 245, 255), Material = Enum.Material.Neon, Transparency = 0.4, Parent = workspace })
