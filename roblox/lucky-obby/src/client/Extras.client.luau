@@ -143,10 +143,71 @@ local function flyover(seconds)
 	end)
 end
 
+-- BOTÓN "ENTRAR A LA CARRERA" (fase de inscripción) -----------------------------
+local joinBtn = Instance.new("TextButton")
+joinBtn.Name = "JoinRace"
+joinBtn.AnchorPoint = Vector2.new(0.5, 1)
+joinBtn.Position = UDim2.new(0.5, 0, 1, -24)
+joinBtn.Size = UDim2.fromOffset(360, 66)
+joinBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 90)
+joinBtn.Font = Enum.Font.LuckiestGuy
+joinBtn.TextScaled = true
+joinBtn.TextColor3 = Color3.new(1, 1, 1)
+joinBtn.TextStrokeTransparency = 0.3
+joinBtn.AutoButtonColor = true
+joinBtn.Visible = false
+joinBtn.Parent = gui
+Instance.new("UICorner", joinBtn).CornerRadius = UDim.new(0, 22)
+local joinStroke = Instance.new("UIStroke")
+joinStroke.Thickness = 4
+joinStroke.Color = Color3.new(1, 1, 1)
+joinStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+joinStroke.Parent = joinBtn
+local joinPad = Instance.new("UIPadding")
+joinPad.PaddingLeft, joinPad.PaddingRight = UDim.new(0, 14), UDim.new(0, 14)
+joinPad.PaddingTop, joinPad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 8)
+joinPad.Parent = joinBtn
+local joinScale = Instance.new("UIScale")
+joinScale.Parent = joinBtn
+local joined = false
+local function toggleJoin()
+	if joinBtn.Visible then
+		Remotes.Join:FireServer(not joined)
+	end
+end
+joinBtn.Activated:Connect(toggleJoin)
+game:GetService("ContextActionService"):BindAction("LuckyJoin", function(_, st)
+	if st == Enum.UserInputState.Begin and joinBtn.Visible then
+		toggleJoin()
+		return Enum.ContextActionResult.Sink
+	end
+	return Enum.ContextActionResult.Pass
+end, false, Enum.KeyCode.ButtonY)
+RunService.RenderStepped:Connect(function()
+	if joinBtn.Visible then
+		local t = os.clock()
+		joinScale.Scale = joined and 1 or (1 + math.sin(t * 6) * 0.05)
+		joinStroke.Color = joined and Color3.new(1, 1, 1) or Color3.fromHSV((t * 0.4) % 1, 0.6, 1)
+	end
+end)
+
 local lastState = nil
 Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 	if type(s) ~= "table" then
 		return
+	end
+	-- botón de inscripción
+	joined = s.joined == true
+	joinBtn.Visible = s.state == "joining"
+	if joinBtn.Visible then
+		local left = math.ceil(s.left or 0)
+		if joined then
+			joinBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 95)
+			joinBtn.Text = (es() and "✅ DENTRO · SALIR (" or "✅ IN · LEAVE (") .. left .. ")"
+		else
+			joinBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 90)
+			joinBtn.Text = (es() and "🏁 ENTRAR A LA CARRERA (" or "🏁 JOIN THE RACE (") .. left .. ")"
+		end
 	end
 	if s.state == "countdown" and lastState ~= "countdown" and s.racing then
 		local secs = math.max(1.5, (s.left or Config.ROUND.COUNTDOWN) - 1)

@@ -6,7 +6,9 @@ local Config = {}
 
 Config.ROUND = {
 	MIN_PLAYERS = 1, -- para empezar (con 1 se puede practicar solo)
-	INTERMISSION = 15, -- espera en el vestíbulo entre carreras
+	BREAK = 10, -- descanso entre carreras (antes de abrir la inscripción)
+	JOIN_TIME = 15, -- segundos para pulsar "Entrar a la carrera"
+	INTERMISSION = 15, -- (antiguo, ya no se usa)
 	COUNTDOWN = 5, -- 5…1, ¡YA! (la cámara vuela por el recorrido mientras)
 	RACE_TIME = 330, -- tiempo máximo de carrera
 	AFTER_WINNER = 35, -- cuando llega el primero, los demás tienen estos segundos

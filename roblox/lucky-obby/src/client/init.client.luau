@@ -302,8 +302,17 @@ Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 	local left = math.ceil(s.left or 0)
 	if s.state == "waiting" then
 		topLabel.Text = t("waiting")
+	elseif s.state == "break" then -- descanso entre carreras
+		topLabel.Text = t("breakTime", left)
+	elseif s.state == "joining" then -- inscripción (el botón grande lo pone Extras.client)
+		topLabel.Text = t(s.joined and "joinedWait" or "joinOpen", left)
 	elseif s.state == "intermission" then
 		topLabel.Text = t("nextRace", left)
+	elseif s.state == "countdown" and not s.racing then
+		topLabel.Text = t("raceOn")
+	elseif s.state == "racing" and not s.racing then
+		lastStateKey = "go"
+		topLabel.Text = t("raceOn")
 	elseif s.state == "countdown" then
 		local key = "cd" .. left
 		if key ~= lastStateKey and left > 0 then

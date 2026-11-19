@@ -15,6 +15,10 @@ end
 local T = {
 	waiting = { es = "Esperando jugadores…", en = "Waiting for players…" },
 	nextRace = { es = "Siguiente carrera en %s", en = "Next race in %s" },
+	breakTime = { es = "☕ Descanso · %s", en = "☕ Break · %s" },
+	joinOpen = { es = "🏁 ¡Entra a la carrera! · %s", en = "🏁 Join the race! · %s" },
+	joinedWait = { es = "✅ Apuntado · sale en %s", en = "✅ Joined · starts in %s" },
+	raceOn = { es = "🏁 Carrera en curso", en = "🏁 Race in progress" },
 	go = { es = "¡YA!", en = "GO!" },
 	racing = { es = "⏱ %s · %sº de %s", en = "⏱ %s · #%s of %s" },
 	finishedPos = { es = "🏁 ¡Has llegado %sº!", en = "🏁 You finished #%s!" },

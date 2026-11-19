@@ -6,7 +6,7 @@ local Race = {}
 local G, C, R
 
 Race.sessions = {} -- [player] = { racing, finished, finishTime, progress, cp, item, rolling, nextLucky, shieldUntil, frozenUntil }
-Race.state = "waiting" -- waiting | intermission | countdown | racing | results
+Race.state = "break" -- break | joining | countdown | racing | results
 Race.endsAt = 0
 Race.startedAt = 0
 Race.finishers = {} -- jugadores por orden de llegada
@@ -153,33 +153,55 @@ local function playersReady()
 	return n
 end
 
--- Bucle de rondas (en su propia tarea)
+-- Apuntarse / desapuntarse a la próxima carrera (botón "Entrar a la carrera"; solo en la fase de inscripción)
+Race.joined = {} -- [player] = true
+function Race.setJoined(player, on)
+	if Race.state ~= "joining" or not Race.sessions[player] then
+		return false
+	end
+	Race.joined[player] = on and true or nil
+	if on and G.Slap and G.Slap.leave then
+		G.Slap.leave(player) -- si estaba en un minijuego de la plaza, sale
+	end
+	return true
+end
+
+-- Bucle de rondas (en su propia tarea):
+-- descanso (BREAK) → inscripción con botón (JOIN_TIME) → cuenta atrás → carrera → resultados → otra vez
+local courseUsed = true
 function Race.loop()
 	while true do
-		-- espera
-		Race.state = "waiting"
-		while playersReady() < R.MIN_PLAYERS do
-			task.wait(1)
-		end
-		Race.state = "intermission"
-		Race.endsAt = os.clock() + R.INTERMISSION
-		G.Course.build(math.random(1, 1e9))
+		Race.state = "break"
+		Race.endsAt = os.clock() + R.BREAK
 		while os.clock() < Race.endsAt do
 			task.wait(0.25)
 		end
-		if playersReady() < R.MIN_PLAYERS then
-			continue
+		-- inscripción: el recorrido nuevo se construye solo si el anterior ya se corrió
+		Race.state = "joining"
+		table.clear(Race.joined)
+		Race.endsAt = os.clock() + R.JOIN_TIME
+		if courseUsed or not workspace:FindFirstChild("Course") then
+			G.Course.build(math.random(1, 1e9))
+			courseUsed = false
 		end
-		-- salida: todos a la parrilla, quietos durante la cuenta atrás
-		table.clear(Race.finishers)
-		G.Items.clear()
+		while os.clock() < Race.endsAt do
+			task.wait(0.25)
+		end
 		local list = {}
 		for _, p in ipairs(Players:GetPlayers()) do
 			local s = Race.sessions[p]
-			if s and hrpOf(p) then
+			if s and Race.joined[p] and hrpOf(p) then
 				table.insert(list, p)
 			end
 		end
+		table.clear(Race.joined)
+		if #list < R.MIN_PLAYERS then
+			continue -- nadie se apuntó: otro descanso
+		end
+		courseUsed = true
+		-- salida: los apuntados a la parrilla, quietos durante la cuenta atrás
+		table.clear(Race.finishers)
+		G.Items.clear()
 		for i, p in ipairs(list) do
 			local s = Race.sessions[p]
 			s.racing, s.finished, s.progress, s.item, s.rolling = true, false, 0, nil, false
@@ -262,6 +284,7 @@ function Race.sendState()
 				progress = G.Course.length > 0 and math.clamp(s.progress / G.Course.length, 0, 1) or 0,
 				coins = G.Data.coins(player),
 				shield = s.shieldUntil and os.clock() < s.shieldUntil or false,
+				joined = Race.joined[player] == true,
 			})
 		end
 	end
@@ -293,8 +316,12 @@ function Race.init(g)
 			end
 		end)
 	end)
+	G.Net.Join.OnServerEvent:Connect(function(p, on)
+		Race.setJoined(p, on == true)
+	end)
 	Players.PlayerRemoving:Connect(function(p)
 		G.Data.save(p)
+		Race.joined[p] = nil
 		Race.sessions[p] = nil
 	end)
 	for _, p in ipairs(Players:GetPlayers()) do
