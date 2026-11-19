@@ -80,6 +80,36 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			return table.concat(t, " | ") .. " || kinds=" .. table.concat(G.Course.kinds or {}, ",")
 		end
+		if cmd == "join" then
+			return G.Race.setJoined(player, true), G.Race.state
+		end
+		if cmd == "itemtest" then -- se pone detrás del bot más adelantado, usa el objeto y mira si le dio
+			local B = require(script.Bots)
+			local target
+			for _, b in ipairs(B.list) do
+				local h = b.Character and b.Character:FindFirstChild("HumanoidRootPart")
+				local s2 = G.Race.sessions[b]
+				if h and s2 and not s2.finished and (not target or h.Position.Z > target.h.Position.Z) then
+					target = { b = b, h = h, s = s2 }
+				end
+			end
+			if not target then
+				return "sin bot en carrera"
+			end
+			local hrp = player.Character.HumanoidRootPart
+			local from = target.h.Position - Vector3.new(0, 0, 9) + Vector3.new(0, 1, 0)
+			hrp.CFrame = CFrame.lookAt(from, target.h.Position)
+			task.wait(0.3)
+			local s = G.Race.sessions[player]
+			s.item, s.rolling = arg, false
+			local before = target.s.lastHitAt or 0
+			local frozenBefore = target.s.frozenUntil
+			local ok, res = pcall(G.Items.use, player, target.h.Position)
+			task.wait(2.5)
+			local hit = (target.s.lastHitAt or 0) > before
+			local frozen = target.s.frozenUntil ~= frozenBefore
+			return string.format("%s ok=%s used=%s hitBot=%s frozenBot=%s", arg, tostring(ok), tostring(res), tostring(hit), tostring(frozen))
+		end
 		if cmd == "supreme" then
 			G.Slap.debugSupreme = true
 			return "ok"

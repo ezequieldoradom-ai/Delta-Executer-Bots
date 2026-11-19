@@ -713,10 +713,10 @@ local function onHit(d)
 		if d.supreme and hrp and hrp.Parent then
 			target = hrp.Position -- seguimos al que sale volando
 		end
-		local dist = d.supreme and (6 + a * 18) or (4.2 - a * 1.2)
+		local dist = d.supreme and (8 + a * 18) or (9 - a * 2.5)
 		local jitter = a < 0.25 and Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * (0.25 + power * 0.6) or Vector3.zero
-		cam.CFrame = CFrame.lookAt(target + fwd * dist + right * (dist * 0.45) + Vector3.new(0, 0.6, 0) + jitter, target - fwd * 0.8)
-		cam.FieldOfView = 50 - a * 6
+		cam.CFrame = CFrame.lookAt(target + fwd * dist * 0.55 + right * (dist * 0.85) + Vector3.new(0, 2.2, 0) + jitter, target - fwd * 1.6 + Vector3.new(0, -0.4, 0))
+		cam.FieldOfView = 55 - a * 8
 		if a >= 1 then
 			conn:Disconnect()
 			cam.FieldOfView = oldFov
@@ -728,7 +728,7 @@ end
 
 -- ANIMACIONES (brazo del que pega y cabeza del que recibe; se aplican sobre la animación normal) ----
 local POSES = {
-	windup = CFrame.Angles(math.rad(20), math.rad(-70), math.rad(115)),
+	windup = CFrame.Angles(math.rad(35), math.rad(-95), math.rad(150)),
 	strike = CFrame.Angles(math.rad(-10), math.rad(75), math.rad(80)),
 	backhand = CFrame.Angles(math.rad(-5), math.rad(-60), math.rad(95)),
 	uppercut = CFrame.Angles(math.rad(-150), math.rad(10), math.rad(20)),
@@ -744,6 +744,27 @@ local function jointOf(char, kind)
 			j = hrp and hrp:FindFirstChild("RootJoint")
 		end
 		return j
+	end
+	if kind == "waist" then
+		local ut = char:FindFirstChild("UpperTorso")
+		local j = ut and ut:FindFirstChild("Waist")
+		if not j then
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			j = hrp and hrp:FindFirstChild("RootJoint")
+		end
+		return j
+	end
+	if kind == "larm" then
+		local arm = char:FindFirstChild("LeftUpperArm")
+		local j = arm and arm:FindFirstChild("LeftShoulder")
+		if not j then
+			local torso = char:FindFirstChild("Torso")
+			j = torso and torso:FindFirstChild("Left Shoulder")
+		end
+		return j
+	end
+	if kind == "rarm" then
+		kind = "arm"
 	end
 	if kind == "arm" then
 		local arm = char:FindFirstChild("RightUpperArm")
@@ -770,6 +791,28 @@ local function startAnim(d)
 	if d.pose == "spin" or d.pose == "flip" then -- giro de todo el cuerpo durante el salto
 		local turns = d.pose == "spin" and 2 or 1
 		anims[tostring(who) .. "root"] = { who = who, kind = "root", spin = d.pose, turns = turns, t0 = os.clock(), dur = math.max(0.3, tonumber(d.time) or 1) }
+		return
+	end
+	if d.pose == "react" then -- el sentado: se dobla al lado del golpe, agita los brazos y rebota
+		local pw = tonumber(d.power) or 0.5
+		local side = (d.side == -1) and -1 or 1
+		local now = os.clock()
+		local k = tostring(who)
+		anims[k .. "waist"] = { who = who, kind = "waist", from = CFrame.Angles(math.rad(-10 - 20 * pw), side * math.rad(35 + 40 * pw), side * math.rad(18 + 25 * pw)), to = CFrame.new(), t0 = now, dur = 1.1, style = Enum.EasingStyle.Elastic }
+		anims[k .. "larm"] = { who = who, kind = "larm", from = CFrame.Angles(math.rad(-60 - 50 * pw), 0, math.rad(-40 - 60 * pw)), to = CFrame.new(), t0 = now, dur = 1.0, style = Enum.EasingStyle.Elastic }
+		anims[k .. "rarm2"] = { who = who, kind = "rarm", from = CFrame.Angles(math.rad(-60 - 50 * pw), 0, math.rad(40 + 60 * pw)), to = CFrame.new(), t0 = now, dur = 1.0, style = Enum.EasingStyle.Elastic }
+		anims[k .. "neck"] = { who = who, kind = "neck", from = CFrame.Angles(math.rad(-20 - 30 * pw), side * math.rad(50 * pw + 15), side * math.rad(15 * pw)), to = CFrame.new(), t0 = now, dur = 1.0, style = Enum.EasingStyle.Elastic }
+		return
+	end
+	if d.pose == "twist" then -- el que pega: la cintura gira con el golpe y vuelve
+		local now = os.clock()
+		local k = tostring(who)
+		anims[k .. "waist"] = { who = who, kind = "waist", from = CFrame.Angles(0, math.rad(-55), math.rad(-8)), to = CFrame.Angles(0, math.rad(50), math.rad(10)), t0 = now, dur = 0.16, style = Enum.EasingStyle.Quad, chain = { to = CFrame.new(), dur = 0.45, style = Enum.EasingStyle.Back } }
+		return
+	end
+	if d.pose == "coil" then -- al cargar: el torso se echa hacia atrás con el brazo
+		local k = tostring(who)
+		anims[k .. "waist"] = { who = who, kind = "waist", from = CFrame.new(), to = CFrame.Angles(math.rad(8), math.rad(-55), math.rad(-8)), t0 = os.clock(), dur = 0.35, style = Enum.EasingStyle.Quad, hold = true }
 		return
 	end
 	if d.pose == "jolt" then
@@ -816,8 +859,12 @@ RunService.Stepped:Connect(function()
 				j.Transform = j.Transform * cf
 			end)
 		end
-		if t >= 1 and (a.rest or a.kind == "neck") then
-			anims[key] = nil
+		if t >= 1 then
+			if a.chain then
+				anims[key] = { who = a.who, kind = a.kind, from = a.to, to = a.chain.to, t0 = now, dur = a.chain.dur, style = a.chain.style }
+			elseif a.rest or a.kind == "neck" or a.kind == "larm" or (a.kind == "waist" and (not a.hold or now - a.t0 > 4)) or key:find("rarm2") then
+				anims[key] = nil
+			end
 		end
 	end
 end)

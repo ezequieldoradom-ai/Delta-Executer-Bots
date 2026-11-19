@@ -451,6 +451,7 @@ function Slap.stop(p, clientPos)
 	end
 	setPhase(st, "windup")
 	armPose(p.Character, "windup", 0.35)
+	pcall(animAll, p.Character, "coil", 0.35)
 	pcall(Slap.epicJump, p, pos, st.supreme)
 	-- la esquiva sale justo antes de que caiga del salto (0,4 s) y el guantazo llega al aterrizar
 	local air = math.min(2.2, 2 * Slap.jumpVel(pos, st.supreme) / workspace.Gravity)
@@ -511,6 +512,7 @@ function Slap.resolve(st)
 		armPose(slapper.Character, "uppercut", 0.08)
 	else
 		armPose(slapper.Character, "strike", 0.07)
+		pcall(animAll, slapper.Character, "twist", 0.16)
 	end
 	if st.style == "doble" then -- ida y vuelta
 		task.delay(0.16, function()
@@ -583,7 +585,11 @@ function Slap.resolve(st)
 		end
 		return
 	end
-	headJolt(victim.Character, st.power)
+	pcall(function()
+		local c = victim.Character
+		local p = Players:GetPlayerFromCharacter(c)
+		G.Net.Slap:FireAllClients("anim", { who = p and p.UserId or 0, char = c, pose = "react", power = st.power, side = math.random() < 0.5 and -1 or 1 })
+	end)
 	local r0 = st.round
 	task.wait(0.9)
 	if st.round ~= r0 or st.seated ~= victim or not table.find(st.members, victim) then
@@ -714,10 +720,10 @@ local function build()
 		-- cartel con el número de jugadores y botón para unirse
 		local post = part({ Name = "Post", Size = Vector3.new(0.8, 7, 0.8), CFrame = cf * CFrame.new(-6, 3.5, 6), Color = Color3.new(1, 1, 1), Material = Enum.Material.SmoothPlastic }, sf)
 		local bb = Instance.new("BillboardGui")
-		bb.Size = UDim2.fromScale(9, 3.2)
-		bb.StudsOffsetWorldSpace = Vector3.new(0, 5.5, 0)
+		bb.Size = UDim2.fromScale(6.5, 2.4)
+		bb.StudsOffsetWorldSpace = Vector3.new(0, 4.5, 0)
 		bb.LightInfluence = 0
-		bb.MaxDistance = 80
+		bb.MaxDistance = 34
 		bb.Parent = post
 		local label = Instance.new("TextLabel")
 		label.BackgroundTransparency = 1

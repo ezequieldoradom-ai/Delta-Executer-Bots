@@ -210,7 +210,7 @@ local function currentBiome()
 		return nil
 	end
 	local p = hrp.Position
-	if p.Y < C.START.Y - 60 or p.Z < C.START.Z - 20 or math.abs(p.X) > 120 then
+	if p.Y < C.START.Y - 35 or p.Z < C.START.Z - 15 or math.abs(p.X) > 120 then
 		return nil -- vestíbulo
 	end
 	local names = string.split(list, ",")
