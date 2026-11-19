@@ -140,7 +140,7 @@ local function makePackPart(pack)
 	end
 	-- cartel con la rareza y el peso: encima de todos los adornos y más grande cuanto más pesa
 	-- (más estrecho que la separación entre sobres del nido para que los carteles no se monten)
-	local gui = G.World.billboard(p, "", accent, UDim2.fromOffset(120 + 36 * k, 32 + 10 * k), Vector3.new(0, 0, 0))
+	local gui = G.World.billboard(p, "", accent, UDim2.fromOffset(170 + 50 * k, 56 + 17 * k), Vector3.new(0, 0, 0))
 	gui.StudsOffsetWorldSpace = Vector3.new(0, top * k + 0.7 + 0.55 * k, 0)
 	if pack.beam then
 		-- hacia la cámara, por delante de la columna de luz, para que se lea
@@ -381,6 +381,7 @@ end
 -- Amanecer: se renuevan todos los sobres y se avisa en el chat
 ---------------------------------------------------------------------
 function Packs.refreshAll()
+	Packs.dawnCount = (Packs.dawnCount or 0) + 1
 	for _, pack in pairs(Packs.list) do
 		if pack.state ~= "carried" and pack.state ~= "pending" then
 			destroyPack(pack)
@@ -431,17 +432,15 @@ function Packs.grab(player, pack)
 	if not s or not d or pack.state == "carried" or pack.state == "gone" or pack.state == "pending" then
 		return
 	end
-	if s.carrying or s.afk or G.DayNight.isNight() then
-		return
+	if s.carrying or s.afk or s.inObby or G.DayNight.isNight() then
+		return -- (en el obby no se puede robar: el anti-trampas es más permisivo allí)
 	end
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if not hrp or (hrp.Position - pack.part.Position).Magnitude > 14 then
 		return
 	end
-	if d.speed < C.ZONES[pack.zone].req then
-		return
-	end
+	-- (sin velocidad mínima para robar: petición del dueño; si eres lento el guardián te pillará)
 	pack.state = "carried"
 	pack.carrier = player
 	pack.loosePos = nil
@@ -587,7 +586,14 @@ local function caught(player, guardIndex, guardPos)
 	local pack = s.carrying
 	G.Net.announce("all", "caught", { { guardian = guardIndex }, player.DisplayName }, { color = "#FF5A5A" })
 	local product = C.PRODUCTS.savePack
-	if product.id ~= 0 then
+	local hrpNow = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	-- Si ya lo habías sacado de su zona, el sobre se queda en el suelo donde te pillaron:
+	-- puedes volver a cogerlo y acercarlo a tu base poco a poco (petición del dueño).
+	local outside = hrpNow and G.World.zoneAt(hrpNow.Position.Z) ~= pack.zone
+	if outside then
+		Packs.dropCarried(player, true, hrpNow.Position)
+	elseif product.id ~= 0 and pack.rarity >= (C.SAVE_OFFER_FROM or 8) then
+		-- (solo se ofrece comprar "Salvar el sobre" con sobres Celestiales o mejores: petición del dueño)
 		-- ofrecer "Salvar el sobre" durante 10 s
 		s.carrying = nil
 		pack.carrier = nil
@@ -595,13 +601,15 @@ local function caught(player, guardIndex, guardPos)
 		carryFx(pack, false)
 		dimBeam(pack, false)
 		setPackVisible(pack, false)
-		pendingSave[player] = { pack = pack, untilT = os.clock() + 10 }
+		pendingSave[player] = { pack = pack, untilT = os.clock() + 10, dawn = Packs.dawnCount or 0 }
 		G.Net.Offer:FireClient(player, "savePack")
 		task.delay(10.5, function()
 			local p = pendingSave[player]
 			if p and p.pack == pack then
 				pendingSave[player] = nil
-				if pack.state == "pending" then
+				if pack.state == "pending" and (p.dawn ~= (Packs.dawnCount or 0) or G.DayNight.isNight()) then
+					destroyPack(pack) -- ya amaneció (o es de noche): el nido tiene sobres nuevos, este no vuelve
+				elseif pack.state == "pending" then
 					setPackVisible(pack, true)
 					pack.prompt.Enabled = true
 					returnHome(pack)
@@ -872,10 +880,13 @@ local function guardianStep(guard, dt)
 		local hum = target.Character:FindFirstChildOfClass("Humanoid")
 		local ws = hum and hum.WalkSpeed or 16
 		local guardSpeed = C.ZONES[guard.zone].guardian.speed
+		-- El guardián corre como un jugador con su velocidad recomendada (la del cartel de la zona):
+		-- si tienes al menos esa ⚡ eres más rápido y escapas; si no, te alcanza (y más rápido cuanto más lejos estés).
+		local own = C.walkSpeedFor(guardSpeed)
 		if d and d.speed >= guardSpeed then
-			speed = math.max(18, ws * 0.82) -- eres más rápido: escapas
+			speed = math.min(own, ws * 0.9) -- eres más rápido: escapas
 		else
-			speed = ws * 1.18 + 4 -- te alcanza
+			speed = math.max(own, ws * 1.12 + 3) -- te alcanza
 		end
 		goal = Vector3.new(hrp.Position.X, guard.height, hrp.Position.Z)
 		if (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(hrp.Position.X, 0, hrp.Position.Z)).Magnitude < 7 + guard.height * 0.3 then
@@ -959,13 +970,7 @@ function Packs.start()
 							hrp.CFrame = s.plot.spawnCF
 							G.Net.toast(player, "nightClosed")
 						else
-							local zi = G.World.zoneAt(p.Z)
-							local zone = C.ZONES[zi]
-							if zi > 1 and d.speed < zone.req then
-								local back = G.World.zoneStart(zi) - 10
-								hrp.CFrame = CFrame.new(Vector3.new(p.X, p.Y, back), Vector3.new(p.X, p.Y, back - 10))
-								G.Net.toast(player, "needSpeed", G.Format.num(zone.req), { zone = zi })
-							end
+							-- (sin barrera de velocidad entre zonas: el dueño quiere que se pueda pasar libremente)
 						end
 					end
 				end
