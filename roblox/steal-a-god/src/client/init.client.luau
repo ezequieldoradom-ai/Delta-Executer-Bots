@@ -2269,7 +2269,7 @@ local function locLabel(bb)
 	elseif bb:GetAttribute("Rarity") then
 		local r = bb:GetAttribute("Rarity")
 		l.TextColor3 = rcolor(r)
-		l.Text = string.format("%s%s\n<font size=\"16\" color=\"#FFE9A8\">⚖️ %d kg</font>  <font size=\"16\" color=\"#7CFF8A\">🍀 x%s</font>", Locale.upper(Locale.name(Config.RARITIES[r])), bb:GetAttribute("Dawn") and " 🌅" or "", bb:GetAttribute("Kg") or 100, luckText(bb:GetAttribute("Luck") or 1))
+		l.Text = string.format("%s%s\n<font color=\"#FFE9A8\">⚖️ %d kg</font>  <font color=\"#7CFF8A\">🍀 x%s</font>", Locale.upper(Locale.name(Config.RARITIES[r])), bb:GetAttribute("Dawn") and " 🌅" or "", bb:GetAttribute("Kg") or 100, luckText(bb:GetAttribute("Luck") or 1))
 	end
 end
 

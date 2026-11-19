@@ -140,7 +140,7 @@ local function makePackPart(pack)
 	end
 	-- cartel con la rareza y el peso: encima de todos los adornos y más grande cuanto más pesa
 	-- (más estrecho que la separación entre sobres del nido para que los carteles no se monten)
-	local gui = G.World.billboard(p, "", accent, UDim2.fromOffset(120 + 36 * k, 32 + 10 * k), Vector3.new(0, 0, 0))
+	local gui = G.World.billboard(p, "", accent, UDim2.fromOffset(170 + 50 * k, 56 + 17 * k), Vector3.new(0, 0, 0))
 	gui.StudsOffsetWorldSpace = Vector3.new(0, top * k + 0.7 + 0.55 * k, 0)
 	if pack.beam then
 		-- hacia la cámara, por delante de la columna de luz, para que se lea
@@ -439,9 +439,7 @@ function Packs.grab(player, pack)
 	if not hrp or (hrp.Position - pack.part.Position).Magnitude > 14 then
 		return
 	end
-	if d.speed < C.ZONES[pack.zone].req then
-		return
-	end
+	-- (sin velocidad mínima para robar: petición del dueño; si eres lento el guardián te pillará)
 	pack.state = "carried"
 	pack.carrier = player
 	pack.loosePos = nil
@@ -587,7 +585,14 @@ local function caught(player, guardIndex, guardPos)
 	local pack = s.carrying
 	G.Net.announce("all", "caught", { { guardian = guardIndex }, player.DisplayName }, { color = "#FF5A5A" })
 	local product = C.PRODUCTS.savePack
-	if product.id ~= 0 then
+	local hrpNow = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	-- Si ya lo habías sacado de su zona, el sobre se queda en el suelo donde te pillaron:
+	-- puedes volver a cogerlo y acercarlo a tu base poco a poco (petición del dueño).
+	local outside = hrpNow and G.World.zoneAt(hrpNow.Position.Z) ~= pack.zone
+	if outside then
+		Packs.dropCarried(player, true, hrpNow.Position)
+	elseif product.id ~= 0 and pack.rarity >= (C.SAVE_OFFER_FROM or 8) then
+		-- (solo se ofrece comprar "Salvar el sobre" con sobres Celestiales o mejores: petición del dueño)
 		-- ofrecer "Salvar el sobre" durante 10 s
 		s.carrying = nil
 		pack.carrier = nil

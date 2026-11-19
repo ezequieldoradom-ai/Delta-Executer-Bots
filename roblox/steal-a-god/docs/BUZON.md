@@ -190,3 +190,10 @@ Nuevo también: música de fondo, gritos de los guardianes con frase en inglés 
 - World: guardianes intangibles (CanCollide/CanTouch false + grupo de colisión "Ghosts" que no choca con nada; el Humanoid reactivaba CanCollide).
 - init.client: velocidad y dinero abajo a la izquierda también en móvil; columna izquierda en 0,47 (antes 0,57).
 - Combat: `G.AntiCheat.allow(best, 3)` tras el golpe del bate (el lanzamiento llega a ~380 studs). AntiCheat: margen 16 studs.
+
+## 2026-11-19 01:10 · Shadow — más peticiones del dueño (Packs/Config/init.client, pequeño)
+- Packs.grab: ya NO pide `zone.req` para robar (si eres lento, el guardián te pilla).
+- Packs.caught: si te pillan con el sobre FUERA de su zona, el sobre queda suelto en el suelo donde te pillaron (`dropCarried(player, true, pos)`) y se puede volver a coger y acercar poco a poco. Probado: robado en zona 2, pillado en zona 1 → queda en z=284 con "Robar".
+- "Salvar el sobre" solo se ofrece con sobres ≥ `Config.SAVE_OFFER_FROM = 8` (Celestial+); los demás vuelven a su nido.
+- Cartel del sobre más grande (170+50k × 56+17k) y kilos/suerte sin `size=16` (se leen igual de grandes que la rareza).
+- DawnFeed: ahora solo letras arriba en el centro, en columna, una a una, máx. 5 a la vez, se desvanecen.

@@ -37,6 +37,7 @@ for _, r in ipairs(Config.RARITIES) do
 end
 Config.ANNOUNCE_CHAT_FROM = 6 -- Mítica o más: aviso en el chat del servidor
 Config.ANNOUNCE_BIG_FROM = 10 -- Secreta o más: cartel + haz de luz
+Config.SAVE_OFFER_FROM = 8 -- "Salvar el sobre" solo se ofrece con sobres Celestiales o mejores
 Config.ANNOUNCE_GLOBAL_FROM = 11 -- Godlike o más: aviso en todos los servidores
 
 ---------------------------------------------------------------------
