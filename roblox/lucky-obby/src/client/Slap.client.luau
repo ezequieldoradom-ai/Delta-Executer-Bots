@@ -216,7 +216,7 @@ local function shout(t, color, secs)
 		end
 	end)
 end
-local msgLabel = text(gui, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 120), Size = UDim2.fromOffset(760, 40), Text = "", TextTransparency = 1, TextStrokeTransparency = 1, Font = Enum.Font.FredokaOne })
+local msgLabel = text(gui, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 178), Size = UDim2.fromOffset(760, 36), Text = "", TextTransparency = 1, TextStrokeTransparency = 1, Font = Enum.Font.FredokaOne })
 local function msg(t)
 	msgLabel.Text = t
 	msgLabel.TextTransparency, msgLabel.TextStrokeTransparency = 0, 0.3
@@ -267,6 +267,8 @@ local function updateUI()
 		panelInfo.Text = L("Esperando a otro jugador…", "Waiting for another player…")
 	elseif amSeated() then
 		panelInfo.Text = L("Estás sentado. ¡Alguien te va a dar!", "You're seated. Someone's going to slap you!")
+	elseif station.phase == "guessing" then
+		panelInfo.Text = L("🤔 ", "🤔 ") .. seatedName .. L(" está adivinando…", " is guessing…")
 	elseif station.slapper == player.UserId then
 		panelInfo.Text = L("¡Te toca pegar! Para la barra", "Your turn! Stop the bar")
 	else
@@ -536,6 +538,66 @@ local function onHit(d)
 	end)
 end
 
+-- ANIMACIONES (brazo del que pega y cabeza del que recibe; se aplican sobre la animación normal) ----
+local POSES = {
+	windup = CFrame.Angles(math.rad(20), math.rad(-70), math.rad(115)),
+	strike = CFrame.Angles(math.rad(-10), math.rad(75), math.rad(80)),
+	rest = CFrame.new(),
+}
+local anims = {} -- [userId .. kind] = { who, kind, from, to, t0, dur, style }
+local function jointOf(char, kind)
+	if kind == "arm" then
+		local arm = char:FindFirstChild("RightUpperArm")
+		local j = arm and arm:FindFirstChild("RightShoulder")
+		if not j then
+			local torso = char:FindFirstChild("Torso")
+			j = torso and torso:FindFirstChild("Right Shoulder")
+		end
+		return j
+	end
+	local head = char:FindFirstChild("Head")
+	local j = head and head:FindFirstChild("Neck")
+	if not j then
+		local torso = char:FindFirstChild("Torso")
+		j = torso and torso:FindFirstChild("Neck")
+	end
+	return j
+end
+local function startAnim(d)
+	local who = tonumber(d.who) or 0
+	if d.pose == "jolt" then
+		local pw = tonumber(d.power) or 0.5
+		anims[who .. "neck"] = { who = who, kind = "neck", from = CFrame.Angles(math.rad(-15 - 30 * pw), math.rad(40 * pw), math.rad(12 * pw)), to = CFrame.new(), t0 = os.clock(), dur = 0.9, style = Enum.EasingStyle.Elastic }
+		return
+	end
+	local key = who .. "arm"
+	local cur = anims[key]
+	local from = CFrame.new()
+	if cur then
+		local a = math.clamp((os.clock() - cur.t0) / cur.dur, 0, 1)
+		from = cur.from:Lerp(cur.to, TweenService:GetValue(a, cur.style, Enum.EasingDirection.Out))
+	end
+	anims[key] = { who = who, kind = "arm", from = from, to = POSES[d.pose] or CFrame.new(), t0 = os.clock(), dur = math.max(0.03, tonumber(d.time) or 0.3), style = Enum.EasingStyle.Quad, rest = d.pose == "rest" }
+end
+RunService.Stepped:Connect(function()
+	local now = os.clock()
+	for key, a in pairs(anims) do
+		local p = Players:GetPlayerByUserId(a.who)
+		local char = p and p.Character
+		local j = char and jointOf(char, a.kind)
+		local t = math.clamp((now - a.t0) / a.dur, 0, 1)
+		if j then
+			local cf = a.from:Lerp(a.to, TweenService:GetValue(t, a.style, Enum.EasingDirection.Out))
+			pcall(function()
+				j.Transform = j.Transform * cf
+			end)
+		end
+		if t >= 1 and (a.rest or a.kind == "neck") then
+			anims[key] = nil
+		end
+	end
+end)
+
 -- MENSAJES DEL SERVIDOR --------------------------------------------------------------
 Net.OnClientEvent:Connect(function(kind, d)
 	if kind == "station" then
@@ -563,6 +625,45 @@ Net.OnClientEvent:Connect(function(kind, d)
 		startGuess(d)
 	elseif kind == "hit" and type(d) == "table" then
 		onHit(d)
+	elseif kind == "winner" and type(d) == "table" then
+		shout("🏆 " .. tostring(d.name) .. L(" GANA LA MESA ", " WINS TABLE ") .. tostring(d.station or ""), GOLD, 3.5)
+		play("boom", 1.4, 0.5)
+		doFlash(GOLD, 0.6)
+		local w = Players:GetPlayerByUserId(tonumber(d.id) or 0)
+		local hrp = w and w.Character and w.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			local at = Instance.new("Attachment")
+			at.Position = Vector3.new(0, 4, 0)
+			at.Parent = hrp
+			local pe = Instance.new("ParticleEmitter")
+			pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			pe.Rate = 0
+			pe.Lifetime = NumberRange.new(1, 2)
+			pe.Speed = NumberRange.new(10, 22)
+			pe.SpreadAngle = Vector2.new(60, 60)
+			pe.Acceleration = Vector3.new(0, -20, 0)
+			pe.LightEmission = 1
+			pe.Rotation = NumberRange.new(0, 360)
+			pe.RotSpeed = NumberRange.new(-200, 200)
+			pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 0) })
+			pe.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 90)),
+				ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 230, 70)),
+				ColorSequenceKeypoint.new(0.66, Color3.fromRGB(90, 220, 110)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(70, 170, 255)),
+			})
+			pe.Parent = at
+			for k = 0, 3 do
+				task.delay(k * 0.35, function()
+					pe:Emit(80)
+				end)
+			end
+			task.delay(4, function()
+				at:Destroy()
+			end)
+		end
+	elseif kind == "anim" and type(d) == "table" then
+		startAnim(d)
 	elseif kind == "msg" then
 		msg(tostring(d))
 	end

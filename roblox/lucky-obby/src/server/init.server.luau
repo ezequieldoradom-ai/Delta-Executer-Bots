@@ -53,6 +53,17 @@ if game:GetService("RunService"):IsStudio() then
 	local bf = Instance.new("BindableFunction")
 	bf.Name = "StudioDebug"
 	bf.OnInvoke = function(cmd, player, arg)
+		if cmd == "slapjoin" then
+			G.Slap.debugJoin(player, arg)
+			return G.Slap.debugState(arg)
+		end
+		if cmd == "supreme" then
+			G.Slap.debugSupreme = true
+			return "ok"
+		end
+		if cmd == "slapstate" then
+			return G.Slap.debugState(arg)
+		end
 		if cmd == "coins" then
 			G.Data.addCoins(player, arg)
 			return G.Data.coins(player)

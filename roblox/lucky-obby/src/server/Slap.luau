@@ -62,56 +62,90 @@ local function tri(x) -- onda triangular 0→1→0 con periodo 2
 	return x <= 1 and x or 2 - x
 end
 
--- ANIMACIONES (C0 de las articulaciones; las hace el servidor y las ven todos) --------
-local function shoulderOf(char)
-	local arm = char:FindFirstChild("RightUpperArm")
-	local m = arm and arm:FindFirstChild("RightShoulder")
-	if not m then
-		local torso = char:FindFirstChild("Torso")
-		m = torso and torso:FindFirstChild("Right Shoulder")
+-- ANIMACIONES: el servidor no puede mover las articulaciones (C0 es de solo lectura en los personajes
+-- actuales), así que avisa a todos y cada cliente anima el brazo / la cabeza en su pantalla (Slap.client).
+local function animAll(char, pose, time, power)
+	local p = char and Players:GetPlayerFromCharacter(char)
+	if p then
+		G.Net.Slap:FireAllClients("anim", { who = p.UserId, pose = pose, time = time, power = power or 0.5 })
 	end
-	return m
 end
-local function neckOf(char)
-	local head = char:FindFirstChild("Head")
-	local m = head and head:FindFirstChild("Neck")
-	if not m then
-		local torso = char:FindFirstChild("Torso")
-		m = torso and torso:FindFirstChild("Neck")
-	end
-	return m
-end
-local function armPose(char, pose, time, style)
-	local m = char and shoulderOf(char)
-	if not m then
-		return
-	end
-	local base = m:GetAttribute("BaseC0")
-	if typeof(base) ~= "CFrame" then
-		base = m.C0
-		m:SetAttribute("BaseC0", base)
-	end
-	local r15 = m.Name == "RightShoulder"
-	local target = base
-	if pose == "windup" then
-		target = r15 and base * CFrame.Angles(math.rad(10), math.rad(-70), math.rad(100)) or base * CFrame.Angles(0, math.rad(-60), math.rad(100))
-	elseif pose == "strike" then
-		target = r15 and base * CFrame.Angles(math.rad(-10), math.rad(60), math.rad(90)) or base * CFrame.Angles(0, math.rad(60), math.rad(90))
-	end
-	TweenService:Create(m, TweenInfo.new(time, style or Enum.EasingStyle.Quad), { C0 = target }):Play()
+local function armPose(char, pose, time)
+	pcall(animAll, char, pose, time)
 end
 local function headJolt(char, power)
-	local m = char and neckOf(char)
-	if not m then
+	pcall(animAll, char, "jolt", 0.8, power)
+end
+
+function Slap.jumpVel(power, supreme)
+	return 38 + 110 * power + (supreme and 40 or 0)
+end
+
+-- SALTO ÉPICO del que pega: cuanto más fuerte, más alto (y con fuego a partir del 60 %); onda al caer
+function Slap.epicJump(p, power, supreme)
+	local hrp = hrpOf(p)
+	if not hrp then
 		return
 	end
-	local base = m:GetAttribute("BaseC0")
-	if typeof(base) ~= "CFrame" then
-		base = m.C0
-		m:SetAttribute("BaseC0", base)
+	local v = Slap.jumpVel(power, supreme)
+	G.Net.Event:FireClient(p, "launch", { vel = Vector3.new(0, v, 0) })
+	-- estela de chispas (y fuego si es fuerte) mientras está en el aire
+	local at = Instance.new("Attachment")
+	at.Name = "SlapJumpFx"
+	at.Parent = hrp
+	local pe = Instance.new("ParticleEmitter")
+	pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	pe.Rate = 40 + 120 * power
+	pe.Lifetime = NumberRange.new(0.4, 0.9)
+	pe.Speed = NumberRange.new(2, 6)
+	pe.SpreadAngle = Vector2.new(180, 180)
+	pe.LightEmission = 1
+	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.8 + power), NumberSequenceKeypoint.new(1, 0) })
+	pe.Color = ColorSequence.new(Color3.fromRGB(255, 255, 200), supreme and Color3.fromRGB(255, 40, 40) or Color3.fromRGB(255, 180, 40))
+	pe.Parent = at
+	if power > 0.6 or supreme then
+		local fire = Instance.new("Fire")
+		fire.Size = 6 + power * 6
+		fire.Heat = 15
+		fire.Color = supreme and Color3.fromRGB(255, 40, 40) or Color3.fromRGB(255, 140, 30)
+		fire.Parent = hrp
+		task.delay(1.6, function()
+			fire:Destroy()
+		end)
 	end
-	m.C0 = base * CFrame.Angles(math.rad(-15 - 25 * power), math.rad(35 * power), math.rad(10 * power))
-	TweenService:Create(m, TweenInfo.new(0.8, Enum.EasingStyle.Elastic), { C0 = base }):Play()
+	task.delay(1.6, function()
+		at:Destroy()
+	end)
+	-- al caer: onda expansiva en el suelo
+	local airtime = 2 * v / workspace.Gravity
+	task.delay(math.min(2.5, airtime), function()
+		local h = hrpOf(p)
+		if not h then
+			return
+		end
+		local ring = Instance.new("Part")
+		ring.Anchored, ring.CanCollide, ring.CanQuery, ring.CanTouch = true, false, false, false
+		ring.Shape = Enum.PartType.Cylinder
+		ring.Material = Enum.Material.Neon
+		ring.Color = supreme and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(255, 220, 120)
+		ring.Transparency = 0.2
+		ring.Size = Vector3.new(0.3, 2, 2)
+		ring.CFrame = CFrame.new(h.Position.X, PLAZA.Y + 1.15, h.Position.Z) * CFrame.Angles(0, 0, math.rad(90))
+		ring.Parent = workspace
+		local r = 10 + 22 * power
+		TweenService:Create(ring, TweenInfo.new(0.5, Enum.EasingStyle.Quad), { Size = Vector3.new(0.3, r, r), Transparency = 1 }):Play()
+		task.delay(0.6, function()
+			ring:Destroy()
+		end)
+		if supreme then
+			local e = Instance.new("Explosion")
+			e.Position = h.Position - Vector3.new(0, 2.5, 0)
+			e.BlastRadius = 6
+			e.BlastPressure = 0
+			e.DestroyJointRadiusPercent = 0
+			e.Parent = workspace
+		end
+	end)
 end
 
 -- SENTARSE / LEVANTARSE --------------------------------------------------------------
@@ -194,14 +228,39 @@ local function pickSeated(st, who)
 	setPhase(st, "waiting")
 end
 
+-- GANADOR: cuando en una partida empezada solo queda uno, gana la mesa
+local function declareWinner(st, w)
+	local hadKills = st.eliminated ~= nil and next(st.eliminated) ~= nil
+	st.match = false
+	st.eliminated = {}
+	if not w or not hadKills then
+		return -- sin eliminados no hay ganador (si no, salir de la mesa a propósito daría monedas)
+	end
+	G.Data.addCoins(w, 25)
+	for _, p in ipairs(Players:GetPlayers()) do
+		local h = hrpOf(p)
+		if h and (h.Position - st.cf.Position).Magnitude < 140 then
+			send(p, "winner", { name = w.DisplayName, id = w.UserId, station = st.id })
+		end
+	end
+end
+
 local function refresh(st)
 	if #st.members < 2 then
 		if st.seated then
 			unseat(st, st.seated)
 		end
 		st.seated, st.slapper = nil, nil
+		if st.match then
+			declareWinner(st, st.members[1])
+		end
 		setPhase(st, "idle")
 	elseif not st.seated or not table.find(st.members, st.seated) then
+		if not st.match then
+			st.match = true -- empieza una partida a eliminación
+			st.eliminated = {}
+			msgAll(st, "🖐️ ¡Empieza la partida! Al que le den un guantazo SUPREMO, eliminado")
+		end
 		pickSeated(st)
 	else
 		broadcast(st)
@@ -246,6 +305,10 @@ local function join(p, st)
 	end
 	if #st.members >= MAX_PLAYERS then
 		send(p, "msg", "🚫 Mesa llena (4/4)")
+		return
+	end
+	if st.match and st.eliminated and st.eliminated[p] then
+		send(p, "msg", "💀 Estás eliminado: espera a que acabe esta partida")
 		return
 	end
 	if stationOf[p] then
@@ -324,25 +387,37 @@ function Slap.stop(p, clientPos)
 	end
 	st.power = pos
 	st.supreme = math.abs(pos - st.redPos) <= RED_W / 2 + 0.01
+	if Slap.debugSupreme then -- solo pruebas en Studio
+		st.supreme, pos, st.power = true, st.redPos, st.redPos
+		Slap.debugSupreme = false
+	end
 	setPhase(st, "windup")
 	armPose(p.Character, "windup", 0.35)
-	-- esquiva
+	pcall(Slap.epicJump, p, pos, st.supreme)
+	-- la esquiva sale justo antes de que caiga del salto (0,4 s) y el guantazo llega al aterrizar
+	local air = math.min(2.2, 2 * Slap.jumpVel(pos, st.supreme) / workspace.Gravity)
 	st.dodged = false
+	st.dodgeSentAt = nil
 	st.dodgeKey = math.random(1, 4)
-	st.dodgeSentAt = os.clock()
-	send(st.seated, "dodge", { key = st.dodgeKey, window = DODGE_WINDOW })
 	local round = st.round
-	local wait = DODGE_WINDOW + math.min(0.35, (st.seated and st.seated:GetNetworkPing() or 0) * 2) + 0.1
-	task.delay(wait, function()
-		if st.round == round and st.phase == "windup" then
-			Slap.resolve(st)
+	task.delay(math.max(0, air - DODGE_WINDOW - 0.15), function()
+		if st.round ~= round or st.phase ~= "windup" then
+			return
 		end
+		st.dodgeSentAt = os.clock()
+		send(st.seated, "dodge", { key = st.dodgeKey, window = DODGE_WINDOW })
+		local wait = DODGE_WINDOW + math.min(0.35, (st.seated and st.seated:GetNetworkPing() or 0) * 2) + 0.1
+		task.delay(wait, function()
+			if st.round == round and st.phase == "windup" then
+				Slap.resolve(st)
+			end
+		end)
 	end)
 end
 
 function Slap.dodge(p, ok)
 	local st = stationOf[p]
-	if not st or st.phase ~= "windup" or st.seated ~= p then
+	if not st or st.phase ~= "windup" or st.seated ~= p or not st.dodgeSentAt then
 		return
 	end
 	if ok == true and os.clock() - st.dodgeSentAt <= DODGE_WINDOW + math.min(0.35, p:GetNetworkPing() * 2) + 0.1 then
@@ -393,12 +468,21 @@ function Slap.resolve(st)
 		hum.WalkSpeed = 16
 	end
 	if st.supreme then
-		-- GUANTAZO SUPREMO: sale volando y muere (al reaparecer vuelve a su silla)
+		-- GUANTAZO SUPREMO: sale volando, muere y queda ELIMINADO de esta partida
 		G.Data.addCoins(slapper, 10)
-		msgAll(st, "💀 ¡GUANTAZO SUPREMO de " .. slapper.DisplayName .. "!")
+		msgAll(st, "💀 ¡GUANTAZO SUPREMO de " .. slapper.DisplayName .. "! " .. victim.DisplayName .. " eliminado")
 		local fwd = st.cf.LookVector
 		unseat(st, victim)
-		st.respawnSeat = victim
+		st.eliminated = st.eliminated or {}
+		st.eliminated[victim] = true
+		stationOf[victim] = nil
+		local vi = table.find(st.members, victim)
+		if vi then
+			table.remove(st.members, vi)
+		end
+		st.seated = nil
+		send(victim, "station", nil)
+		send(victim, "msg", "💀 ¡ELIMINADO! Espera a la siguiente partida")
 		G.Net.Knock:FireClient(victim, fwd * 95 + Vector3.new(math.random(-20, 20), 85, 0))
 		task.delay(0.9, function()
 			local h = humOf(victim)
@@ -408,14 +492,7 @@ function Slap.resolve(st)
 		end)
 		st.slapper = nil
 		task.wait(3.2)
-		if st.seated == victim and table.find(st.members, victim) then
-			if humOf(victim) and humOf(victim).Health > 0 then
-				seatPlayer(st, victim)
-			end
-			setPhase(st, "waiting")
-		else
-			refresh(st)
-		end
+		refresh(st) -- si solo queda uno, gana; si no, se sienta otro al azar
 		return
 	end
 	headJolt(victim.Character, st.power)
@@ -648,4 +725,11 @@ function Slap.init(g)
 end
 
 Slap.PLAZA = PLAZA
+function Slap.debugJoin(p, k) -- solo para pruebas en Studio
+	join(p, stations[k or 1])
+end
+function Slap.debugState(k)
+	local st = stations[k or 1]
+	return st.phase, st.seated and st.seated.Name, st.slapper and st.slapper.Name, #st.members
+end
 return Slap

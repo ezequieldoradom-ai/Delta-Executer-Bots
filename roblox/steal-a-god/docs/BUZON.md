@@ -252,3 +252,13 @@ Probado en Studio, sin errores del juego:
 - `src/client/Extras.client.luau` (nuevo): cajas que giran, estallido al cogerlas, vuelo de cámara de la meta a la salida durante la cuenta atrás (`COUNTDOWN = 5`), confeti en la meta y cartel de récord.
 - `Race`: al empezar se limpian `immuneUntil`/`speedUntil` (un Turbo de la ronda anterior dejaba moverse en la cuenta atrás).
 - Piedra 🪨 → 🥌 (Roblox no tiene el emoji 🪨: salía el icono vacío). `StudioDebug` también acepta `"coins", player, n`.
+
+## 2026-11-19 04:30 · Shadow — Lucky Obby Race: inscripción a la carrera y minijuego "¿Quién ha sido?"
+Pedido del dueño. Probado en Studio con servidor y 2 jugadores:
+- Rondas: `break` (descanso de 10 s) → `joining` (15 s con el botón "Entrar a la carrera", remoto `Join`) → cuenta atrás → carrera. Solo corren los apuntados; sin nadie apuntado, otro descanso. El botón está arriba, pequeño (letra Bangers, degradado y brillo).
+- `src/server/Slap.luau` + `src/client/Slap.client.luau` (remoto `Slap`): plaza detrás del vestíbulo con puente y 6 mesas de máximo 4 jugadores.
+  - Uno se sienta mirando al vacío y otro le da un guantazo: barra de fuerza con cuadradito rojo (SUPREMO) y salto épico más alto cuanto más fuerte.
+  - El sentado tiene 0,4 s para esquivar justo antes del golpe (clic en un sitio al azar, o △○✕□ al azar con mando).
+  - Primer plano para todos menos el sentado, con sonidos (`Config.SLAP_SFX` opcional para poner ids propios) y adivinanza del que pegó.
+  - Partida a eliminación: con un supremo, el sentado queda eliminado; cuando queda uno, gana la mesa (+25 monedas).
+- La animación del brazo y la cabeza la hace cada cliente (`Motor6D.Transform`), porque C0 no se puede animar desde el servidor.

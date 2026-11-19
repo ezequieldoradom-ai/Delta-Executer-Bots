@@ -144,29 +144,69 @@ local function flyover(seconds)
 end
 
 -- BOTÓN "ENTRAR A LA CARRERA" (fase de inscripción) -----------------------------
+-- Arriba, bajo el marcador: pequeño, con letra de cómic (Bangers), degradado dorado que se mueve,
+-- borde arcoíris, brillo que lo recorre y la cuenta atrás en una pastilla a la derecha.
+local BANGERS = Font.new("rbxasset://fonts/families/Bangers.json", Enum.FontWeight.Regular)
 local joinBtn = Instance.new("TextButton")
 joinBtn.Name = "JoinRace"
-joinBtn.AnchorPoint = Vector2.new(0.5, 1)
-joinBtn.Position = UDim2.new(0.5, 0, 1, -24)
-joinBtn.Size = UDim2.fromOffset(360, 66)
-joinBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 90)
-joinBtn.Font = Enum.Font.LuckiestGuy
-joinBtn.TextScaled = true
-joinBtn.TextColor3 = Color3.new(1, 1, 1)
-joinBtn.TextStrokeTransparency = 0.3
-joinBtn.AutoButtonColor = true
+joinBtn.AnchorPoint = Vector2.new(0.5, 0)
+joinBtn.Position = UDim2.new(0.5, 0, 0, 122)
+joinBtn.Size = UDim2.fromOffset(250, 44)
+joinBtn.BackgroundColor3 = Color3.new(1, 1, 1)
+joinBtn.Text = ""
+joinBtn.AutoButtonColor = false
+joinBtn.ClipsDescendants = true
 joinBtn.Visible = false
 joinBtn.Parent = gui
-Instance.new("UICorner", joinBtn).CornerRadius = UDim.new(0, 22)
+Instance.new("UICorner", joinBtn).CornerRadius = UDim.new(1, 0)
+local joinBg = Instance.new("UIGradient")
+joinBg.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 90, 40)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 200, 40)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 90, 40)),
+})
+joinBg.Parent = joinBtn
 local joinStroke = Instance.new("UIStroke")
-joinStroke.Thickness = 4
+joinStroke.Thickness = 3
 joinStroke.Color = Color3.new(1, 1, 1)
 joinStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 joinStroke.Parent = joinBtn
-local joinPad = Instance.new("UIPadding")
-joinPad.PaddingLeft, joinPad.PaddingRight = UDim.new(0, 14), UDim.new(0, 14)
-joinPad.PaddingTop, joinPad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 8)
-joinPad.Parent = joinBtn
+local joinText = Instance.new("TextLabel")
+joinText.BackgroundTransparency = 1
+joinText.Position = UDim2.fromOffset(14, 3)
+joinText.Size = UDim2.new(1, -62, 1, -6)
+joinText.FontFace = BANGERS
+joinText.TextScaled = true
+joinText.TextColor3 = Color3.new(1, 1, 1)
+joinText.TextStrokeTransparency = 0
+joinText.TextStrokeColor3 = Color3.fromRGB(120, 30, 0)
+joinText.ZIndex = 3
+joinText.Parent = joinBtn
+local joinTextGrad = Instance.new("UIGradient")
+joinTextGrad.Rotation = 90
+joinTextGrad.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(255, 240, 150))
+joinTextGrad.Parent = joinText
+local joinPill = Instance.new("TextLabel")
+joinPill.AnchorPoint = Vector2.new(1, 0.5)
+joinPill.Position = UDim2.new(1, -5, 0.5, 0)
+joinPill.Size = UDim2.fromOffset(36, 34)
+joinPill.BackgroundColor3 = Color3.fromRGB(40, 20, 60)
+joinPill.FontFace = BANGERS
+joinPill.TextScaled = true
+joinPill.TextColor3 = Color3.fromRGB(255, 230, 90)
+joinPill.ZIndex = 3
+joinPill.Parent = joinBtn
+Instance.new("UICorner", joinPill).CornerRadius = UDim.new(1, 0)
+local shine = Instance.new("Frame")
+shine.Size = UDim2.new(0, 26, 2, 0)
+shine.AnchorPoint = Vector2.new(0.5, 0.5)
+shine.Position = UDim2.fromScale(-0.2, 0.5)
+shine.Rotation = 20
+shine.BackgroundColor3 = Color3.new(1, 1, 1)
+shine.BackgroundTransparency = 0.45
+shine.BorderSizePixel = 0
+shine.ZIndex = 2
+shine.Parent = joinBtn
 local joinScale = Instance.new("UIScale")
 joinScale.Parent = joinBtn
 local joined = false
@@ -186,8 +226,11 @@ end, false, Enum.KeyCode.ButtonY)
 RunService.RenderStepped:Connect(function()
 	if joinBtn.Visible then
 		local t = os.clock()
-		joinScale.Scale = joined and 1 or (1 + math.sin(t * 6) * 0.05)
-		joinStroke.Color = joined and Color3.new(1, 1, 1) or Color3.fromHSV((t * 0.4) % 1, 0.6, 1)
+		joinScale.Scale = joined and 1 or (1 + math.abs(math.sin(t * 4)) * 0.07)
+		joinStroke.Color = joined and Color3.fromRGB(120, 255, 150) or Color3.fromHSV((t * 0.5) % 1, 0.7, 1)
+		joinBg.Offset = Vector2.new(math.sin(t * 1.5) * 0.5, 0)
+		shine.Position = UDim2.fromScale(((t * 0.8) % 1.6) - 0.3, 0.5)
+		shine.Visible = not joined
 	end
 end)
 
@@ -201,12 +244,17 @@ Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 	joinBtn.Visible = s.state == "joining"
 	if joinBtn.Visible then
 		local left = math.ceil(s.left or 0)
+		joinPill.Text = tostring(left)
 		if joined then
-			joinBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 95)
-			joinBtn.Text = (es() and "✅ DENTRO · SALIR (" or "✅ IN · LEAVE (") .. left .. ")"
+			joinBg.Color = ColorSequence.new(Color3.fromRGB(40, 150, 80), Color3.fromRGB(70, 200, 110))
+			joinText.Text = es() and "✅ ¡DENTRO! (salir)" or "✅ IN! (leave)"
 		else
-			joinBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 90)
-			joinBtn.Text = (es() and "🏁 ENTRAR A LA CARRERA (" or "🏁 JOIN THE RACE (") .. left .. ")"
+			joinBg.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 90, 40)),
+				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 200, 40)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 90, 40)),
+			})
+			joinText.Text = es() and "🏁 ENTRAR A LA CARRERA" or "🏁 JOIN THE RACE"
 		end
 	end
 	if s.state == "countdown" and lastState ~= "countdown" and s.racing then
