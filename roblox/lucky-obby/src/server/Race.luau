@@ -120,7 +120,29 @@ function Race.finish(player)
 	end
 	if typeof(player) == "Instance" then
 		G.Net.Event:FireClient(player, "finished", { place = place, coins = coins, time = s.finishTime })
+		-- al llegar, unos segundos de celebración y de vuelta al vestíbulo (no te quedas esperando)
+		task.delay(3.5, function()
+			if Race.sessions[player] == s and s.finished then
+				s.item, s.rolling = nil, false
+				setWalk(player, 16, 7.2)
+				teleport(player, C.COURSE.LOBBY + Vector3.new(math.random(-8, 8), 0, math.random(-6, 6)))
+			end
+		end)
 	end
+	return true
+end
+
+-- Salir de la carrera a mitad (botón): vuelves al vestíbulo y dejas de contar
+function Race.quit(player)
+	local s = Race.sessions[player]
+	if not s or not s.racing or s.finished or (Race.state ~= "racing" and Race.state ~= "countdown") then
+		return false
+	end
+	s.racing, s.item, s.rolling = false, nil, false
+	s.speedUntil, s.frozenUntil, s.immuneUntil = nil, nil, nil
+	setWalk(player, 16, 7.2)
+	teleport(player, C.COURSE.LOBBY + Vector3.new(math.random(-8, 8), 0, math.random(-6, 6)))
+	G.Net.Event:FireClient(player, "toast", { text = "🚪 Has salido de la carrera" })
 	return true
 end
 
@@ -335,7 +357,11 @@ function Race.init(g)
 		end)
 	end)
 	G.Net.Join.OnServerEvent:Connect(function(p, on)
-		Race.setJoined(p, on == true)
+		if on == "quit" then
+			Race.quit(p)
+		else
+			Race.setJoined(p, on == true)
+		end
 	end)
 	Players.PlayerRemoving:Connect(function(p)
 		G.Data.release(p)

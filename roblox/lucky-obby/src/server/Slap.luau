@@ -19,7 +19,7 @@ local STATION_R = 28
 local MAX_PLAYERS = 4
 local AREA = 24 -- si te alejas más de esto de tu mesa, sales del juego
 local BAR_PERIOD = 0.72 -- segundos de 0 a 1 (luego vuelve)
-local RED_W = 0.045 -- ancho del cuadradito rojo (fracción de la barra): difícil de clavar
+local RED_W = 0.05 -- ancho del cuadradito rojo (fracción de la barra): difícil de clavar
 local DODGE_WINDOW = 0.4
 local GUESS_TIME = 10
 local IDLE_PICK = 30 -- si nadie pega en este tiempo, le toca a uno al azar
@@ -202,6 +202,46 @@ local function standSpot(st, i)
 	return st.cf * CFrame.new(side, 3, 6)
 end
 
+-- Todos los de la mesa están QUIETOS en su sitio (de pie detrás de la silla, mirando al sentado).
+-- La vida no se regenera mientras juegas y se ve siempre encima de la cabeza.
+local function setRegen(p, on)
+	local c = p.Character
+	local h = c and c:FindFirstChild("Health")
+	if h and h:IsA("Script") then
+		h.Enabled = on
+	end
+end
+local function hold(st, p)
+	local hum, hrp = humOf(p), hrpOf(p)
+	if not hum or not hrp or hum.Health <= 0 then
+		return
+	end
+	local i = table.find(st.members, p) or 1
+	if st.seated and table.find(st.members, st.seated) and table.find(st.members, st.seated) < i then
+		i -= 1 -- el sentado no ocupa sitio de pie
+	end
+	hum.Sit = false
+	hum.WalkSpeed = 0
+	hum.JumpHeight = 0
+	hum.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOn
+	hrp.AssemblyLinearVelocity = Vector3.zero
+	hrp.CFrame = standSpot(st, i)
+	setRegen(p, false)
+end
+local function release(p)
+	local hum = humOf(p)
+	if hum then
+		hum.WalkSpeed = 16
+		hum.JumpHeight = 7.2
+		hum.HealthDisplayType = Enum.HumanoidHealthDisplayType.DisplayWhenDamaged
+		if hum.Health > 0 then
+			hum.Health = hum.MaxHealth -- al salir, vida llena
+		end
+	end
+	setRegen(p, true)
+end
+Slap.hold = hold
+
 local function unseat(st, p)
 	local hum = humOf(p)
 	if hum then
@@ -210,8 +250,6 @@ local function unseat(st, p)
 			w:Destroy()
 		end
 		hum.Sit = false
-		hum.JumpHeight = 7.2
-		hum.WalkSpeed = 16
 	end
 	p:SetAttribute("SlapSeated", nil)
 end
@@ -224,7 +262,11 @@ local function seatPlayer(st, p)
 	hrp.AssemblyLinearVelocity = Vector3.zero
 	hrp.CFrame = st.seat.CFrame * CFrame.new(0, 2.5, 0)
 	hum.JumpHeight = 0
-	st.seat:Sit(hum)
+	if not pcall(function()
+		st.seat:Sit(hum)
+	end) then
+		return false
+	end
 	p:SetAttribute("SlapSeated", st.id)
 	return true
 end
@@ -243,6 +285,7 @@ local function info(st, viewer)
 		-- quién pega solo lo saben los que están de pie
 		slapper = (viewer ~= st.seated and st.slapper) and st.slapper.UserId or 0,
 		max = MAX_PLAYERS,
+		cf = st.cf,
 	}
 end
 local function broadcast(st)
@@ -310,6 +353,12 @@ local function refresh(st)
 		if not st.match then
 			st.match = true -- empieza una partida a eliminación
 			st.eliminated = {}
+			for _, m in ipairs(st.members) do
+				local h = humOf(m)
+				if h and h.Health > 0 then
+					h.Health = h.MaxHealth
+				end
+			end
 			st.matchSize = #st.members
 			msgAll(st, "🖐️ ¡Empieza la partida! Al que le den un guantazo SUPREMO, eliminado")
 		end
@@ -336,12 +385,9 @@ function Slap.leave(p)
 		unseat(st, p)
 		st.seated = nil
 	end
+	release(p)
 	if st.slapper == p then
 		st.slapper = nil
-		local hum = humOf(p)
-		if hum then
-			hum.WalkSpeed = 16
-		end
 		if st.phase == "charging" or st.phase == "windup" then
 			st.phase = "waiting"
 		end
@@ -374,10 +420,11 @@ local function join(p, st)
 	end
 	stationOf[p] = st
 	table.insert(st.members, p)
-	local hrp = hrpOf(p)
-	if hrp then
-		hrp.CFrame = standSpot(st, #st.members)
+	local hum = humOf(p)
+	if hum then
+		hum.Health = hum.MaxHealth
 	end
+	hold(st, p)
 	refresh(st)
 end
 
@@ -417,16 +464,11 @@ local function swapSeat(st, newSeated)
 	local old = st.seated
 	if old then
 		unseat(st, old)
-		local hrp = hrpOf(old)
-		if hrp then
-			hrp.CFrame = standSpot(st, 1)
-		end
-	end
-	local hum = humOf(newSeated)
-	if hum then
-		hum.WalkSpeed = 16
 	end
 	pickSeated(st, newSeated)
+	if old and table.find(st.members, old) then
+		hold(st, old)
+	end
 end
 
 -- El que pega para la barra: fuerza = posición; el rojo = supremo. Luego, 0,4 s para esquivar.
@@ -435,13 +477,21 @@ function Slap.stop(p, clientPos)
 	if not st or st.phase ~= "charging" or st.slapper ~= p then
 		return
 	end
-	local serverPos = tri((os.clock() - st.barT0 - math.min(0.3, p:GetNetworkPing())) / BAR_PERIOD)
-	local pos = serverPos
-	if type(clientPos) == "number" and clientPos == clientPos and math.abs(clientPos - serverPos) < 0.06 then
-		pos = math.clamp(clientPos, 0, 1)
+	-- Lo que vale es lo que VES: se acepta la posición que manda tu pantalla si cuadra con el tiempo
+	-- (con margen por el retraso de la red; antes se rechazaba y por eso el rojo "no daba")
+	local ping = math.min(0.4, p:GetNetworkPing())
+	local pos = tri((os.clock() - st.barT0 - ping * 0.5) / BAR_PERIOD)
+	if type(clientPos) == "number" and clientPos == clientPos and os.clock() - st.barT0 > 0.15 then
+		local best = math.huge
+		for _, lag in ipairs({ 0, ping * 0.5, ping, ping * 1.5 }) do
+			best = math.min(best, math.abs(clientPos - tri((os.clock() - st.barT0 - lag) / BAR_PERIOD)))
+		end
+		if best < 0.18 then
+			pos = math.clamp(clientPos, 0, 1)
+		end
 	end
 	st.power = pos
-	st.supreme = math.abs(pos - st.redPos) <= RED_W / 2 + 0.008
+	st.supreme = math.abs(pos - st.redPos) <= RED_W / 2 + 0.006
 	if Slap.debugSupreme then -- solo pruebas en Studio
 		st.supreme, pos, st.power = true, st.redPos, st.redPos
 		Slap.debugSupreme = false
@@ -548,16 +598,29 @@ function Slap.resolve(st)
 	-- ¡PAM!
 	setPhase(st, "result")
 	for _, w in ipairs(watchers) do
-		send(w, "hit", { station = st.id, victim = victim.UserId, victimChar = victim.Character, slapper = slapper.UserId, power = st.power, supreme = st.supreme, seatCF = st.cf, style = st.style })
+		send(w, "hit", { station = st.id, victim = victim.UserId, victimChar = victim.Character, slapper = slapper.UserId, power = st.power, supreme = st.supreme, seatCF = st.cf, style = st.style, dmg = math.floor(18 + 42 * (st.power or 0.5)) })
 	end
-	local hum = humOf(slapper)
-	if hum then
-		hum.WalkSpeed = 16
+	task.delay(0.8, function()
+		if table.find(st.members, slapper) and st.seated ~= slapper then
+			hold(st, slapper)
+		end
+	end)
+	-- EL GUANTAZO QUITA VIDA: más fuerte = más daño. Si te deja a 0, quedas eliminado (KO).
+	local vh = humOf(victim)
+	local dmg = math.floor(18 + 42 * (st.power or 0.5))
+	local ko = st.supreme
+	if vh and not ko then
+		vh.Health = math.max(0, vh.Health - dmg)
+		ko = vh.Health <= 0
 	end
-	if st.supreme then
+	if ko then
 		-- GUANTAZO SUPREMO: sale volando, muere y queda ELIMINADO de esta partida
-		reward(slapper, 10)
-		msgAll(st, "💀 ¡GUANTAZO SUPREMO de " .. slapper.DisplayName .. "! " .. victim.DisplayName .. " eliminado")
+		reward(slapper, st.supreme and 10 or 6)
+		if st.supreme then
+			msgAll(st, "💀 ¡GUANTAZO SUPREMO de " .. slapper.DisplayName .. "! " .. victim.DisplayName .. " eliminado")
+		else
+			msgAll(st, "🥊 ¡K.O.! " .. victim.DisplayName .. " se ha quedado sin vida. ¡Eliminado!")
+		end
 		local fwd = st.cf.LookVector
 		unseat(st, victim)
 		st.eliminated = st.eliminated or {}
@@ -799,10 +862,7 @@ function Slap.init(g)
 			if st and st.seated == p then
 				seatPlayer(st, p)
 			elseif st then
-				local hrp = hrpOf(p)
-				if hrp then
-					hrp.CFrame = standSpot(st, 1)
-				end
+				hold(st, p)
 			end
 		end)
 	end)

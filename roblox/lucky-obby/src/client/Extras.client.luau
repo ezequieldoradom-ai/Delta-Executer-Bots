@@ -265,11 +265,50 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
+-- BOTÓN "SALIR DE LA CARRERA" (mientras corres) --------------------------------------
+local quitBtn = Instance.new("TextButton")
+quitBtn.Name = "QuitRace"
+quitBtn.AnchorPoint = Vector2.new(0.5, 0)
+quitBtn.Position = UDim2.new(0.5, 0, 0, 156)
+quitBtn.Size = UDim2.fromOffset(170, 34)
+quitBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 80)
+quitBtn.FontFace = BANGERS
+quitBtn.TextScaled = true
+quitBtn.TextColor3 = Color3.new(1, 1, 1)
+quitBtn.TextStrokeTransparency = 0.3
+quitBtn.Text = es() and "🚪 SALIR DE LA CARRERA" or "🚪 LEAVE RACE"
+quitBtn.Visible = false
+quitBtn.Parent = gui
+Instance.new("UICorner", quitBtn).CornerRadius = UDim.new(1, 0)
+local qs = Instance.new("UIStroke")
+qs.Thickness = 2
+qs.Color = Color3.new(1, 1, 1)
+qs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+qs.Parent = quitBtn
+local qp = Instance.new("UIPadding")
+qp.PaddingTop, qp.PaddingBottom = UDim.new(0, 5), UDim.new(0, 5)
+qp.Parent = quitBtn
+local quitAsk = 0
+quitBtn.Activated:Connect(function()
+	-- doble toque para confirmar (que no se salga nadie sin querer)
+	if os.clock() - quitAsk < 2.5 then
+		Remotes.Join:FireServer("quit")
+		quitBtn.Visible = false
+	else
+		quitAsk = os.clock()
+		quitBtn.Text = es() and "¿SEGURO? PULSA OTRA VEZ" or "SURE? TAP AGAIN"
+		task.delay(2.5, function()
+			quitBtn.Text = es() and "🚪 SALIR DE LA CARRERA" or "🚪 LEAVE RACE"
+		end)
+	end
+end)
+
 local lastState = nil
 Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 	if type(s) ~= "table" then
 		return
 	end
+	quitBtn.Visible = s.racing == true and not s.finished and (s.state == "racing" or s.state == "countdown")
 	-- botón de inscripción
 	joined = s.joined == true
 	joinBtn.Visible = s.state == "joining"

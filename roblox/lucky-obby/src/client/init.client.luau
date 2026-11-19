@@ -378,6 +378,27 @@ reg("Belt", function(p)
 	end
 end)
 
+-- Cámara detrás de ti mirando hacia la meta (+Z): al reaparecer no te confundes de sentido
+local function faceForward()
+	task.defer(function()
+		local cam = workspace.CurrentCamera
+		local char = player.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		if cam and hrp and cam.CameraType == Enum.CameraType.Custom then
+			local dist = (cam.CFrame.Position - cam.Focus.Position).Magnitude
+			dist = math.clamp(dist, 8, 20)
+			cam.CFrame = CFrame.lookAt(hrp.Position + Vector3.new(0, dist * 0.35, -dist), hrp.Position + Vector3.new(0, 1.5, 6))
+		end
+	end)
+end
+player.CharacterAdded:Connect(function(char)
+	char:WaitForChild("HumanoidRootPart", 5)
+	task.wait(0.35) -- después de que el servidor te coloque en tu punto de control
+	if state.racing and not state.finished then
+		faceForward()
+	end
+end)
+
 local lastRespawn, lastPad = 0, 0
 local function respawn()
 	local char = player.Character
@@ -390,6 +411,7 @@ local function respawn()
 	hrp.AssemblyLinearVelocity = Vector3.zero
 	char:PivotTo(CFrame.lookAt(cp, cp + Vector3.new(0, 0, 1)))
 	play("whoosh", 0.7)
+	faceForward()
 end
 
 local killParams = OverlapParams.new()

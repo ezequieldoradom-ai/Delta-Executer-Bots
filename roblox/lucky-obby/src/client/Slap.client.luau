@@ -172,7 +172,7 @@ marker.Parent = barGrad
 corner(marker, 4)
 stroke(marker, Color3.new(0, 0, 0), 2)
 local barTitle = text(bar, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0, -8), Size = UDim2.fromOffset(560, 40), Text = L("💪 ¡PÁRALA! (el rojo = 💀 SUPREMO)", "💪 STOP IT! (red = 💀 SUPREME)") })
-local _ = barTitle
+
 -- capa invisible a pantalla completa para parar la barra con un toque/clic
 local tapGui = Instance.new("ScreenGui")
 tapGui.Name = "SlapTap"
@@ -380,9 +380,35 @@ RunService:BindToRenderStep("SlapCamera", Enum.RenderPriority.Camera.Value + 1, 
 			cam.CFrame = CFrame.lookAt(head.Position + look * 0.7 + s, head.Position + look * 12 + Vector3.new(0, -1.5, 0)) * CFrame.Angles(punch.X, punch.Y, punch.Z)
 			cam.FieldOfView = 70 + punch.Magnitude * 25
 		end
+	elseif station and typeof(station.cf) == "CFrame" then
+		camLocked = true
+		cam.CameraType = Enum.CameraType.Scriptable
+		local cf = station.cf
+		local chair = cf.Position + Vector3.new(0, 2.5, 0)
+		local t = os.clock()
+		local target, pos
+		local char = player.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		if charging and hrp then
+			-- me toca pegar: por encima del hombro, mirando la nuca del sentado
+			pos = hrp.Position - cf.LookVector * 6 + cf.RightVector * 2.2 + Vector3.new(0, 3.2, 0)
+			target = chair + Vector3.new(0, 0.8, 0)
+			cam.FieldOfView = 55
+		else
+			-- plano de cine: travelling lento de lado a lado por detrás de la silla, viendo a todos
+			local swing = math.sin(t * 0.25) * 0.9
+			local back = -cf.LookVector
+			local dir = (back * math.cos(swing) + cf.RightVector * math.sin(swing)).Unit
+			pos = chair + dir * 15 + Vector3.new(0, 6 + math.sin(t * 0.4) * 0.8, 0)
+			target = chair + back * 3 + Vector3.new(0, 0.5, 0)
+			cam.FieldOfView = 58
+		end
+		local s2 = shake > 0 and Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * shake or Vector3.zero
+		cam.CFrame = cam.CFrame:Lerp(CFrame.lookAt(pos + s2, target), math.clamp(dt * 4, 0, 1))
 	elseif camLocked then
 		camLocked = false
 		cam.CameraType = Enum.CameraType.Custom
+		cam.FieldOfView = 70
 	end
 	if shake > 0 then
 		shake = math.max(0, shake - dt * 2.5)
@@ -403,11 +429,25 @@ local function stopBar()
 		return
 	end
 	local pos = barPos()
+	local red0 = red.Position.X.Scale
+	local hitRed = math.abs(pos - red0) <= red.Size.X.Scale / 2 + 0.006
 	charging = nil
-	bar.Visible = false
 	tapLayer.Visible = false
 	Net:FireServer("stop", pos)
 	play("whoosh", 1.2)
+	marker.Position = UDim2.fromScale(pos, 0.5)
+	barTitle.Text = hitRed and L("💀 ¡ROJO! GUANTAZO SUPREMO", "💀 RED! SUPREME SLAP") or string.format(L("💪 FUERZA %d%%", "💪 POWER %d%%"), math.floor(pos * 100))
+	barTitle.TextColor3 = hitRed and Color3.fromRGB(255, 80, 80) or GOLD
+	if hitRed then
+		play("boom", 1.6, 0.4)
+	end
+	task.delay(0.7, function()
+		if not charging then
+			bar.Visible = false
+			barTitle.TextColor3 = WHITE
+			barTitle.Text = L("💪 ¡PÁRALA! (el rojo = 💀 SUPREMO)", "💪 STOP IT! (red = 💀 SUPREME)")
+		end
+	end)
 	updateUI()
 end
 tapLayer.Activated:Connect(stopBar)
@@ -759,7 +799,7 @@ local function onHit(d)
 			punch = Vector3.new(0.05, side * (0.25 + power * 0.55), side * (0.15 + power * 0.3))
 		end
 		doFlash(d.supreme and Color3.fromRGB(255, 30, 30) or WHITE, 0.25)
-		shout(d.supreme and L("💀 ¡GUANTAZO SUPREMO!", "💀 SUPREME SLAP!") or "💥 ¡PAM!", d.supreme and Color3.fromRGB(255, 70, 70) or GOLD, 1.4)
+		shout(d.supreme and L("💀 ¡GUANTAZO SUPREMO!", "💀 SUPREME SLAP!") or string.format("💥 ¡PAM! -%d ❤", tonumber(d.dmg) or 30), d.supreme and Color3.fromRGB(255, 70, 70) or GOLD, 1.4)
 		return
 	end
 	-- primer plano: solo para los de esta mesa que no están ocupados (no se roba la cámara a nadie más)
@@ -779,7 +819,7 @@ local function onHit(d)
 	local fwd, right = seatCF.LookVector, seatCF.RightVector
 	local h0 = head.Position
 	doFlash(WHITE, d.supreme and 0.1 or 0.45)
-	shout(d.supreme and L("💀 ¡GUANTAZO SUPREMO!", "💀 SUPREME SLAP!") or string.format("💥 ¡PAM! %d%%", math.floor(power * 100)), d.supreme and Color3.fromRGB(255, 70, 70) or GOLD, d.supreme and 2.2 or 1.3)
+	shout(d.supreme and L("💀 ¡GUANTAZO SUPREMO!", "💀 SUPREME SLAP!") or string.format("💥 ¡PAM! -%d ❤", tonumber(d.dmg) or math.floor(power * 100)), d.supreme and Color3.fromRGB(255, 70, 70) or GOLD, d.supreme and 2.2 or 1.3)
 	local secs = d.supreme and 2.4 or 1.5
 	local t0 = os.clock()
 	local conn

@@ -80,6 +80,9 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			return table.concat(t, " | ") .. " || kinds=" .. table.concat(G.Course.kinds or {}, ",")
 		end
+		if cmd == "finishnow" then
+			return G.Race.finish(player)
+		end
 		if cmd == "join" then
 			return G.Race.setJoined(player, true), G.Race.state
 		end
