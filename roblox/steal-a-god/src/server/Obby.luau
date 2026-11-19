@@ -187,8 +187,9 @@ end
 
 -- 8) Cintas que te arrastran hacia atrás, con lava a los lados
 function OB.belts(st)
-	local slab = floorSlab(st, 5, st.D - 5, 7)
-	local push = st.F:VectorToWorldSpace(Vector3.new(0, 0, 1)) * lerp(7, 14, st.k)
+	-- (más ancha y con menos arrastre: en las etapas altas era casi imposible)
+	local slab = floorSlab(st, 5, st.D - 5, 10)
+	local push = st.F:VectorToWorldSpace(Vector3.new(0, 0, 1)) * lerp(5, 9, st.k)
 	slab.Name = "Belt"
 	slab.Color = Color3.fromRGB(40, 40, 50)
 	slab.Material = Enum.Material.DiamondPlate
@@ -196,7 +197,7 @@ function OB.belts(st)
 	slab.AssemblyLinearVelocity = push
 	CollectionService:AddTag(slab, "ObbyBelt")
 	for side = -1, 1, 2 do
-		kill({ Name = "BeltLava", Size = Vector3.new(1.4, 0.6, st.D - 10), CFrame = slab.CFrame * CFrame.new(side * 4.2, 0.4, 0) })
+		kill({ Name = "BeltLava", Size = Vector3.new(1.2, 0.6, st.D - 10), CFrame = slab.CFrame * CFrame.new(side * 5.6, 0.4, 0) })
 	end
 end
 
