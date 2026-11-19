@@ -26,6 +26,15 @@ remotes.Parent = ReplicatedStorage
 G.Data.init()
 G.Course.init(G)
 G.Lobby.init(G)
+local hub = script:FindFirstChild("Hub")
+if hub then
+	require(hub).init(G) -- clasificaciones y santuario de la suerte (Shadow)
+end
+-- decoración (solo visual; módulo opcional de Shadow): isla del vestíbulo, islas, arcos, meta
+local decor = script:FindFirstChild("Decor")
+if decor then
+	require(decor).init(G)
+end
 G.Items.init(G)
 G.Race.init(G)
 G.Race.start()

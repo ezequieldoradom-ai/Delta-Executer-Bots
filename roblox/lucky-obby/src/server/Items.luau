@@ -242,7 +242,8 @@ function Items.grant(player)
 	end
 	local rank, total = G.Race.rankOf(player)
 	local p = total > 1 and (rank - 1) / (total - 1) or 0.5
-	local id = C.rollItem(p)
+	local d = G.Data and G.Data.profiles[player]
+	local id = C.rollItem(C.luckP(p, d and d.luck or 0))
 	s.rolling = true
 	notify(player, "lucky", { item = id, roll = C.ROLL_TIME })
 	task.delay(C.ROLL_TIME, function()

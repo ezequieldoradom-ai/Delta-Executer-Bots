@@ -71,6 +71,16 @@ function Config.rollItem(p, rng)
 	return Config.ITEMS[1].id
 end
 
+-- SUERTE (se compra en el vestíbulo con monedas): sube la probabilidad de objetos fuertes.
+-- Cada nivel acerca tu "puesto" de reparto al de los últimos (que reciben Cambiazo y Congelación).
+Config.LUCK = { MAX = 10, STEP = 0.08 }
+function Config.luckCost(level) -- precio para pasar de level a level+1
+	return math.floor(40 * 1.55 ^ level)
+end
+function Config.luckP(p, level)
+	return math.min(1, p + (1 - p) * (level or 0) * Config.LUCK.STEP)
+end
+
 -- Monedas por puesto (y por terminar o participar)
 Config.REWARDS = { 50, 30, 20 }
 Config.REWARD_FINISH = 10

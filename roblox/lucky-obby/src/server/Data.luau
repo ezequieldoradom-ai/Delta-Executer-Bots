@@ -4,7 +4,7 @@ local RunService = game:GetService("RunService")
 
 local Data = {}
 local store = nil
-Data.profiles = {} -- [player] = { coins, wins }
+Data.profiles = {} -- [player] = { coins, wins, luck }
 
 local function key(player)
 	return "p_" .. tostring(player.UserId)
@@ -31,7 +31,7 @@ local function stats(player)
 end
 
 function Data.load(player)
-	local d = { coins = 0, wins = 0 }
+	local d = { coins = 0, wins = 0, luck = 0 }
 	if store and typeof(player) == "Instance" then
 		local ok, raw = pcall(function()
 			return store:GetAsync(key(player))
@@ -39,6 +39,7 @@ function Data.load(player)
 		if ok and type(raw) == "table" then
 			d.coins = math.max(0, math.floor(tonumber(raw.coins) or 0))
 			d.wins = math.max(0, math.floor(tonumber(raw.wins) or 0))
+			d.luck = math.clamp(math.floor(tonumber(raw.luck) or 0), 0, 10)
 		end
 	end
 	Data.profiles[player] = d
@@ -52,7 +53,7 @@ function Data.save(player)
 		return false
 	end
 	local ok = pcall(function()
-		store:SetAsync(key(player), { coins = d.coins, wins = d.wins })
+		store:SetAsync(key(player), { coins = d.coins, wins = d.wins, luck = d.luck or 0 })
 	end)
 	return ok
 end
@@ -68,6 +69,17 @@ function Data.addCoins(player, n)
 		d.coins += math.max(0, math.floor(n))
 		stats(player)
 	end
+end
+
+-- Gasta monedas si alcanzan (devuelve true si se pudo)
+function Data.spend(player, n)
+	local d = Data.profiles[player]
+	if not d or d.coins < n then
+		return false
+	end
+	d.coins -= n
+	stats(player)
+	return true
 end
 
 function Data.addWin(player)

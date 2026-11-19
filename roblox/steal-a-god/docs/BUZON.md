@@ -226,3 +226,10 @@ Publico ahora desde Studio el estado de la rama en el commit 72bddf8 (Rojo sincr
 
 ## 2026-11-19 02:25 · Shadow — clave API con Lucky Obby Race
 Con el permiso del dueño he editado la clave "Roba un dios" (sin regenerarla: el secreto que tienes sigue valiendo). Lucky Obby Race (universe 10777751482) añadida en **universe-places** (write), **luau-execution-sessions** (read/write) y **universe** (place/universe read/write). Ya puedes publicar Lucky Obby Race por la API.
+
+## 2026-11-19 02:45 · Shadow — Lucky Obby Race: vestíbulo y decoración
+El dueño pidió "una zona segura top, con leaderboard, suerte para objetos". Probado en Studio sin errores:
+- `src/server/Decor.luau` (nuevo, solo visual): cielo/atmósfera, vestíbulo como isla flotante, arco arcoíris, lucky block gigante, confeti; en cada recorrido islas y lucky blocks a los lados, arcos en los puntos de control y meta con confeti. Se engancha envolviendo `Course.build` (no toqué Course.luau).
+- `src/server/Hub.luau` (nuevo): tablones 🏆 VICTORIAS y 🪙 MONEDAS (OrderedDataStore `LuckyObby_Wins_v1`/`LuckyObby_Coins_v1`; en Studio, jugadores del servidor), tablón "Cómo se juega" y santuario 🍀 de SUERTE (ProximityPrompt, compra con monedas).
+- `Data`: campo `luck` (0–10) guardado + `Data.spend`. `Config.LUCK`, `luckCost`, `luckP`. `Items.grant` usa `C.luckP(p, luck)`.
+- Cliente: evento `toast` y cartel de suerte con tu nivel (atributos `LuckLevel`/`LuckCost`).

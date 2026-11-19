@@ -219,7 +219,10 @@ end)
 
 Remotes:WaitForChild("Event").OnClientEvent:Connect(function(kind, d)
 	d = type(d) == "table" and d or {}
-	if kind == "lucky" then
+	if kind == "toast" then -- avisos del vestíbulo (santuario de la suerte)
+		toast(tostring(d.text or ""), Color3.fromRGB(140, 255, 160))
+		play("pop", 1.1)
+	elseif kind == "lucky" then
 		task.spawn(rollAnim, d.item, d.roll or 1)
 	elseif kind == "hitBy" then
 		local it = Config.ITEM_BY_ID[d.item]
@@ -425,5 +428,24 @@ RunService.Heartbeat:Connect(function()
 			play("pop", 0.8)
 			break
 		end
+	end
+end)
+
+-- Cartel del santuario de la suerte con TU nivel y precio (lo pone el servidor en atributos del jugador)
+task.spawn(function()
+	local player = game:GetService("Players").LocalPlayer
+	while true do
+		local hub = workspace:FindFirstChild("Hub")
+		local sign = hub and hub:FindFirstChild("LuckSign")
+		local gui = sign and sign:FindFirstChildOfClass("BillboardGui")
+		local l = gui and gui:FindFirstChild("Label")
+		if l then
+			local lv = player:GetAttribute("LuckLevel") or 0
+			local cost = player:GetAttribute("LuckCost") or -1
+			local mult = 1 + lv * Config.LUCK.STEP * 5
+			l.Text = string.format('🍀 %s %d <font color="#FFE36B">(x%.1f)</font>\n%s', Locale.lang() == "es" and "SUERTE NV" or "LUCK LV", lv, mult,
+				cost >= 0 and string.format("🪙 %d → %s %d", cost, Locale.lang() == "es" and "NV" or "LV", lv + 1) or "MAX")
+		end
+		task.wait(0.5)
 	end
 end)
