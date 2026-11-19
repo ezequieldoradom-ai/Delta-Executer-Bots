@@ -88,9 +88,9 @@ local function play(name, pitch)
 end
 
 -- Arriba: estado de la ronda · debajo: barra de progreso
-local top = new("Frame", { BackgroundColor3 = Color3.fromRGB(30, 22, 54), BackgroundTransparency = 0.15, Size = UDim2.fromOffset(560, 60), Position = UDim2.new(0.5, 0, 0, 10), AnchorPoint = Vector2.new(0.5, 0), Parent = gui }, { corner(18), stroke(GOLD, 3) })
-local topLabel = label({ Parent = top, Size = UDim2.new(1, -24, 1, -10), Position = UDim2.fromOffset(12, 5) })
-local barBack = new("Frame", { BackgroundColor3 = Color3.fromRGB(30, 22, 54), Size = UDim2.fromOffset(520, 12), Position = UDim2.new(0.5, 0, 0, 78), AnchorPoint = Vector2.new(0.5, 0), Visible = false, Parent = gui }, { corner(6), stroke(WHITE, 2) })
+local top = new("Frame", { BackgroundColor3 = Color3.fromRGB(30, 22, 54), BackgroundTransparency = 0.15, Size = UDim2.fromOffset(340, 34), Position = UDim2.new(0.5, 0, 0, 2), AnchorPoint = Vector2.new(0.5, 0), Parent = gui }, { corner(12), stroke(GOLD, 2) })
+local topLabel = label({ Parent = top, Size = UDim2.new(1, -20, 1, -6), Position = UDim2.fromOffset(10, 3) })
+local barBack = new("Frame", { BackgroundColor3 = Color3.fromRGB(30, 22, 54), Size = UDim2.fromOffset(320, 8), Position = UDim2.new(0.5, 0, 0, 42), AnchorPoint = Vector2.new(0.5, 0), Visible = false, Parent = gui }, { corner(6), stroke(WHITE, 2) })
 local barFill = new("Frame", { BackgroundColor3 = Color3.fromRGB(110, 255, 150), Size = UDim2.fromScale(0, 1), Parent = barBack }, { corner(6) })
 -- Centro: avisos grandes
 local big = label({ Parent = gui, Size = UDim2.fromOffset(900, 110), Position = UDim2.fromScale(0.5, 0.3), AnchorPoint = Vector2.new(0.5, 0.5), ZIndex = 5 })
