@@ -273,3 +273,5 @@ Repaso con 3 revisiones independientes (servidor/trampas, cliente/dispositivos, 
 - **Nuevo**:
   - `Bots.luau`: NPC con 🤖, entre 4+4 con 1 jugador y 0 con 5 o más. Corren siguiendo una ruta de plataformas precalculada y hacen guantazos.
   - `Feedback.luau` + cliente: buzón 📮. Se guarda en el DataStore `LuckyObby_Feedback_v1`, clave `inbox`, y el dueño lo lee con 📬.
+
+→ **Publicado** Lucky Obby Race desde Studio el 19-11 a las 05:57 (place 88014747422090), con la rama en bf0dfae. Sigue siendo privada.
