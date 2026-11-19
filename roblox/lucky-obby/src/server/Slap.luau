@@ -534,12 +534,6 @@ function Slap.stop(p, clientPos)
 		if st.round ~= round or st.phase ~= "windup" then
 			return
 		end
-		if st.supreme then
-			-- el SUPREMO no se puede esquivar: cae directamente
-			st.dodgeSentAt = nil
-			Slap.resolve(st)
-			return
-		end
 		st.dodgeSentAt = os.clock()
 		send(st.seated, "dodge", { key = st.dodgeKey, window = DODGE_WINDOW })
 		local wait = DODGE_WINDOW + math.min(0.35, (st.seated and st.seated:GetNetworkPing() or 0) * 2) + 0.1
@@ -595,7 +589,7 @@ function Slap.resolve(st)
 	else
 		Slap.stats.hits += 1
 	end
-	Slap.lastResult = { power = st.power, supreme = st.supreme, dodged = st.dodged }
+	Slap.lastResult = { power = st.power, supreme = st.supreme, dodged = st.dodged, victim = victim }
 	if st.dodged then
 		-- se agacha y el guantazo da al aire: ahora se sienta el que iba a pegar
 		setPhase(st, "result")
@@ -619,7 +613,7 @@ function Slap.resolve(st)
 	-- ¡PAM!
 	setPhase(st, "result")
 	for _, w in ipairs(watchers) do
-		send(w, "hit", { station = st.id, victim = victim.UserId, victimChar = victim.Character, slapper = slapper.UserId, power = st.power, supreme = st.supreme, seatCF = st.cf, style = st.style, dmg = math.floor(18 + 42 * (st.power or 0.5)) })
+		send(w, "hit", { station = st.id, victim = victim.UserId, victimChar = victim.Character, slapper = slapper.UserId, power = st.power, supreme = st.supreme, seatCF = st.cf, style = st.style, dmg = math.floor(8 + 17 * (st.power or 0.5)) })
 	end
 	task.delay(0.8, function()
 		if table.find(st.members, slapper) and st.seated ~= slapper then
@@ -628,7 +622,7 @@ function Slap.resolve(st)
 	end)
 	-- EL GUANTAZO QUITA VIDA: más fuerte = más daño. Si te deja a 0, quedas eliminado (KO).
 	local vh = humOf(victim)
-	local dmg = math.floor(18 + 42 * (st.power or 0.5))
+	local dmg = math.floor(8 + 17 * (st.power or 0.5))
 	local ko = st.supreme
 	if vh and not ko then
 		vh.Health = math.max(0, vh.Health - dmg)

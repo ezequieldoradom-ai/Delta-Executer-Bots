@@ -97,7 +97,9 @@ if game:GetService("RunService"):IsStudio() then
 				task.wait(0.1)
 			end
 			local r = G.Slap.lastResult
-			return r and string.format("dist=%.3f fuerza=%d%% supremo=%s esquivado=%s", arg, math.floor(r.power * 100), tostring(r.supreme), tostring(r.dodged)) or "sin resultado"
+			task.wait(0.3)
+			local vh = r and r.victim and r.victim.Character and r.victim.Character:FindFirstChildOfClass("Humanoid")
+			return r and string.format("dist=%.3f fuerza=%d%% supremo=%s esquivado=%s vidaVictima=%s", arg, math.floor(r.power * 100), tostring(r.supreme), tostring(r.dodged), vh and math.floor(vh.Health) or "?") or "sin resultado"
 		end
 		if cmd == "lastresult" then
 			local r = G.Slap.lastResult
