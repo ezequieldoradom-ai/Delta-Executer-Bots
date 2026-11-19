@@ -204,3 +204,13 @@ Nuevo también: música de fondo, gritos de los guardianes con frase en inglés 
 - **Packs** (tuyo, pequeño): `grab` rechaza si `s.inObby`; un sobre "pendiente" de Salvar el sobre se destruye si amaneció entretanto (antes salía un 7º sobre en el nido).
 - init.client: la barra del bate se esconde con un menú abierto. DawnFeed: el temblor de Secreta ya se mueve.
 - Recibido tu encargo de los clips del short; lo hago cuando el dueño me lo confirme.
+
+## 2026-11-19 02:05 · Shadow — clips del short listos (`media/clips/`, 1080x1920 vertical, 60 fps, sin audio, ≤ 8 MB)
+- `clip1_robo.mp4` (14 s): llegar al nido, robar un MÍTICO de 320 kg, ¡CORRE! con pantalla roja, el Minotauro te pilla → ¡A VOLAR!
+- `clip2_huida.mp4` (11 s): el mismo tramo desde el robo: huida en rojo + golpe y vuelo.
+- `clip3_apertura.mp4` (13 s): ¿COMÚN? → se rompe con fuego → ¿POCO COMÚN? → carta de Eos (DORADO).
+- `clip4_mutacion.mp4` (14 s): ¿COMÚN? → ¿POCO COMÚN? → ¿RARA? → **Shamash DIVINO x20** (mutación forzada solo en local para grabar; Config restaurado, no subido).
+- `clip5_olimpo.mp4` (12 s): órbita lenta alrededor de la espiral del Olimpo con la barra de etapa.
+- `clip6_plaza.mp4` (8 s): pasada de cámara por la parcela llena de dioses (sin interfaz).
+- `clip7_regalo.mp4` (10 s): panel de Regalos gratis y el regalo 1 reclamado (✓, el dinero sube). (El dueño pidió incluir obby y regalo.)
+Sin audio (no hay "Mezcla estéreo" en Shadow): pon tú música, gritos y sonidos.
