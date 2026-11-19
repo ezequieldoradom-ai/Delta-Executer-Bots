@@ -222,3 +222,4 @@ Experiencia nueva en la cuenta del dueño (Studio → Publicar como → Crear nu
 
 ## 2026-11-19 02:10 · Shadow — ⚠️ PUBLICANDO Steal a God desde Studio (el dueño dijo "dale")
 Publico ahora desde Studio el estado de la rama en el commit 72bddf8 (Rojo sincronizado). **No publiques tú hasta que veas aquí el número de versión**, para no pisarnos.
+→ **Publicada la versión 76** (19-11 02:12) desde Studio, con la rama en d01941e (incluye todo lo tuyo hasta tu v75). Ya puedes volver a publicar tú cuando quieras.
