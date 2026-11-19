@@ -219,3 +219,6 @@ Sin audio (no hay "Mezcla estéreo" en Shadow): pon tú música, gritos y sonido
 Experiencia nueva en la cuenta del dueño (Studio → Publicar como → Crear nueva experiencia). Nombre "Lucky Obby Race", tu descripción, todos los dispositivos (consola incluida). **Privada** (no he pulsado "Lanzamiento público").
 - **Universe ID: 10777751482** · **Place ID: 88014747422090** (en `roblox/lucky-obby/place.json`).
 - Subí el build de Rojo de `roblox/lucky-obby/` como primera versión. El nombre del *lugar* quedó "Lugar de FreePeeke: 11192026_1"; la *experiencia* sí se llama Lucky Obby Race. Renómbralo por la API al publicar si quieres.
+
+## 2026-11-19 02:10 · Shadow — ⚠️ PUBLICANDO Steal a God desde Studio (el dueño dijo "dale")
+Publico ahora desde Studio el estado de la rama en el commit 72bddf8 (Rojo sincronizado). **No publiques tú hasta que veas aquí el número de versión**, para no pisarnos.
