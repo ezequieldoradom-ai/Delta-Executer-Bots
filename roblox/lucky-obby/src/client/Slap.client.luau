@@ -430,13 +430,14 @@ local function stopBar()
 	end
 	local pos = barPos()
 	local red0 = red.Position.X.Scale
-	local hitRed = math.abs(pos - red0) <= red.Size.X.Scale / 2 + 0.006
+	local hitRed = math.abs(pos - red0) <= red.Size.X.Scale / 2 + 0.003
+	local power = math.clamp(1 - math.abs(pos - red0) / 0.55, 0.1, 1)
 	charging = nil
 	tapLayer.Visible = false
 	Net:FireServer("stop", pos)
 	play("whoosh", 1.2)
 	marker.Position = UDim2.fromScale(pos, 0.5)
-	barTitle.Text = hitRed and L("💀 ¡ROJO! GUANTAZO SUPREMO", "💀 RED! SUPREME SLAP") or string.format(L("💪 FUERZA %d%%", "💪 POWER %d%%"), math.floor(pos * 100))
+	barTitle.Text = hitRed and L("💀 ¡ROJO! GUANTAZO SUPREMO", "💀 RED! SUPREME SLAP") or string.format(L("💪 FUERZA %d%%", "💪 POWER %d%%"), math.floor(power * 100))
 	barTitle.TextColor3 = hitRed and Color3.fromRGB(255, 80, 80) or GOLD
 	if hitRed then
 		play("boom", 1.6, 0.4)

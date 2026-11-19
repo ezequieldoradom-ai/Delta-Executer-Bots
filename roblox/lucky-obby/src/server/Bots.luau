@@ -621,7 +621,7 @@ local function slapBrain(bot)
 				end
 			end)
 		elseif kind == "dodge" and type(data) == "table" then
-			if math.random() < 0.3 then -- esquiva a veces
+			if math.random() < 0.12 then -- esquiva pocas veces (nivel normal)
 				task.delay(0.15 + math.random() * 0.15, function()
 					if bot.alive then
 						G.Slap.dodge(bot, data.key)

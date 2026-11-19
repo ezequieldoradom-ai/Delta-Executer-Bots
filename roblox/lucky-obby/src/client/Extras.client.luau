@@ -181,7 +181,7 @@ local BANGERS = Font.new("rbxasset://fonts/families/Bangers.json", Enum.FontWeig
 local joinBtn = Instance.new("TextButton")
 joinBtn.Name = "JoinRace"
 joinBtn.AnchorPoint = Vector2.new(0.5, 0)
-joinBtn.Position = UDim2.new(0.5, 0, 0, 156)
+joinBtn.Position = UDim2.new(0.5, 0, 0, 7) -- arriba del todo, en la franja de la barra de Roblox
 joinBtn.Size = UDim2.fromOffset(250, 44)
 joinBtn.BackgroundColor3 = Color3.new(1, 1, 1)
 joinBtn.Text = ""
@@ -269,7 +269,7 @@ end)
 local quitBtn = Instance.new("TextButton")
 quitBtn.Name = "QuitRace"
 quitBtn.AnchorPoint = Vector2.new(0.5, 0)
-quitBtn.Position = UDim2.new(0.5, 0, 0, 156)
+quitBtn.Position = UDim2.new(0.5, 0, 0, 12)
 quitBtn.Size = UDim2.fromOffset(170, 34)
 quitBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 80)
 quitBtn.FontFace = BANGERS

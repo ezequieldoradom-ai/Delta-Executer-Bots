@@ -18,8 +18,8 @@ local PLAZA_R = 44
 local STATION_R = 28
 local MAX_PLAYERS = 4
 local AREA = 24 -- si te alejas más de esto de tu mesa, sales del juego
-local BAR_PERIOD = 0.72 -- segundos de 0 a 1 (luego vuelve)
-local RED_W = 0.05 -- ancho del cuadradito rojo (fracción de la barra): difícil de clavar
+local BAR_PERIOD = 0.6 -- segundos de 0 a 1 (luego vuelve)
+local RED_W = 0.032 -- ancho del cuadradito rojo (fracción de la barra): muy difícil de clavar
 local DODGE_WINDOW = 0.4
 local GUESS_TIME = 10
 local IDLE_PICK = 30 -- si nadie pega en este tiempo, le toca a uno al azar
@@ -492,14 +492,16 @@ function Slap.stop(p, clientPos)
 			pos = math.clamp(clientPos, 0, 1)
 		end
 	end
-	st.power = pos
-	st.supreme = math.abs(pos - st.redPos) <= RED_W / 2 + 0.006
+	-- FUERZA = lo cerca que la paras del rojo (en el rojo, 100 % y supremo)
+	local dist = math.abs(pos - st.redPos)
+	st.power = math.clamp(1 - dist / 0.55, 0.1, 1)
+	st.supreme = dist <= RED_W / 2 + 0.003
 	if Slap.debugSupreme then -- solo pruebas en Studio
 		st.supreme, pos, st.power = true, st.redPos, st.redPos
 		Slap.debugSupreme = false
 	end
 	if st.supreme then
-		pos, st.power = 1, 1 -- el rojo es el golpe al 100 %
+		st.power = 1 -- el rojo es el golpe al 100 %
 	end
 	setPhase(st, "windup")
 	armPose(p.Character, "windup", 0.35)
