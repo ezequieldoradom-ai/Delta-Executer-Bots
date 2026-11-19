@@ -309,8 +309,11 @@ local function buildPath(course)
 	end
 	local x = 0
 	local guard = 0
+	local used = {}
+	local prevZ1 = -math.huge
 	while cur and guard < 400 do
 		guard += 1
+		used[cur] = true
 		-- recorrer la plataforma actual hasta su final (centrado en x dentro de ella)
 		local cx = cur.cx
 		if cur.x1 - cur.x0 >= 2.4 then
@@ -318,7 +321,10 @@ local function buildPath(course)
 		end
 		x = cx
 		local endZ = math.max(cur.z0 + 0.8, cur.z1 - 1.2)
-		table.insert(wps, { pos = Vector3.new(cx, cur.y + 3, math.min(endZ, cur.z0 + 1.2)), y = cur.y, pad = cur.pad })
+		-- entrar un poco más allá del final de la anterior (si la anterior está encima y la tapa, no apuntar debajo)
+		local entryZ = math.min(endZ, math.max(cur.z0 + 1.2, prevZ1 + 1.6))
+		table.insert(wps, { pos = Vector3.new(cx, cur.y + 3, entryZ), y = cur.y, pad = cur.pad })
+		prevZ1 = cur.z1
 		if cur.z1 - cur.z0 > 3 then
 			table.insert(wps, { pos = Vector3.new(cx, cur.y + 3, endZ), y = cur.y })
 		end
@@ -326,7 +332,7 @@ local function buildPath(course)
 		local best, bestCost = nil, math.huge
 		for _, pl in ipairs(plats) do
 			local padOnTop = pl.pad and not cur.pad and pl.z0 > cur.z0 and math.abs(pl.y - cur.y) < 1.5
-			if pl ~= cur and (pl.z1 > cur.z1 + 0.5 or padOnTop) then
+			if pl ~= cur and not used[pl] and (pl.z1 > cur.z1 + 0.5 or padOnTop) then
 				local gap = math.max(0, pl.z0 - cur.z1)
 				local dy = pl.y - cur.y
 				local maxUp = cur.pad and 17 or 5
@@ -403,9 +409,26 @@ local function raceStep(bot)
 	if dead then
 		bot.deaths = (bot.deaths or 0) + 1
 		hrp.AssemblyLinearVelocity = Vector3.zero
+		-- caídas seguidas en el mismo tramo: tras 3, el siguiente salto sale seguro; tras 5, pasa al siguiente
+		-- waypoint (como un jugador que al final lo consigue). Así nunca se queda atascado toda la carrera.
+		local spot = bot.wpi or 0
+		if bot.failSpot == spot then
+			bot.fails = (bot.fails or 0) + 1
+		else
+			bot.failSpot, bot.fails = spot, 1
+		end
+		bot.sure = bot.fails >= 3
+		if bot.fails >= 5 and bot.wpi and wps[bot.wpi + 1] then
+			local nxt = wps[bot.wpi + 1]
+			hrp.CFrame = CFrame.lookAt(nxt.pos, nxt.pos + Vector3.new(0, 0, 1))
+			bot.wpi += 1
+			bot.fails = 0
+			bot.stuckZ, bot.stuckT = nil, os.clock()
+			return
+		end
 		-- nivel normal: muchas veces vuelve al último waypoint pisado; si no, a su punto de control
 		local back = bot.wpi and wps[math.max(1, bot.wpi - 2)]
-		if back and math.random() < 0.7 then
+		if back and (math.random() < 0.7 or bot.fails >= 2) then
 			hrp.CFrame = CFrame.lookAt(back.pos, back.pos + Vector3.new(0, 0, 1))
 			bot.wpi = math.max(1, bot.wpi - 1)
 		else
@@ -466,7 +489,8 @@ local function raceStep(bot)
 			-- salto calculado para caer en el waypoint (como lo haría un jugador que apunta bien);
 			-- a veces se queda corto: nivel normal
 			bot.hopAt = os.clock()
-			local miss = math.random() < bot.clumsy
+			local miss = not bot.sure and math.random() < bot.clumsy
+			bot.sure = false
 			local t = math.clamp(dist / 17, 0.38, 0.75)
 			local g = workspace.Gravity
 			local dy = (w.pos.Y - p.Y) + 0.5
@@ -596,16 +620,21 @@ local function slapLoop(bot)
 		task.wait(3 + math.random() * 3)
 		if bot.alive and not G.Slap.stationOf(bot) and bot.Character then
 			-- buscar mesa: la que ya tenga bots o gente y sitio (deja siempre un hueco para jugadores)
-			local best, bestN = nil, -1
+			-- mesas por preferencia (las que ya tienen gente primero); si una le rechaza (eliminado), prueba otra
+			local order = {}
 			for k = 1, G.Slap.COUNT do
 				local free = G.Slap.freeSlots(k)
-				local used = 4 - free
-				if free >= 2 and used > bestN and used < 3 then
-					best, bestN = k, used
+				if free >= 2 then
+					table.insert(order, { k = k, used = 4 - free })
 				end
 			end
-			if best then
-				G.Slap.join(bot, best)
+			table.sort(order, function(a, b)
+				return a.used > b.used
+			end)
+			for _, o in ipairs(order) do
+				if o.used < 3 and G.Slap.join(bot, o.k) then
+					break
+				end
 			end
 		end
 	end

@@ -90,7 +90,7 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextColor3 = GOLD
 title.Text = L("📮 BUZÓN DE IDEAS Y FALLOS", "📮 IDEAS & BUG REPORTS")
 title.Parent = panel
-local close = btn(panel, "✕", Color3.fromRGB(200, 60, 80), UDim2.fromOffset(42, 42), UDim2.new(1, -54, 0, 12))
+local close = btn(panel, "X", Color3.fromRGB(200, 60, 80), UDim2.fromOffset(42, 42), UDim2.new(1, -54, 0, 12))
 local kind = "idea"
 local ideaB = btn(panel, L("💡 IDEA", "💡 IDEA"), Color3.fromRGB(70, 170, 90), UDim2.fromOffset(150, 40), UDim2.fromOffset(18, 66))
 local bugB = btn(panel, L("🐞 FALLO", "🐞 BUG"), Color3.fromRGB(80, 70, 100), UDim2.fromOffset(150, 40), UDim2.fromOffset(180, 66))
@@ -226,7 +226,7 @@ stroke(inbox, Color3.fromRGB(255, 160, 60), 3)
 local ititle = title:Clone()
 ititle.Text = "📬 BUZÓN (solo tú lo ves)"
 ititle.Parent = inbox
-local iclose = btn(inbox, "✕", Color3.fromRGB(200, 60, 80), UDim2.fromOffset(42, 42), UDim2.new(1, -54, 0, 12))
+local iclose = btn(inbox, "X", Color3.fromRGB(200, 60, 80), UDim2.fromOffset(42, 42), UDim2.new(1, -54, 0, 12))
 local scroll = Instance.new("ScrollingFrame")
 scroll.Size = UDim2.new(1, -30, 1, -80)
 scroll.Position = UDim2.fromOffset(15, 66)

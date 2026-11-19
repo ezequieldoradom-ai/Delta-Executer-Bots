@@ -262,3 +262,14 @@ Pedido del dueño. Probado en Studio con servidor y 2 jugadores:
   - Primer plano para todos menos el sentado, con sonidos (`Config.SLAP_SFX` opcional para poner ids propios) y adivinanza del que pegó.
   - Partida a eliminación: con un supremo, el sentado queda eliminado; cuando queda uno, gana la mesa (+25 monedas).
 - La animación del brazo y la cabeza la hace cada cliente (`Motor6D.Transform`), porque C0 no se puede animar desde el servidor.
+
+## 2026-11-19 05:57 · Shadow — Lucky Obby Race: repaso a fondo, bots y buzón (publicando)
+Repaso con 3 revisiones independientes (servidor/trampas, cliente/dispositivos, diseño/rendimiento). Arreglado:
+- **Data**: el perfil se libera al salir (`Data.release`); si falla la carga no se guarda nunca (no pisa datos); como mucho un guardado cada 10 s por jugador (los pendientes, cada 15 s).
+- **Trampas**: la meta exige haber pasado el último punto de control y ≥25 s. Los puntos de control van de uno en uno. Corriendo solo no hay victoria ni premio por puesto. Slap: esquiva con tecla y ≥0,12 s, tolerancia de la barra 0,06, tope de 120 monedas cada 10 min, sin premio al acertar con 2 jugadores, ganador solo en partidas de 3 o más, comprobación de ronda tras cada espera, vigilancia con pcall.
+- **Objetos**: Cambiazo con puntos de control intercambiados, sin inmunes y sin el último 10 %. Congelación sin inmunes y sin cortar el turbo. Tornado con radio 18. Suerte limitada a +30 %. Siempre hay al menos una piedra por fila.
+- **Rendimiento**: sin cajas en el recorrido (lo pidió el dueño). Los adornos giratorios los anima el cliente (FxSpin/FxOrbit).
+- **Mandos e interfaz**: adivinar con A/B/X/Y, iconos reales del mando, J/Y para entrar a la carrera, sin saltar de la silla, prompts desactivados en la mesa, capa de toque aparte, primer plano solo en tu mesa, posiciones sin solaparse.
+- **Nuevo**:
+  - `Bots.luau`: NPC con 🤖, entre 4+4 con 1 jugador y 0 con 5 o más. Corren siguiendo una ruta de plataformas precalculada y hacen guantazos.
+  - `Feedback.luau` + cliente: buzón 📮. Se guarda en el DataStore `LuckyObby_Feedback_v1`, clave `inbox`, y el dueño lo lee con 📬.
