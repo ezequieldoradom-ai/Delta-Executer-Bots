@@ -560,6 +560,13 @@ local function closePanel()
 		if my == panelState.token then
 			panel.Visible = false
 			panelState.closing = false
+			-- vuelve la barra del bate solo si la escondimos nosotros al abrir
+			if panelFx.hidBackpack then
+				panelFx.hidBackpack = false
+				pcall(function()
+					game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+				end)
+			end
 		end
 	end)
 end
@@ -638,6 +645,15 @@ local function openPanel(name, title, list, color, tip, keepOpen)
 	content.Position = UDim2.fromOffset(18, top)
 	content.Size = UDim2.new(1, -36, 1, -(top + 10))
 	panelFx.theme(color)
+	-- la barra del bate de Roblox tapaba el borde de abajo de los menús: se esconde mientras hay uno abierto
+	-- (solo si estaba visible; el obby y la apertura de sobres la esconden por su cuenta)
+	pcall(function()
+		local SG = game:GetService("StarterGui")
+		if SG:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack) then
+			SG:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			panelFx.hidBackpack = true
+		end
+	end)
 	panel.Visible = true
 	panelScale.Scale = 0.6
 	panel.Rotation = -4
