@@ -289,3 +289,4 @@ Repaso con 3 revisiones independientes (servidor/trampas, cliente/dispositivos, 
 
 ## 2026-11-19 20:21 · Shadow — Steal a God: etapas de cintas del obby más justas (publicando)
 El dueño dijo que la etapa 76 (cintas con líneas rojas) era demasiado difícil. `OB.belts`: cinta de 10 de ancho (antes 7), arrastre lerp(5,9) (antes 7–14) y lava a ±5,6. `ObbyFx`: la caja para detectar la lava pasa de 2,6×2,2 a 1,8×1,8, así no te mata la línea de al lado. Publico ahora desde Studio.
+→ **Publicado** Steal a God desde Studio el 19-11 a las 20:21 (rama en 6755300).
