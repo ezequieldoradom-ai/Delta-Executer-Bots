@@ -83,6 +83,68 @@ if game:GetService("RunService"):IsStudio() then
 		if cmd == "join" then
 			return G.Race.setJoined(player, true), G.Race.state
 		end
+		if cmd == "itemtest2" then -- comprueba si el objeto afecta a CUALQUIER bot (golpe, congelación o lentitud)
+			local B = require(script.Bots)
+			local target
+			for _, b in ipairs(B.list) do
+				local h = b.Character and b.Character:FindFirstChild("HumanoidRootPart")
+				local s2 = G.Race.sessions[b]
+				if h and s2 and not s2.finished and (not target or h.Position.Z > target.h.Position.Z) then
+					target = { b = b, h = h, s = s2 }
+				end
+			end
+			if not target then
+				return "sin bot en carrera"
+			end
+			local before = {}
+			for _, b in ipairs(B.list) do
+				local s2 = G.Race.sessions[b]
+				if s2 then
+					before[b] = { hit = s2.lastHitAt or 0, fr = s2.frozenUntil or 0, sp = s2.speedUntil or 0 }
+				end
+			end
+			local hrp = player.Character.HumanoidRootPart
+			local tp = target.h.Position
+			local aim = tp
+			local trap = arg == "glue" or arg == "banana"
+			if trap then
+				-- delante del bot, mirando hacia delante: la trampa cae detrás de mí, en su camino
+				local at = tp + Vector3.new(0, 0, 7)
+				hrp.CFrame = CFrame.lookAt(at, at + Vector3.new(0, 0, 1))
+			else
+				local at = tp - Vector3.new(0, 0, 6)
+				hrp.CFrame = CFrame.lookAt(at, tp)
+				aim = tp + target.h.AssemblyLinearVelocity * 0.05
+			end
+			task.wait(0.2)
+			local s = G.Race.sessions[player]
+			s.item, s.rolling = arg, false
+			local ok, res = pcall(G.Items.use, player, aim)
+			if trap then
+				hrp.CFrame = hrp.CFrame + Vector3.new(0, 0, 14) -- me aparto para que el bot pase
+			end
+			local affected, seen = {}, {}
+			local t0 = os.clock()
+			while os.clock() - t0 < (trap and 8 or 2.5) do
+				for _, b in ipairs(B.list) do
+					local s2 = G.Race.sessions[b]
+					local o = before[b]
+					if s2 and o then
+						local function mark(tag)
+							if not seen[b.Name .. tag] then
+								seen[b.Name .. tag] = true
+								table.insert(affected, b.Name .. ":" .. tag)
+							end
+						end
+						if (s2.lastHitAt or 0) > o.hit then mark("golpe") end
+						if (s2.frozenUntil or 0) > o.fr then mark("congelado") end
+						if (s2.speedUntil or 0) > o.sp then mark("lento") end
+					end
+				end
+				task.wait(0.1)
+			end
+			return string.format("%s used=%s -> %s", arg, tostring(ok and res), #affected > 0 and table.concat(affected, ",") or "NADA")
+		end
 		if cmd == "itemtest" then -- se pone detrás del bot más adelantado, usa el objeto y mira si le dio
 			local B = require(script.Bots)
 			local target
