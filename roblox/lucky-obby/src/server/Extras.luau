@@ -292,32 +292,19 @@ local function buildShop()
 		end)
 	end
 	f.Parent = workspace
-	task.spawn(function()
-		while true do
-			local t = os.clock()
-			for _, o in ipairs(orbs) do
-				local a = t * 2.2 + o.phase
-				o.part.CFrame = CFrame.new(o.center + Vector3.new(math.cos(a) * 2.2, math.sin(t * 3 + o.phase) * 0.6, math.sin(a) * 2.2))
-			end
-			task.wait(1 / 30)
-		end
-	end)
+	for _, o in ipairs(orbs) do -- giran en cada cliente (Extras.client, etiqueta FxOrbit)
+		o.part:SetAttribute("Center", o.center)
+		o.part:SetAttribute("Phase", o.phase)
+		CollectionService:AddTag(o.part, "FxOrbit")
+	end
 end
 
 function Extras.init(g)
 	G = g
 	K = g.Config
 	C = g.Config.COURSE
-	-- cajas en cada recorrido nuevo
-	local build = G.Course.build
-	G.Course.build = function(...)
-		local f = build(...)
-		local ok, err = pcall(Extras.placeBoxes, f)
-		if not ok then
-			warn("[Extras] " .. tostring(err))
-		end
-		return f
-	end
+	-- (Las cajas lucky del recorrido se quitaron a petición del dueño: el primero acumulaba objetos.
+	-- Solo queda el lucky block que te toca cada LUCKY_EVERY segundos. Extras.placeBoxes sigue aquí por si vuelven.)
 	hookRecords()
 	buildShop()
 	local function onPlayer(p)

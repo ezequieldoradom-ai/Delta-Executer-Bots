@@ -178,13 +178,10 @@ local function buildLuck(parent, cf)
 	light.Range = 22
 	light.Brightness = 1.5
 	light.Parent = stem
-	task.spawn(function()
-		while clover.Parent do
-			local t = os.clock()
-			clover:PivotTo(center * CFrame.new(0, math.sin(t * 1.5) * 0.6, 0) * CFrame.Angles(0, t * 1.2, 0))
-			task.wait(1 / 20)
-		end
-	end)
+	clover:SetAttribute("BaseCF", center)
+	clover:SetAttribute("Phase", 0)
+	clover:SetAttribute("Speed", 1.5)
+	game:GetService("CollectionService"):AddTag(clover, "FxSpin") -- lo anima cada cliente
 	-- cartel flotante y botón (E / tocar)
 	local signPart = part({ Name = "LuckSign", Size = Vector3.new(1, 1, 1), CFrame = cf * CFrame.new(0, 17, 0), Transparency = 1, CanCollide = false }, parent)
 	luckGui = Instance.new("BillboardGui")

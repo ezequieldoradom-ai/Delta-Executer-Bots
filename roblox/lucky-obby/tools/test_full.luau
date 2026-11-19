@@ -17,7 +17,7 @@ local function step(name, fn)
 end
 
 local noop = { FireClient = function() end, FireAllClients = function() end, OnServerEvent = { Connect = function() end } }
-local G = { Config = require(Shared.Config), Net = { State = noop, Event = noop, Knock = noop, Use = noop } }
+local G = { Config = require(Shared.Config), Net = { State = noop, Event = noop, Knock = noop, Use = noop, Join = noop, Slap = noop } }
 local C = G.Config
 
 step("Cargar módulos", function()

@@ -39,9 +39,48 @@ local function humOf(p)
 	local c = p.Character
 	return c and c:FindFirstChildOfClass("Humanoid")
 end
+local function isBot(p)
+	return type(p) == "table" and p.IsBot == true
+end
+Slap.isBot = isBot
 local function send(p, kind, data)
-	if p and p.Parent then
+	if isBot(p) then
+		if p.onSlap then
+			task.spawn(p.onSlap, kind, data)
+		end
+	elseif p and p.Parent then
 		G.Net.Slap:FireClient(p, kind, data)
+	end
+end
+-- empujón: a un jugador se lo aplica su cliente; a un bot, el servidor
+local function knock(p, vel)
+	if isBot(p) then
+		local hrp, hum = hrpOf(p), humOf(p)
+		if hrp and hum then
+			hum.PlatformStand = true
+			hrp.AssemblyLinearVelocity = vel
+		end
+	elseif p and p.Parent then
+		G.Net.Knock:FireClient(p, vel)
+	end
+end
+-- MONEDAS del minijuego con tope (evita granjear con amigos o cuentas secundarias):
+-- como mucho SLAP_CAP monedas cada 10 minutos por jugador
+local SLAP_CAP = 120
+local earned = {} -- [player] = { t0, n }
+local function reward(p, n)
+	if isBot(p) or not p or not p.Parent then
+		return
+	end
+	local e = earned[p]
+	if not e or os.clock() - e.t0 > 600 then
+		e = { t0 = os.clock(), n = 0 }
+		earned[p] = e
+	end
+	local give = math.min(n, SLAP_CAP - e.n)
+	if give > 0 then
+		e.n += give
+		G.Data.addCoins(p, give)
 	end
 end
 local function part(props, parent)
@@ -65,9 +104,9 @@ end
 -- ANIMACIONES: el servidor no puede mover las articulaciones (C0 es de solo lectura en los personajes
 -- actuales), así que avisa a todos y cada cliente anima el brazo / la cabeza en su pantalla (Slap.client).
 local function animAll(char, pose, time, power)
-	local p = char and Players:GetPlayerFromCharacter(char)
-	if p then
-		G.Net.Slap:FireAllClients("anim", { who = p.UserId, pose = pose, time = time, power = power or 0.5 })
+	if char then
+		local p = Players:GetPlayerFromCharacter(char)
+		G.Net.Slap:FireAllClients("anim", { who = p and p.UserId or 0, char = char, pose = pose, time = time, power = power or 0.5 })
 	end
 end
 local function armPose(char, pose, time)
@@ -88,7 +127,15 @@ function Slap.epicJump(p, power, supreme)
 		return
 	end
 	local v = Slap.jumpVel(power, supreme)
-	G.Net.Event:FireClient(p, "launch", { vel = Vector3.new(0, v, 0) })
+	if isBot(p) then
+		local hum = humOf(p)
+		if hum then
+			hum:ChangeState(Enum.HumanoidStateType.Jumping)
+		end
+		hrp.AssemblyLinearVelocity = Vector3.new(0, v, 0)
+	else
+		G.Net.Event:FireClient(p, "launch", { vel = Vector3.new(0, v, 0) })
+	end
 	-- estela de chispas (y fuego si es fuerte) mientras está en el aire
 	local at = Instance.new("Attachment")
 	at.Name = "SlapJumpFx"
@@ -233,10 +280,14 @@ local function declareWinner(st, w)
 	local hadKills = st.eliminated ~= nil and next(st.eliminated) ~= nil
 	st.match = false
 	st.eliminated = {}
+	local big = (st.matchSize or 0) >= 3
+	st.matchSize = 0
 	if not w or not hadKills then
 		return -- sin eliminados no hay ganador (si no, salir de la mesa a propósito daría monedas)
 	end
-	G.Data.addCoins(w, 25)
+	if big then -- premio solo en partidas de 3 o más (con 2 sería fácil de granjear)
+		reward(w, 25)
+	end
 	for _, p in ipairs(Players:GetPlayers()) do
 		local h = hrpOf(p)
 		if h and (h.Position - st.cf.Position).Magnitude < 140 then
@@ -259,11 +310,15 @@ local function refresh(st)
 		if not st.match then
 			st.match = true -- empieza una partida a eliminación
 			st.eliminated = {}
+			st.matchSize = #st.members
 			msgAll(st, "🖐️ ¡Empieza la partida! Al que le den un guantazo SUPREMO, eliminado")
 		end
 		pickSeated(st)
 	else
 		broadcast(st)
+	end
+	if st.match then
+		st.matchSize = math.max(st.matchSize or 0, #st.members)
 	end
 end
 
@@ -382,7 +437,7 @@ function Slap.stop(p, clientPos)
 	end
 	local serverPos = tri((os.clock() - st.barT0 - math.min(0.3, p:GetNetworkPing())) / BAR_PERIOD)
 	local pos = serverPos
-	if type(clientPos) == "number" and clientPos == clientPos and math.abs(clientPos - serverPos) < 0.2 then
+	if type(clientPos) == "number" and clientPos == clientPos and math.abs(clientPos - serverPos) < 0.06 then
 		pos = math.clamp(clientPos, 0, 1)
 	end
 	st.power = pos
@@ -415,12 +470,13 @@ function Slap.stop(p, clientPos)
 	end)
 end
 
-function Slap.dodge(p, ok)
+function Slap.dodge(p, key)
 	local st = stationOf[p]
 	if not st or st.phase ~= "windup" or st.seated ~= p or not st.dodgeSentAt then
 		return
 	end
-	if ok == true and os.clock() - st.dodgeSentAt <= DODGE_WINDOW + math.min(0.35, p:GetNetworkPing() * 2) + 0.1 then
+	local dt = os.clock() - st.dodgeSentAt
+	if key == st.dodgeKey and dt >= 0.12 and dt <= DODGE_WINDOW + math.min(0.35, p:GetNetworkPing() * 2) + 0.1 then
 		st.dodged = true
 	end
 	Slap.resolve(st)
@@ -446,11 +502,15 @@ function Slap.resolve(st)
 		-- se agacha y el guantazo da al aire: ahora se sienta el que iba a pegar
 		setPhase(st, "result")
 		for _, w in ipairs(watchers) do
-			send(w, "hit", { station = st.id, victim = victim.UserId, slapper = slapper.UserId, dodged = true, power = st.power })
+			send(w, "hit", { station = st.id, victim = victim.UserId, victimChar = victim.Character, slapper = slapper.UserId, dodged = true, power = st.power })
 		end
 		msgAll(st, "💨 ¡" .. victim.DisplayName .. " lo ha esquivado! Se sienta " .. slapper.DisplayName)
-		G.Data.addCoins(victim, 5)
+		reward(victim, 5)
+		local r0 = st.round
 		task.wait(1.6)
+		if st.round ~= r0 then
+			return
+		end
 		if table.find(st.members, slapper) then
 			swapSeat(st, slapper)
 		else
@@ -461,7 +521,7 @@ function Slap.resolve(st)
 	-- ¡PAM!
 	setPhase(st, "result")
 	for _, w in ipairs(watchers) do
-		send(w, "hit", { station = st.id, victim = victim.UserId, slapper = slapper.UserId, power = st.power, supreme = st.supreme, seatCF = st.cf })
+		send(w, "hit", { station = st.id, victim = victim.UserId, victimChar = victim.Character, slapper = slapper.UserId, power = st.power, supreme = st.supreme, seatCF = st.cf })
 	end
 	local hum = humOf(slapper)
 	if hum then
@@ -469,7 +529,7 @@ function Slap.resolve(st)
 	end
 	if st.supreme then
 		-- GUANTAZO SUPREMO: sale volando, muere y queda ELIMINADO de esta partida
-		G.Data.addCoins(slapper, 10)
+		reward(slapper, 10)
 		msgAll(st, "💀 ¡GUANTAZO SUPREMO de " .. slapper.DisplayName .. "! " .. victim.DisplayName .. " eliminado")
 		local fwd = st.cf.LookVector
 		unseat(st, victim)
@@ -483,7 +543,7 @@ function Slap.resolve(st)
 		st.seated = nil
 		send(victim, "station", nil)
 		send(victim, "msg", "💀 ¡ELIMINADO! Espera a la siguiente partida")
-		G.Net.Knock:FireClient(victim, fwd * 95 + Vector3.new(math.random(-20, 20), 85, 0))
+		knock(victim, fwd * 95 + Vector3.new(math.random(-20, 20), 85, 0))
 		task.delay(0.9, function()
 			local h = humOf(victim)
 			if h then
@@ -491,12 +551,19 @@ function Slap.resolve(st)
 			end
 		end)
 		st.slapper = nil
+		local r0 = st.round
 		task.wait(3.2)
-		refresh(st) -- si solo queda uno, gana; si no, se sienta otro al azar
+		if st.round == r0 then
+			refresh(st) -- si solo queda uno, gana; si no, se sienta otro al azar
+		end
 		return
 	end
 	headJolt(victim.Character, st.power)
+	local r0 = st.round
 	task.wait(0.9)
+	if st.round ~= r0 or st.seated ~= victim or not table.find(st.members, victim) then
+		return -- la mesa cambió mientras (alguien se fue): no tocar
+	end
 	-- ¿quién ha sido? (todos los de la mesa menos él, desordenados)
 	local options = {}
 	for _, m in ipairs(st.members) do
@@ -526,9 +593,15 @@ function Slap.guess(p, userId)
 	local slapper = st.slapper
 	if slapper and userId == slapper.UserId then
 		msgAll(st, "🎯 ¡" .. p.DisplayName .. " ha acertado! Fue " .. slapper.DisplayName .. ". ¡Se sienta!")
-		G.Data.addCoins(p, 5)
+		if #st.members >= 3 then -- con 2 en la mesa acertar es regalado: sin premio
+			reward(p, 5)
+		end
 		setPhase(st, "result")
+		local r0 = st.round
 		task.wait(1.2)
+		if st.round ~= r0 then
+			return
+		end
 		if table.find(st.members, slapper) then
 			swapSeat(st, slapper)
 			return
@@ -536,7 +609,7 @@ function Slap.guess(p, userId)
 	else
 		msgAll(st, "❌ " .. p.DisplayName .. " ha fallado" .. (slapper and (" (fue " .. slapper.DisplayName .. ")") or "") .. ". Sigue sentado")
 		if slapper then
-			G.Data.addCoins(slapper, 3)
+			reward(slapper, 3)
 		end
 	end
 	st.slapper = nil
@@ -660,12 +733,12 @@ function Slap.init(g)
 		local st = stationOf[p]
 		if kind == "leave" then
 			Slap.leave(p)
-		elseif kind == "slap" and st and st.phase == "waiting" and st.seated ~= p then
-			startCharge(st, p)
+		elseif kind == "slap" then
+			Slap.request(p)
 		elseif kind == "stop" then
 			Slap.stop(p, a)
 		elseif kind == "dodge" then
-			Slap.dodge(p, a)
+			Slap.dodge(p, tonumber(a))
 		elseif kind == "guess" then
 			Slap.guess(p, tonumber(a) or -1)
 		end
@@ -693,6 +766,7 @@ function Slap.init(g)
 		while true do
 			task.wait(0.5)
 			for _, st in ipairs(stations) do
+				local ok, err = pcall(function()
 				for i = #st.members, 1, -1 do
 					local p = st.members[i]
 					local hrp = hrpOf(p)
@@ -719,10 +793,40 @@ function Slap.init(g)
 						startCharge(st, p)
 					end
 				end
+				end)
+				if not ok then
+					warn("[Slap] " .. tostring(err))
+				end
 			end
 		end
 	end)
 end
+
+-- Para los bots (y el botón): pedir dar el guantazo si toca
+function Slap.request(p)
+	local st = stationOf[p]
+	if st and st.phase == "waiting" and st.seated ~= p and #st.members >= 2 then
+		startCharge(st, p)
+		return true
+	end
+	return false
+end
+function Slap.join(p, k)
+	local st = stations[k]
+	if st then
+		join(p, st)
+	end
+	return stationOf[p] ~= nil
+end
+function Slap.stationOf(p)
+	local st = stationOf[p]
+	return st and st.id
+end
+function Slap.freeSlots(k)
+	local st = stations[k]
+	return st and (MAX_PLAYERS - #st.members) or 0
+end
+Slap.COUNT = 6
 
 Slap.PLAZA = PLAZA
 function Slap.debugJoin(p, k) -- solo para pruebas en Studio

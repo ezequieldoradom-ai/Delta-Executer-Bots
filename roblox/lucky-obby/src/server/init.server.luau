@@ -43,7 +43,15 @@ local slap = script:FindFirstChild("Slap")
 if slap then
 	require(slap).init(G) -- minijuego "¿Quién ha sido?" en la plaza (Shadow)
 end
+local feedback = script:FindFirstChild("Feedback")
+if feedback then
+	require(feedback).init(G) -- buzón de ideas y fallos (Shadow)
+end
 G.Items.init(G)
+local bots = script:FindFirstChild("Bots")
+if bots then
+	require(bots).init(G) -- bots en servidores con poca gente (Shadow)
+end
 G.Race.init(G)
 G.Race.start()
 print("🏁 Lucky Obby Race listo")
@@ -56,6 +64,17 @@ if game:GetService("RunService"):IsStudio() then
 		if cmd == "slapjoin" then
 			G.Slap.debugJoin(player, arg)
 			return G.Slap.debugState(arg)
+		end
+		if cmd == "bots" then
+			local B = require(script.Bots)
+			local t = {}
+			for _, b in ipairs(B.list) do
+				local h = b.Character and b.Character:FindFirstChild("HumanoidRootPart")
+				if b.role == "race" and h then
+					table.insert(t, string.format("%s z=%d cp=%s d=%s wp=%s", b.Name, h.Position.Z, tostring(b.cp), tostring(b.deaths), tostring(b.wpi)))
+				end
+			end
+			return table.concat(t, " | ") .. " || kinds=" .. table.concat(G.Course.kinds or {}, ",")
 		end
 		if cmd == "supreme" then
 			G.Slap.debugSupreme = true

@@ -479,19 +479,24 @@ function Decor.init(g)
 		end
 		return f
 	end
-	-- los lucky blocks gigantes giran y flotan despacio (pocos y anclados: barato)
+	-- los lucky blocks gigantes, monedas y fuegos fatuos giran y flotan: los anima cada cliente
+	-- (etiqueta FxSpin + atributos BaseCF y Phase; ver Extras.client) para no mandar CFrames por la red
 	task.spawn(function()
 		while true do
-			local t = os.clock()
 			for i = #spinners, 1, -1 do
 				local s = spinners[i]
 				if s.part.Parent then
-					s.part.CFrame = s.base * CFrame.new(0, math.sin(t * 1.2 + s.phase) * 1.2, 0) * CFrame.Angles(0, t * 0.8 + s.phase, 0)
+					if not s.tagged then
+						s.tagged = true
+						s.part:SetAttribute("BaseCF", s.base)
+						s.part:SetAttribute("Phase", s.phase)
+						CollectionService:AddTag(s.part, "FxSpin")
+					end
 				else
 					table.remove(spinners, i)
 				end
 			end
-			task.wait(1 / 20)
+			task.wait(0.5)
 		end
 	end)
 end

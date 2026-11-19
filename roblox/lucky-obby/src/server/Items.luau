@@ -181,7 +181,10 @@ function USE.swap(player, hrp)
 	local s = G.Race.sessions[player]
 	local ahead = {}
 	for other, os2 in pairs(G.Race.sessions) do
-		if other ~= player and os2.racing and not os2.finished and os2.progress > s.progress and hrpOf(other) then
+		-- no vale con quien es inmune (fantasma / corona) ni con quien está ya llegando (último 10 %)
+		local immune = os2.immuneUntil and os.clock() < os2.immuneUntil
+		local nearEnd = G.Course.length > 0 and os2.progress > G.Course.length * 0.9
+		if other ~= player and os2.racing and not os2.finished and os2.progress > s.progress and not immune and not nearEnd and hrpOf(other) then
 			table.insert(ahead, other)
 		end
 	end
@@ -194,7 +197,9 @@ function USE.swap(player, hrp)
 	hrp.CFrame, o.CFrame = b, a
 	local os2 = G.Race.sessions[other]
 	s.progress, os2.progress = os2.progress, s.progress
-	s.cp, os2.cp = math.max(s.cp, os2.cp), os2.cp
+	local cpA, cpB = s.cp, os2.cp
+	G.Race.setCheckpoint(player, s, cpB) -- cada uno se queda con el punto de control del sitio al que va
+	G.Race.setCheckpoint(other, os2, cpA)
 	notify(player, "swapped", { name = other.DisplayName })
 	notify(other, "swapped", { name = typeof(player) == "Instance" and player.DisplayName or "?" })
 	return true
@@ -202,7 +207,7 @@ end
 
 function USE.freeze(player)
 	for other, s in pairs(G.Race.sessions) do
-		if other ~= player and s.racing and not s.finished then
+		if other ~= player and s.racing and not s.finished and not (s.immuneUntil and os.clock() < s.immuneUntil) then
 			s.frozenUntil = os.clock() + C.FREEZE_TIME
 			local hum = typeof(other) == "Instance" and other.Character and other.Character:FindFirstChildOfClass("Humanoid")
 			if hum then
@@ -231,6 +236,7 @@ function Items.setSpeed(player, speed, secs)
 		return
 	end
 	s.speedUntil = os.clock() + secs
+	s.boostSpeed = speed
 	local hum = humOf(player)
 	if hum and not (s.frozenUntil and os.clock() < s.frozenUntil) then
 		hum.WalkSpeed = speed
@@ -391,7 +397,7 @@ function USE.tornado(player, hrp)
 		local o = other ~= player and s.racing and hrpOf(other)
 		if o then
 			local d = o.Position - hrp.Position
-			if d.Magnitude <= 32 then
+			if d.Magnitude <= 18 then
 				local flat = Vector3.new(d.X, 0, d.Z)
 				flat = flat.Magnitude > 0.1 and flat.Unit or hrp.CFrame.LookVector
 				Items.knock(other, flat * C.KNOCK * 1.4 + Vector3.new(0, 55, 0), player, "tornado")
@@ -529,19 +535,23 @@ local function tick()
 		end
 	end
 	for player, s in pairs(G.Race.sessions) do
+		-- velocidad normal: 20 en carrera, 16 fuera
+		local normal = (s.racing and not s.finished) and G.Race.WALK or 16
 		if s.speedUntil and now >= s.speedUntil then
 			s.speedUntil = nil
+			s.boostSpeed = nil
 			local char = not (s.frozenUntil and now < s.frozenUntil) and typeof(player) == "Instance" and player.Character
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
 			if hum then
-				hum.WalkSpeed = G.Race.WALK
+				hum.WalkSpeed = normal
 			end
 		end
 		if s.frozenUntil and now >= s.frozenUntil then
 			s.frozenUntil = nil
 			local hum = typeof(player) == "Instance" and player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 			if hum then
-				hum.WalkSpeed = G.Race.WALK
+				-- si llevaba turbo/corona/miel que aún dura, recupera esa velocidad
+				hum.WalkSpeed = (s.speedUntil and s.boostSpeed) or normal
 				hum.JumpHeight = 7.2
 			end
 		end

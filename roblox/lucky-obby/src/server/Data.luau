@@ -31,11 +31,26 @@ local function stats(player)
 end
 
 function Data.load(player)
-	local d = { coins = 0, wins = 0, luck = 0, best = 0, trails = {}, trail = "" }
+	local d = { coins = 0, wins = 0, luck = 0, best = 0, trails = {}, trail = "", loaded = true }
 	if store and typeof(player) == "Instance" then
-		local ok, raw = pcall(function()
-			return store:GetAsync(key(player))
-		end)
+		-- hasta 3 intentos; si todos fallan, el perfil NO se guarda nunca (para no machacar sus datos con ceros)
+		local ok, raw
+		for attempt = 1, 3 do
+			ok, raw = pcall(function()
+				return store:GetAsync(key(player))
+			end)
+			if ok then
+				break
+			end
+			task.wait(attempt * 1.5)
+		end
+		if not ok then
+			d.loaded = false
+			warn("[Data] no se pudieron cargar los datos de " .. player.Name .. ": esta sesión no se guardará")
+		end
+		if not player.Parent then
+			return d -- se fue mientras cargaba
+		end
 		if ok and type(raw) == "table" then
 			d.coins = math.max(0, math.floor(tonumber(raw.coins) or 0))
 			d.wins = math.max(0, math.floor(tonumber(raw.wins) or 0))
@@ -56,11 +71,19 @@ function Data.load(player)
 	return d
 end
 
-function Data.save(player)
+function Data.save(player, force)
 	local d = Data.profiles[player]
-	if not d or not store or typeof(player) ~= "Instance" then
+	if not d or not store or typeof(player) ~= "Instance" or d.loaded == false then
 		return false
 	end
+	-- como mucho un guardado cada 10 s por jugador (el límite de Roblox es 1 escritura cada 6 s por clave);
+	-- lo que se pida antes queda pendiente y lo guarda el bucle
+	if not force and d.savedAt and os.clock() - d.savedAt < 10 then
+		d.dirty = true
+		return false
+	end
+	d.savedAt = os.clock()
+	d.dirty = false
 	local ok = pcall(function()
 		store:SetAsync(key(player), { coins = d.coins, wins = d.wins, luck = d.luck or 0, best = d.best or 0, trails = d.trails or {}, trail = d.trail or "" })
 	end)
@@ -91,6 +114,13 @@ function Data.spend(player, n)
 	return true
 end
 
+-- Al salir: último guardado y fuera de la memoria (si no, el bucle seguiría guardando datos viejos
+-- y pisaría lo que gane en otro servidor)
+function Data.release(player)
+	Data.save(player, true)
+	Data.profiles[player] = nil
+end
+
 function Data.addWin(player)
 	local d = Data.profiles[player]
 	if d then
@@ -106,9 +136,12 @@ function Data.init()
 	-- guardado cada 2 minutos y al cerrar el servidor
 	task.spawn(function()
 		while true do
-			task.wait(120)
-			for p in pairs(Data.profiles) do
-				Data.save(p)
+			task.wait(15)
+			for p, d in pairs(Data.profiles) do
+				-- pendientes cada 15 s; todos cada 2 min
+				if d.dirty or not d.savedAt or os.clock() - d.savedAt > 120 then
+					Data.save(p)
+				end
 			end
 		end
 	end)
@@ -117,7 +150,7 @@ function Data.init()
 			return
 		end
 		for p in pairs(Data.profiles) do
-			Data.save(p)
+			Data.save(p, true)
 		end
 	end)
 end

@@ -54,7 +54,11 @@ function Race.rankOf(player)
 	return #list, #list
 end
 
-local function setCheckpoint(player, s, idx)
+local setCheckpoint
+function Race.setCheckpoint(player, s, idx)
+	setCheckpoint(player, s, idx)
+end
+function setCheckpoint(player, s, idx)
 	s.cp = idx
 	local cp = G.Course.checkpoints[idx]
 	if typeof(player) == "Instance" and cp then
@@ -98,10 +102,14 @@ function Race.finish(player)
 	s.finishTime = os.clock() - Race.startedAt
 	table.insert(Race.finishers, player)
 	local place = #Race.finishers
-	local coins = (C.REWARDS[place] or 0) + C.REWARD_FINISH
+	-- corriendo solo no hay premio por puesto ni victoria (se podría granjear); solo lo de terminar
+	local contested = (Race.fieldSize or 0) >= 2
+	local coins = (contested and (C.REWARDS[place] or 0) or 0) + C.REWARD_FINISH
 	G.Data.addCoins(player, coins)
-	if place == 1 then
+	if place == 1 and contested then
 		G.Data.addWin(player)
+	end
+	if place == 1 then
 		G.Net.Event:FireAllClients("winner", { name = typeof(player) == "Instance" and player.DisplayName or "?" })
 		Race.endsAt = math.min(Race.endsAt, os.clock() + R.AFTER_WINNER)
 	end
@@ -126,13 +134,16 @@ function Race.step()
 					s.progress = math.max(s.progress, pos.Z - C.COURSE.START.Z)
 				end
 				local cp = G.Course.checkpointAt(pos)
-				if cp and cp > s.cp then
+				-- de uno en uno (aparecer de golpe más adelante = teletransporte del cliente: no cuenta)
+				if cp and cp == s.cp + 1 then
 					setCheckpoint(player, s, cp)
 					if typeof(player) == "Instance" then
 						G.Net.Event:FireClient(player, "checkpoint", { index = cp })
 					end
 				end
-				if pos.Z >= G.Course.finishZ and pos.Y > C.COURSE.START.Y - 8 then
+				-- meta: haber pasado el último punto de control y un tiempo creíble (el recorrido limpio son ~60 s)
+				local lastCp = #G.Course.checkpoints
+				if pos.Z >= G.Course.finishZ and pos.Y > C.COURSE.START.Y - 8 and s.cp >= lastCp and now - Race.startedAt >= 25 then
 					Race.finish(player)
 				end
 			end
@@ -195,10 +206,12 @@ function Race.loop()
 			end
 		end
 		table.clear(Race.joined)
-		if #list < R.MIN_PLAYERS then
+		local botsRunning = Race.extraRunners and Race.extraRunners(true) or 0
+		if #list < R.MIN_PLAYERS and botsRunning == 0 then
 			continue -- nadie se apuntó: otro descanso
 		end
 		courseUsed = true
+		Race.fieldSize = #list
 		-- salida: los apuntados a la parrilla, quietos durante la cuenta atrás
 		table.clear(Race.finishers)
 		G.Items.clear()
@@ -225,7 +238,7 @@ function Race.loop()
 		Race.state = "racing"
 		Race.startedAt = os.clock()
 		Race.endsAt = os.clock() + R.RACE_TIME
-		while os.clock() < Race.endsAt and racerCount() > 0 do
+		while os.clock() < Race.endsAt and (racerCount() > 0 or (Race.extraRunners and Race.extraRunners(false) or 0) > 0) do
 			task.wait(0.2)
 		end
 		-- resultados: monedas por participar a los que no llegaron
@@ -306,7 +319,7 @@ function Race.init(g)
 			if not hrp or not hum or not s then
 				return
 			end
-			if s.racing and not s.finished and Race.state == "racing" then
+			if s.racing and not s.finished and (Race.state == "racing" or Race.state == "countdown") then
 				local cp = G.Course.checkpoints[s.cp]
 				teleport(p, cp and cp.pos or C.COURSE.START + Vector3.new(0, 3, 0))
 				hum.WalkSpeed = Race.WALK
@@ -320,7 +333,7 @@ function Race.init(g)
 		Race.setJoined(p, on == true)
 	end)
 	Players.PlayerRemoving:Connect(function(p)
-		G.Data.save(p)
+		G.Data.release(p)
 		Race.joined[p] = nil
 		Race.sessions[p] = nil
 	end)
@@ -331,7 +344,14 @@ function Race.init(g)
 end
 
 function Race.start()
-	task.spawn(Race.loop)
+	task.spawn(function() -- si una ronda da error, se avisa y vuelve a empezar (no se congelan las rondas)
+		while true do
+			local ok, err = pcall(Race.loop)
+			warn("[Race] " .. tostring(err))
+			local _ = ok
+			task.wait(2)
+		end
+	end)
 	task.spawn(function()
 		while true do
 			task.wait(0.2)

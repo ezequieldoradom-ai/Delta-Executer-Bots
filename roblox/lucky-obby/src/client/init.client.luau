@@ -469,8 +469,8 @@ task.spawn(function()
 		if l then
 			local lv = player:GetAttribute("LuckLevel") or 0
 			local cost = player:GetAttribute("LuckCost") or -1
-			local mult = 1 + lv * Config.LUCK.STEP * 5
-			l.Text = string.format('🍀 %s %d <font color="#FFE36B">(x%.1f)</font>\n%s', Locale.lang() == "es" and "SUERTE NV" or "LUCK LV", lv, mult,
+			local mult = math.floor(lv * Config.LUCK.STEP * 100 + 0.5)
+			l.Text = string.format('🍀 %s %d <font color="#FFE36B">(+%d%%)</font>\n%s', Locale.lang() == "es" and "SUERTE NV" or "LUCK LV", lv, mult,
 				cost >= 0 and string.format("🪙 %d → %s %d", cost, Locale.lang() == "es" and "NV" or "LV", lv + 1) or "MAX")
 		end
 		task.wait(0.5)

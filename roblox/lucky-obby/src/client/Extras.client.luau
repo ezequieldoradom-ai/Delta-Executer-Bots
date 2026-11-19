@@ -25,14 +25,45 @@ local RAINBOW = {
 	Color3.fromRGB(90, 220, 110), Color3.fromRGB(70, 170, 255), Color3.fromRGB(170, 100, 255),
 }
 
--- CAJAS QUE GIRAN ------------------------------------------------------------
+-- ADORNOS QUE GIRAN (los anima cada cliente; el servidor solo pone etiqueta y atributos) ------------
+-- FxSpin: gira y flota sobre BaseCF · FxOrbit: da vueltas alrededor de Center. Solo los que están cerca.
+local spinList, orbitList = {}, {}
+local function track(tag, list)
+	for _, o in ipairs(CollectionService:GetTagged(tag)) do
+		list[o] = true
+	end
+	CollectionService:GetInstanceAddedSignal(tag):Connect(function(o)
+		list[o] = true
+	end)
+	CollectionService:GetInstanceRemovedSignal(tag):Connect(function(o)
+		list[o] = nil
+	end)
+end
+track("FxSpin", spinList)
+track("FxOrbit", orbitList)
 RunService.RenderStepped:Connect(function()
 	local t = os.clock()
-	for _, b in ipairs(CollectionService:GetTagged("LuckyBox")) do
-		local base = b:GetAttribute("BaseCF")
-		if typeof(base) == "CFrame" then
-			local ph = base.Position.Z * 0.13 + base.Position.X
-			b.CFrame = base * CFrame.new(0, math.sin(t * 2 + ph) * 0.5, 0) * CFrame.Angles(0, t * 1.6 + ph, math.rad(12))
+	local cam = workspace.CurrentCamera
+	local camPos = cam and cam.CFrame.Position or Vector3.zero
+	for o in pairs(spinList) do
+		local base = o:GetAttribute("BaseCF")
+		if typeof(base) == "CFrame" and (base.Position - camPos).Magnitude < 400 then
+			local ph = o:GetAttribute("Phase") or 0
+			local sp = o:GetAttribute("Speed") or 1.2
+			local cf = base * CFrame.new(0, math.sin(t * sp + ph) * 1.0, 0) * CFrame.Angles(0, t * 0.8 + ph, 0)
+			if o:IsA("Model") then
+				o:PivotTo(cf)
+			elseif o:IsA("BasePart") then
+				o.CFrame = cf
+			end
+		end
+	end
+	for o in pairs(orbitList) do
+		local c = o:GetAttribute("Center")
+		if typeof(c) == "Vector3" and o:IsA("BasePart") and (c - camPos).Magnitude < 200 then
+			local ph = o:GetAttribute("Phase") or 0
+			local a = t * 2.2 + ph
+			o.CFrame = CFrame.new(c + Vector3.new(math.cos(a) * 2.2, math.sin(t * 3 + ph) * 0.6, math.sin(a) * 2.2))
 		end
 	end
 end)
@@ -150,7 +181,7 @@ local BANGERS = Font.new("rbxasset://fonts/families/Bangers.json", Enum.FontWeig
 local joinBtn = Instance.new("TextButton")
 joinBtn.Name = "JoinRace"
 joinBtn.AnchorPoint = Vector2.new(0.5, 0)
-joinBtn.Position = UDim2.new(0.5, 0, 0, 122)
+joinBtn.Position = UDim2.new(0.5, 0, 0, 156)
 joinBtn.Size = UDim2.fromOffset(250, 44)
 joinBtn.BackgroundColor3 = Color3.new(1, 1, 1)
 joinBtn.Text = ""
@@ -222,7 +253,7 @@ game:GetService("ContextActionService"):BindAction("LuckyJoin", function(_, st)
 		return Enum.ContextActionResult.Sink
 	end
 	return Enum.ContextActionResult.Pass
-end, false, Enum.KeyCode.ButtonY)
+end, false, Enum.KeyCode.J, Enum.KeyCode.ButtonY)
 RunService.RenderStepped:Connect(function()
 	if joinBtn.Visible then
 		local t = os.clock()
@@ -254,7 +285,9 @@ Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 				ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 200, 40)),
 				ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 90, 40)),
 			})
-			joinText.Text = es() and "🏁 ENTRAR A LA CARRERA" or "🏁 JOIN THE RACE"
+			local uis = game:GetService("UserInputService")
+			local hint = uis.GamepadEnabled and " (Y)" or (uis.KeyboardEnabled and " (J)" or "")
+			joinText.Text = (es() and "🏁 ENTRAR A LA CARRERA" or "🏁 JOIN THE RACE") .. hint
 		end
 	end
 	if s.state == "countdown" and lastState ~= "countdown" and s.racing then

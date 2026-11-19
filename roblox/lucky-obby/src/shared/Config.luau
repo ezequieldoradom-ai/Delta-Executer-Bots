@@ -103,7 +103,7 @@ end
 
 -- SUERTE (se compra en el vestíbulo con monedas): sube la probabilidad de objetos fuertes.
 -- Cada nivel acerca tu "puesto" de reparto al de los últimos (que reciben Cambiazo y Congelación).
-Config.LUCK = { MAX = 10, STEP = 0.08 }
+Config.LUCK = { MAX = 10, STEP = 0.03 } -- nivel 10 = +30 % hacia el reparto de los últimos
 function Config.luckCost(level) -- precio para pasar de level a level+1
 	return math.floor(40 * 1.55 ^ level)
 end

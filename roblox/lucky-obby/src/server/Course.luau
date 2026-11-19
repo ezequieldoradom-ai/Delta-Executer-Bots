@@ -57,8 +57,9 @@ local OB = {}
 function OB.stones(a, b, y, th, rng)
 	for row = 0, 3 do
 		local z = a + 4 + row * (b - a - 6) / 3
-		for _, x in ipairs({ -6, 0, 6 }) do
-			if rng:NextNumber() < 0.8 then
+		local must = rng:NextInteger(1, 3)
+		for k, x in ipairs({ -6, 0, 6 }) do
+			if k == must or rng:NextNumber() < 0.8 then
 				part({ Name = "Stone", Size = Vector3.new(3.6, 1, 3.6), CFrame = CFrame.new(x + rng:NextNumber(-1, 1), y - 0.5, z), Color = (row % 2 == 0) and th.floor or th.alt, Material = th.mat })
 			end
 		end

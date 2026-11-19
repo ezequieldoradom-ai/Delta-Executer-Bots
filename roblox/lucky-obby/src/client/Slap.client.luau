@@ -169,7 +169,13 @@ stroke(marker, Color3.new(0, 0, 0), 2)
 local barTitle = text(bar, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0, -8), Size = UDim2.fromOffset(560, 40), Text = L("💪 ¡PÁRALA! (el rojo = 💀 SUPREMO)", "💪 STOP IT! (red = 💀 SUPREME)") })
 local _ = barTitle
 -- capa invisible a pantalla completa para parar la barra con un toque/clic
-local tapLayer = text(gui, { Button = true, Size = UDim2.fromScale(1, 1), Text = "", Visible = false, ZIndex = 0 })
+local tapGui = Instance.new("ScreenGui")
+tapGui.Name = "SlapTap"
+tapGui.ResetOnSpawn = false
+tapGui.IgnoreGuiInset = true
+tapGui.DisplayOrder = 0
+tapGui.Parent = gui.Parent
+local tapLayer = text(tapGui, { Button = true, Size = UDim2.fromScale(1, 1), Text = "", Visible = false })
 
 -- esquiva
 local dodgeBtn = text(gui, { Button = true, AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(130, 130), Text = "💨", BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(255, 70, 90), Visible = false, ZIndex = 10 })
@@ -197,6 +203,7 @@ guessList.Size = UDim2.new(1, -40, 1, -90)
 guessList.Parent = guessPanel
 local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 10)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = guessList
 
 -- textos grandes
@@ -216,7 +223,7 @@ local function shout(t, color, secs)
 		end
 	end)
 end
-local msgLabel = text(gui, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 178), Size = UDim2.fromOffset(760, 36), Text = "", TextTransparency = 1, TextStrokeTransparency = 1, Font = Enum.Font.FredokaOne })
+local msgLabel = text(gui, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 208), Size = UDim2.fromOffset(760, 36), Text = "", TextTransparency = 1, TextStrokeTransparency = 1, Font = Enum.Font.FredokaOne })
 local function msg(t)
 	msgLabel.Text = t
 	msgLabel.TextTransparency, msgLabel.TextStrokeTransparency = 0, 0.3
@@ -249,7 +256,23 @@ local function amSeated()
 	return station and station.seated == player.UserId and station.phase ~= "idle"
 end
 
+local function lockSeat()
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, not amSeated())
+	end
+	local plaza = workspace:FindFirstChild("SlapPlaza")
+	if plaza then
+		for _, pp in ipairs(plaza:GetDescendants()) do
+			if pp:IsA("ProximityPrompt") then
+				pp.Enabled = station == nil
+			end
+		end
+	end
+end
 local function updateUI()
+	lockSeat()
 	panel.Visible = station ~= nil
 	if not station then
 		slapBtn.Visible = false
@@ -365,6 +388,14 @@ local PADKEYS = {
 	{ key = Enum.KeyCode.ButtonX, sym = "□", color = Color3.fromRGB(240, 120, 220) },
 }
 local dodging = nil -- { t0, key, done }
+local dodgeImg = Instance.new("ImageLabel")
+dodgeImg.BackgroundTransparency = 1
+dodgeImg.AnchorPoint = Vector2.new(0.5, 0.5)
+dodgeImg.Position = UDim2.fromScale(0.5, 0.5)
+dodgeImg.Size = UDim2.fromScale(0.7, 0.7)
+dodgeImg.ZIndex = 11
+dodgeImg.Visible = false
+dodgeImg.Parent = dodgeBtn
 local function finishDodge(ok)
 	if not dodging or dodging.done then
 		return
@@ -372,7 +403,7 @@ local function finishDodge(ok)
 	dodging.done = true
 	dodgeBtn.Visible = false
 	ContextActionService:UnbindAction("SlapDodge")
-	Net:FireServer("dodge", ok)
+	Net:FireServer("dodge", ok and dodging.key or 0)
 	if ok then
 		play("whoosh", 1.5)
 	end
@@ -392,6 +423,15 @@ local function startDodge(d)
 		dodgeBtn.Position = UDim2.fromScale(0.5, 0.5)
 		dodgeBtn.Text = k.sym
 		dodgeBtn.BackgroundColor3 = k.color
+		local img = ""
+		pcall(function()
+			img = UserInputService:GetImageForKeyCode(k.key)
+		end)
+		dodgeImg.Image = img
+		dodgeImg.Visible = img ~= ""
+		if img ~= "" then
+			dodgeBtn.Text = ""
+		end
 		ContextActionService:BindActionAtPriority("SlapDodge", function(_, st, input)
 			if st == Enum.UserInputState.Begin then
 				finishDodge(input.KeyCode == k.key and os.clock() - dodging.t0 <= window)
@@ -401,7 +441,9 @@ local function startDodge(d)
 	else
 		dodgeBtn.Position = UDim2.fromScale(0.12 + math.random() * 0.76, 0.18 + math.random() * 0.64)
 		dodgeBtn.Text = "💨"
+		dodgeImg.Visible = false
 		dodgeBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 90)
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default -- por si el ratón está bloqueado (shift-lock)
 	end
 	TweenService:Create(dodgeBtn, TweenInfo.new(window, Enum.EasingStyle.Linear), { Size = UDim2.fromOffset(70, 70) }):Play()
 	local my = dodging
@@ -419,8 +461,8 @@ local function startGuess(d)
 			c:Destroy()
 		end
 	end
-	for _, o in ipairs(d.options or {}) do
-		local b = text(guessList, { Button = true, Size = UDim2.new(1, 0, 0, 56), Text = "👉 " .. tostring(o.name), BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(90, 60, 140) })
+	for i, o in ipairs(d.options or {}) do
+		local b = text(guessList, { Button = true, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 56), Text = "👉 " .. tostring(o.name), BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(90, 60, 140) })
 		corner(b, 14)
 		stroke(b, WHITE, 2)
 		b.Activated:Connect(function()
@@ -429,6 +471,41 @@ local function startGuess(d)
 		end)
 	end
 	guessPanel.Visible = true
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	local padKeys = { Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonB, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY }
+	local opts = d.options or {}
+	if UserInputService.GamepadEnabled then
+		for i, b in ipairs(guessList:GetChildren()) do
+			local _ = i
+			if b:IsA("TextButton") then
+				local idx = b.LayoutOrder
+				local key = padKeys[idx]
+				local ok, img = pcall(function()
+					return UserInputService:GetImageForKeyCode(key)
+				end)
+				if key and ok and img ~= "" then
+					local icon = Instance.new("ImageLabel")
+					icon.BackgroundTransparency = 1
+					icon.Size = UDim2.fromOffset(40, 40)
+					icon.Position = UDim2.new(1, -48, 0.5, -20)
+					icon.Image = img
+					icon.Parent = b
+				end
+			end
+		end
+		ContextActionService:BindActionAtPriority("SlapGuess", function(_, st, input)
+			if st ~= Enum.UserInputState.Begin then
+				return Enum.ContextActionResult.Pass
+			end
+			local i = table.find(padKeys, input.KeyCode)
+			if i and opts[i] and guessPanel.Visible then
+				guessPanel.Visible = false
+				Net:FireServer("guess", opts[i].id)
+				return Enum.ContextActionResult.Sink
+			end
+			return Enum.ContextActionResult.Pass
+		end, false, 4000, table.unpack(padKeys))
+	end
 	local t0, secs = os.clock(), tonumber(d.time) or 10
 	task.spawn(function()
 		while guessPanel.Visible and os.clock() - t0 < secs do
@@ -436,6 +513,7 @@ local function startGuess(d)
 			task.wait(0.2)
 		end
 		guessPanel.Visible = false
+		ContextActionService:UnbindAction("SlapGuess")
 	end)
 end
 
@@ -466,7 +544,7 @@ local function soundAt(pos, name, pitch, vol)
 end
 
 local function onHit(d)
-	local victimChar = charOf(d.victim)
+	local victimChar = (typeof(d.victimChar) == "Instance" and d.victimChar) or charOf(d.victim)
 	local head = victimChar and victimChar:FindFirstChild("Head")
 	local hrp = victimChar and victimChar:FindFirstChild("HumanoidRootPart")
 	local isVictim = d.victim == player.UserId
@@ -498,8 +576,8 @@ local function onHit(d)
 		shout(d.supreme and L("💀 ¡GUANTAZO SUPREMO!", "💀 SUPREME SLAP!") or "💥 ¡PAM!", d.supreme and Color3.fromRGB(255, 70, 70) or GOLD, 1.4)
 		return
 	end
-	-- primer plano (para todos los de cerca menos el sentado)
-	if not head or cine then
+	-- primer plano: solo para los de esta mesa que no están ocupados (no se roba la cámara a nadie más)
+	if not head or cine or not station or station.id ~= d.station or charging or (dodging and not dodging.done) then
 		return
 	end
 	local myChar = player.Character
@@ -565,12 +643,15 @@ local function jointOf(char, kind)
 end
 local function startAnim(d)
 	local who = tonumber(d.who) or 0
+	if typeof(d.char) == "Instance" then
+		who = d.char -- clave: el propio personaje
+	end
 	if d.pose == "jolt" then
 		local pw = tonumber(d.power) or 0.5
-		anims[who .. "neck"] = { who = who, kind = "neck", from = CFrame.Angles(math.rad(-15 - 30 * pw), math.rad(40 * pw), math.rad(12 * pw)), to = CFrame.new(), t0 = os.clock(), dur = 0.9, style = Enum.EasingStyle.Elastic }
+		anims[tostring(who) .. "neck"] = { who = who, kind = "neck", from = CFrame.Angles(math.rad(-15 - 30 * pw), math.rad(40 * pw), math.rad(12 * pw)), to = CFrame.new(), t0 = os.clock(), dur = 0.9, style = Enum.EasingStyle.Elastic }
 		return
 	end
-	local key = who .. "arm"
+	local key = tostring(who) .. "arm"
 	local cur = anims[key]
 	local from = CFrame.new()
 	if cur then
@@ -582,8 +663,13 @@ end
 RunService.Stepped:Connect(function()
 	local now = os.clock()
 	for key, a in pairs(anims) do
-		local p = Players:GetPlayerByUserId(a.who)
-		local char = p and p.Character
+		local char
+		if typeof(a.who) == "Instance" then
+			char = a.who.Parent and a.who or nil
+		else
+			local p = Players:GetPlayerByUserId(a.who)
+			char = p and p.Character
+		end
 		local j = char and jointOf(char, a.kind)
 		local t = math.clamp((now - a.t0) / a.dur, 0, 1)
 		if j then
