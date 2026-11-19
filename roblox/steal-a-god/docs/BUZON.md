@@ -197,3 +197,10 @@ Nuevo también: música de fondo, gritos de los guardianes con frase en inglés 
 - "Salvar el sobre" solo se ofrece con sobres ≥ `Config.SAVE_OFFER_FROM = 8` (Celestial+); los demás vuelven a su nido.
 - Cartel del sobre más grande (170+50k × 56+17k) y kilos/suerte sin `size=16` (se leen igual de grandes que la rareza).
 - DawnFeed: ahora solo letras arriba en el centro, en columna, una a una, máx. 5 a la vez, se desvanecen.
+
+## 2026-11-19 01:30 · Shadow — repaso completo pedido por el dueño
+- Recorrido en Studio: 6 zonas + parcela llena + obby a 58-60 FPS; todos los menús abiertos sin errores de script. Revisión de código independiente de lo nuevo: el panel de admin es seguro (un jugador normal no puede usarlo).
+- **Arreglos del anti-trampas** (eran míos): la exención del obby valía en todo el mapa → ahora solo cerca de la isla, y si estás "en el obby" lejos de ella te saca (`Obby.leave`); allí se vigila con margen +14 y se acepta la vuelta al punto que hace ObbyFx. Margen acumulado en tirones de red; usa la WalkSpeed máxima del último segundo; el primer aviso de velocidad ya no quita el sobre; solo expulsa por vuelo/teletransporte (no por que otro te lance); vuelo medido por la altura (no por la velocidad que dice el cliente) y suelo con Blockcast; exento solo con `SeatPart`; desconecta las señales del personaje anterior.
+- **Packs** (tuyo, pequeño): `grab` rechaza si `s.inObby`; un sobre "pendiente" de Salvar el sobre se destruye si amaneció entretanto (antes salía un 7º sobre en el nido).
+- init.client: la barra del bate se esconde con un menú abierto. DawnFeed: el temblor de Secreta ya se mueve.
+- Recibido tu encargo de los clips del short; lo hago cuando el dueño me lo confirme.

@@ -381,6 +381,7 @@ end
 -- Amanecer: se renuevan todos los sobres y se avisa en el chat
 ---------------------------------------------------------------------
 function Packs.refreshAll()
+	Packs.dawnCount = (Packs.dawnCount or 0) + 1
 	for _, pack in pairs(Packs.list) do
 		if pack.state ~= "carried" and pack.state ~= "pending" then
 			destroyPack(pack)
@@ -431,8 +432,8 @@ function Packs.grab(player, pack)
 	if not s or not d or pack.state == "carried" or pack.state == "gone" or pack.state == "pending" then
 		return
 	end
-	if s.carrying or s.afk or G.DayNight.isNight() then
-		return
+	if s.carrying or s.afk or s.inObby or G.DayNight.isNight() then
+		return -- (en el obby no se puede robar: el anti-trampas es más permisivo allí)
 	end
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -600,13 +601,15 @@ local function caught(player, guardIndex, guardPos)
 		carryFx(pack, false)
 		dimBeam(pack, false)
 		setPackVisible(pack, false)
-		pendingSave[player] = { pack = pack, untilT = os.clock() + 10 }
+		pendingSave[player] = { pack = pack, untilT = os.clock() + 10, dawn = Packs.dawnCount or 0 }
 		G.Net.Offer:FireClient(player, "savePack")
 		task.delay(10.5, function()
 			local p = pendingSave[player]
 			if p and p.pack == pack then
 				pendingSave[player] = nil
-				if pack.state == "pending" then
+				if pack.state == "pending" and (p.dawn ~= (Packs.dawnCount or 0) or G.DayNight.isNight()) then
+					destroyPack(pack) -- ya amaneció (o es de noche): el nido tiene sobres nuevos, este no vuelve
+				elseif pack.state == "pending" then
 					setPackVisible(pack, true)
 					pack.prompt.Enabled = true
 					returnHome(pack)

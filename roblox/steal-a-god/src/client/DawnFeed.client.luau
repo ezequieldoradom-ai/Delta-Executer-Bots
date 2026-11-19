@@ -99,7 +99,9 @@ local function addLine(data)
 	order += 1
 	local zone = Config.ZONES[data.zone]
 	local text = string.format("%s %s · %s", r >= 10 and "⚡" or "✨", Locale.upper(Locale.name(Config.RARITIES[r])), zone and Locale.name(zone) or "")
-	local line = new("TextLabel", { BackgroundTransparency = 1, Text = text, Font = th.font, TextScaled = true, TextColor3 = WHITE, TextTransparency = 1, Size = UDim2.new(1, 0, 0, h), LayoutOrder = order, Parent = column })
+	-- (cada línea va dentro de un marco: el UIListLayout fija la posición del marco y la letra puede temblar dentro)
+	local holder = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, h), LayoutOrder = order, Parent = column })
+	local line = new("TextLabel", { BackgroundTransparency = 1, Text = text, Font = th.font, TextScaled = true, TextColor3 = WHITE, TextTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = holder })
 	local stroke = new("UIStroke", { Thickness = 3, Color = th.stroke, Transparency = 1, Parent = line })
 	local grad = new("UIGradient", { Color = th.colors, Parent = line })
 	local scale = new("UIScale", { Scale = 1.6, Parent = line })
@@ -121,7 +123,7 @@ local function addLine(data)
 		TweenService:Create(stroke, fade, { Transparency = 1 }):Play()
 		task.wait(1.25)
 		live[line] = nil
-		line:Destroy()
+		holder:Destroy()
 	end)
 end
 
