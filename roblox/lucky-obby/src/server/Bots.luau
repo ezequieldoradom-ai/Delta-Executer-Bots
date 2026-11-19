@@ -242,6 +242,7 @@ end
 
 local function removeBot(bot)
 	bot.alive = false
+	G.Race.sessions[bot] = nil
 	if bot.role == "slap" and G.Slap then
 		pcall(G.Slap.leave, bot)
 	end
@@ -395,6 +396,21 @@ local function raceStep(bot)
 	local wps = pathFor(course)
 	local p = hrp.Position
 	local finishZ = G.Course.finishZ
+	-- su "sesión" de carrera (la comparten con los jugadores: objetos y puesto)
+	local sess = G.Race.sessions[bot]
+	if sess then
+		sess.progress = math.max(sess.progress, p.Z - C.COURSE.START.Z)
+		if sess.cp > bot.cp then -- un Cambiazo le cambió de sitio
+			bot.cp = sess.cp
+			bot.wpi = nil
+		end
+		-- congelado o recién golpeado: quieto
+		if (sess.frozenUntil and os.clock() < sess.frozenUntil) or (sess.lastHitAt and os.clock() - sess.lastHitAt < 0.9) then
+			hum:Move(Vector3.zero)
+			bot.wpi = nil
+			return
+		end
+	end
 	-- caer o tocar algo que mata
 	local dead = p.Y < C.COURSE.START.Y - C.COURSE.FALL
 	if not dead then
@@ -443,9 +459,15 @@ local function raceStep(bot)
 	if cpi and cpi > bot.cp then
 		bot.cp = cpi
 	end
+	if sess then
+		sess.cp = bot.cp
+	end
 	-- meta
 	if p.Z >= finishZ then
 		bot.done = true
+		if sess then
+			sess.finished = true
+		end
 		hum:MoveTo(Vector3.new(math.random(-6, 6), p.Y, finishZ + 10))
 		task.delay(0.6, function()
 			if hum.Parent then
@@ -525,6 +547,7 @@ local function raceLoop(bot)
 				-- a la parrilla, detrás de los jugadores
 				bot.cp, bot.done, bot.lane, bot.stuckZ, bot.wpi = 0, false, 0, nil, nil
 				bot.racing = true
+				G.Race.sessions[bot] = { racing = true, finished = false, progress = 0, cp = 0, item = nil, rolling = false, nextLucky = math.huge, isBot = true }
 				local k = bot.slot or 1
 				local pos = C.COURSE.START + Vector3.new(-6 + ((k - 1) % 4) * 4, 3, -9.5 - math.floor((k - 1) / 4) * 3)
 				local hrp = hrpOf(bot)
@@ -538,6 +561,7 @@ local function raceLoop(bot)
 				hum.WalkSpeed = 20 * (0.88 + math.random() * 0.1)
 			elseif (state == "results" or state == "break") and bot.racing then
 				bot.racing = false
+				G.Race.sessions[bot] = nil
 				local hrp = hrpOf(bot)
 				if hrp then
 					hrp.CFrame = CFrame.new(C.COURSE.LOBBY + Vector3.new(math.random(-10, 10), 3, math.random(-8, 8)))
@@ -584,7 +608,7 @@ local function slapBrain(bot)
 						humans += 1
 					end
 				end
-				task.delay(humans > 0 and math.random(9, 16) or math.random(4, 9), function()
+				task.delay(humans > 0 and (3 + math.random() * 3) or (1.2 + math.random() * 1.8), function()
 					if bot.station == round and bot.alive then
 						G.Slap.request(bot)
 					end

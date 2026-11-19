@@ -47,6 +47,7 @@ local LAVA = Color3.fromRGB(255, 70, 40)
 local function kill(props)
 	props.Color = LAVA
 	props.Material = Enum.Material.Neon
+	props.CanCollide = false -- se pisa "dentro": así la detección de tocar lava no falla
 	props.Tags = props.Tags or {}
 	table.insert(props.Tags, "Kill")
 	return part(props)

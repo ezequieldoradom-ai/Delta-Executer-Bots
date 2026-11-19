@@ -8,6 +8,11 @@ local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 
 local Decor = {}
+-- disposición del vestíbulo (la usan también Hub, Extras, Lobby y Slap)
+Decor.LOBBY_R = 58 -- radio del suelo del vestíbulo
+Decor.PLAZA = Vector3.new(-125, 0, -40) -- plaza de "¿Quién ha sido?" (a un lado, no detrás de los tablones)
+Decor.ISLAND_CENTER = Vector3.new(-55, 0, -70)
+Decor.ISLAND_R = 175
 local G, C
 
 local RAINBOW = {
@@ -139,14 +144,29 @@ end
 
 -- Ambiente general
 local function sky()
-	Lighting.Brightness = 2.8
-	Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 170)
+	Lighting.Brightness = 2.6
+	Lighting.OutdoorAmbient = Color3.fromRGB(165, 150, 200)
+	Lighting.ClockTime = 14.5
+	-- CIELO GALÁCTICO (textura de nebulosa propia del dueño) sin sol ni luna; lo animan los clientes (GalaxySky)
+	local skyObj = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
+	local GAL = "rbxassetid://102219515094576"
+	skyObj.SkyboxBk, skyObj.SkyboxDn, skyObj.SkyboxFt = GAL, GAL, GAL
+	skyObj.SkyboxLf, skyObj.SkyboxRt, skyObj.SkyboxUp = GAL, GAL, GAL
+	skyObj.CelestialBodiesShown = false
+	skyObj.StarCount = 3000
+	skyObj.Parent = Lighting
+	pcall(function()
+		local cl = workspace.Terrain:FindFirstChildOfClass("Clouds")
+		if cl then
+			cl:Destroy()
+		end
+	end)
 	local atm = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
-	atm.Density = 0.3
-	atm.Haze = 1.2
-	atm.Glare = 0.4
-	atm.Color = Color3.fromRGB(200, 225, 255)
-	atm.Decay = Color3.fromRGB(255, 220, 200)
+	atm.Density = 0.12
+	atm.Haze = 0
+	atm.Glare = 0
+	atm.Color = Color3.fromRGB(150, 120, 230)
+	atm.Decay = Color3.fromRGB(90, 60, 160)
 	atm.Parent = Lighting
 	local bloom = Lighting:FindFirstChildOfClass("BloomEffect") or Instance.new("BloomEffect")
 	bloom.Intensity = 0.6
@@ -160,12 +180,7 @@ local function sky()
 	cc.Saturation = 0.2
 	cc.Contrast = 0.08
 	cc.Parent = Lighting
-	pcall(function()
-		local clouds = workspace.Terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
-		clouds.Cover = 0.55
-		clouds.Density = 0.5
-		clouds.Parent = workspace.Terrain
-	end)
+
 end
 
 -- Vestíbulo
@@ -174,20 +189,80 @@ local function lobby()
 	f.Name = "LobbyDecor"
 	local c = C.LOBBY - Vector3.new(0, 4, 0)
 	local rng = Random.new(77)
-	-- la plataforma del vestíbulo se convierte en isla flotante
-	for k = 0, 4 do
-		local rr = 35 * (1 - k * 0.18)
-		part({ Name = "LobbyRock", Shape = Enum.PartType.Cylinder, Size = Vector3.new(7, rr * 2, rr * 2), CFrame = CFrame.new(c - Vector3.new(0, 4.5 + k * 6.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(135 - k * 10, 110 - k * 8, 90 - k * 6), Material = Enum.Material.Rock }, f)
+	-- GRAN PLATAFORMA DE OBBY flotando en la galaxia: suelo a cuadros de colores (como el vestíbulo)
+	-- y una muralla de bloques arcoíris alrededor (con almenas de neón)
+	local mid = Decor.ISLAND_CENTER
+	local RR = Decor.ISLAND_R
+	part({ Name = "Platform", Shape = Enum.PartType.Cylinder, Size = Vector3.new(4, RR * 2, RR * 2), CFrame = CFrame.new(mid.X, -1.5, mid.Z) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(245, 240, 232), Material = Enum.Material.SmoothPlastic, CanCollide = true }, f)
+	part({ Name = "PlatformUnder", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1, RR * 2 - 6, RR * 2 - 6), CFrame = CFrame.new(mid.X, -4, mid.Z) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(170, 100, 255), Material = Enum.Material.Neon }, f)
+	local PASTEL = {
+		Color3.fromRGB(255, 150, 160), Color3.fromRGB(255, 200, 120), Color3.fromRGB(255, 235, 130),
+		Color3.fromRGB(150, 230, 150), Color3.fromRGB(130, 200, 255), Color3.fromRGB(200, 160, 255),
+	}
+	local TILE = 10
+	local lobbyC = Vector3.new(c.X, 0, c.Z)
+	for ix = -math.ceil(RR / TILE), math.ceil(RR / TILE) do
+		for iz = -math.ceil(RR / TILE), math.ceil(RR / TILE) do
+			if (ix + iz) % 2 == 0 then
+				local x, z = mid.X + ix * TILE, mid.Z + iz * TILE
+				local pp = Vector3.new(x, 0, z)
+				local inside = (pp - Vector3.new(mid.X, 0, mid.Z)).Magnitude + TILE * 0.75 < RR - 4
+				local inLobby = (pp - lobbyC).Magnitude < Decor.LOBBY_R + TILE * 0.75
+				local inPlaza = Decor.PLAZA and (pp - Vector3.new(Decor.PLAZA.X, 0, Decor.PLAZA.Z)).Magnitude < 44 + TILE * 0.75
+				if inside and not inLobby and not inPlaza then
+					local ang = math.atan2(x - mid.X, z - mid.Z)
+					local sector = math.floor(((ang + math.pi) / (2 * math.pi)) * #PASTEL) % #PASTEL + 1
+					part({ Name = "FloorTile", Size = Vector3.new(TILE - 0.3, 0.06, TILE - 0.3), CFrame = CFrame.new(x, 0.53, z), Color = PASTEL[sector], Material = Enum.Material.SmoothPlastic }, f)
+				end
+			end
+		end
+	end
+	-- muralla
+	local segLen = 8
+	local nSeg = math.floor(2 * math.pi * (RR - 2) / segLen)
+	for k = 0, nSeg - 1 do
+		local ang = k / nSeg * math.pi * 2
+		local pos = Vector3.new(mid.X + math.cos(ang) * (RR - 2), 0, mid.Z + math.sin(ang) * (RR - 2))
+		local cf = CFrame.lookAt(pos, Vector3.new(mid.X, 0, mid.Z))
+		local h = 12
+		local col = RAINBOW[(k % #RAINBOW) + 1]
+		part({ Name = "Wall", Size = Vector3.new(segLen + 0.2, h, 3), CFrame = cf * CFrame.new(0, h / 2 + 0.5, 0), Color = col, Material = Enum.Material.SmoothPlastic, CanCollide = true, CastShadow = true }, f)
+		part({ Name = "WallCap", Size = Vector3.new(segLen + 0.3, 0.5, 3.4), CFrame = cf * CFrame.new(0, h + 0.75, 0), Color = col:Lerp(Color3.new(1, 1, 1), 0.5), Material = Enum.Material.Neon }, f)
+		if k % 2 == 0 then -- almena
+			part({ Name = "Merlon", Size = Vector3.new(segLen * 0.55, 3, 3), CFrame = cf * CFrame.new(0, h + 2.5, 0), Color = col, Material = Enum.Material.SmoothPlastic, CanCollide = true }, f)
+		end
+	end
+	-- árboles y flores por la isla (fuera de las zonas de juego)
+	local rngD = Random.new(11)
+	local mid = Decor.ISLAND_CENTER
+	for _ = 1, 40 do
+		local a = rngD:NextNumber(0, math.pi * 2)
+		local d = rngD:NextNumber(30, Decor.ISLAND_R - 12)
+		local p = mid + Vector3.new(math.cos(a) * d, 0, math.sin(a) * d)
+		local nearLobby = (Vector3.new(p.X, 0, p.Z) - Vector3.new(c.X, 0, c.Z)).Magnitude < Decor.LOBBY_R + 8
+		local nearPlaza = Decor.PLAZA and (Vector3.new(p.X, 0, p.Z) - Vector3.new(Decor.PLAZA.X, 0, Decor.PLAZA.Z)).Magnitude < 52
+		local onPath = Decor.PLAZA and (function()
+			local A, Bp = Vector3.new(c.X, 0, c.Z), Vector3.new(Decor.PLAZA.X, 0, Decor.PLAZA.Z)
+			local ab = Bp - A
+			local t = math.clamp((Vector3.new(p.X, 0, p.Z) - A):Dot(ab) / ab:Dot(ab), 0, 1)
+			return (A + ab * t - Vector3.new(p.X, 0, p.Z)).Magnitude < 12
+		end)()
+		if not nearLobby and not nearPlaza and not onPath then
+			local h = rngD:NextNumber(7, 13)
+			local trunk = part({ Name = "Trunk", Size = Vector3.new(1.8, h, 1.8), CFrame = CFrame.new(p + Vector3.new(0, h / 2 + 0.5, 0)), Color = Color3.fromRGB(110, 75, 45), Material = Enum.Material.Wood, CastShadow = true }, f)
+			local _ = trunk
+			for k = 0, 2 do -- copa de bloques (estilo obby)
+				local s = rngD:NextNumber(6, 9) - k * 1.8
+				part({ Name = "Leaves", Size = Vector3.new(s, s * 0.8, s), CFrame = CFrame.new(p + Vector3.new(rngD:NextNumber(-1.5, 1.5), h + 1 + k * 2.2, rngD:NextNumber(-1.5, 1.5))), Color = Color3.fromRGB(70, 160 + rngD:NextInteger(-20, 40), 75), Material = Enum.Material.Grass, CastShadow = true }, f)
+			end
+		end
 	end
 	-- arco arcoíris hacia la salida de la carrera (+Z) y lucky block gigante en el centro
-	rainbowArch(CFrame.new(c + Vector3.new(0, 1, 30)), 16, 18, f)
+	rainbowArch(CFrame.new(c + Vector3.new(0, 1, Decor.LOBBY_R - 4)), 16, 18, f)
 	luckyBlock(CFrame.new(c + Vector3.new(0, 16, 0)), 7, f)
-	confetti(f, CFrame.new(c + Vector3.new(0, 30, 0)), Vector3.new(60, 1, 60), 25)
-	-- islitas alrededor
-	for i = 1, 6 do
-		local a = i / 6 * math.pi * 2 + 0.4
-		island(c + Vector3.new(math.cos(a) * 75, rng:NextNumber(-10, 12), math.sin(a) * 75), rng:NextNumber(6, 11), f, rng)
-	end
+	confetti(f, CFrame.new(c + Vector3.new(0, 30, 0)), Vector3.new(90, 1, 90), 25)
+	local _ = island
+	local _2 = rng
 	f.Parent = workspace
 end
 
@@ -198,7 +273,7 @@ local SAME_FEEL = PhysicalProperties.new(0.7, 0.3, 0.5)
 Decor.BIOMES = {
 	meadow = { floor = Color3.fromRGB(105, 200, 85), alt = Color3.fromRGB(255, 215, 90), mat = Enum.Material.Grass, altMat = Enum.Material.WoodPlanks, trim = Color3.fromRGB(255, 240, 120) },
 	candy = { floor = Color3.fromRGB(255, 165, 210), alt = Color3.fromRGB(140, 220, 255), mat = Enum.Material.SmoothPlastic, altMat = Enum.Material.SmoothPlastic, trim = Color3.fromRGB(255, 90, 190) },
-	volcano = { floor = Color3.fromRGB(70, 55, 55), alt = Color3.fromRGB(150, 75, 45), mat = Enum.Material.Basalt, altMat = Enum.Material.CrackedLava, trim = Color3.fromRGB(255, 120, 30) },
+	volcano = { floor = Color3.fromRGB(70, 55, 55), alt = Color3.fromRGB(150, 75, 45), mat = Enum.Material.Basalt, altMat = Enum.Material.CrackedLava, trim = Color3.fromRGB(255, 230, 120) },
 	ice = { floor = Color3.fromRGB(205, 238, 255), alt = Color3.fromRGB(125, 195, 255), mat = Enum.Material.Ice, altMat = Enum.Material.Glacier, trim = Color3.fromRGB(140, 240, 255) },
 	galaxy = { floor = Color3.fromRGB(50, 32, 95), alt = Color3.fromRGB(125, 75, 225), mat = Enum.Material.Glass, altMat = Enum.Material.Foil, trim = Color3.fromRGB(210, 130, 255) },
 	heaven = { floor = Color3.fromRGB(250, 246, 232), alt = Color3.fromRGB(255, 205, 80), mat = Enum.Material.Marble, altMat = Enum.Material.Foil, trim = Color3.fromRGB(255, 220, 90) },

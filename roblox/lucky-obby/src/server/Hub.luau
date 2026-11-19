@@ -1,5 +1,5 @@
 -- Lucky Obby Race — zona segura del vestíbulo (Shadow, petición del dueño)
---   · Dos tablones de clasificación: 🏆 VICTORIAS y 🪙 MONEDAS (mundiales con OrderedDataStore; en Studio, los del servidor)
+--   · Dos tablones de clasificación: 🏆 VICTORIAS y 💰 MONEDAS (mundiales con OrderedDataStore; en Studio, los del servidor)
 --   · Santuario de la SUERTE: pulsa E para gastar monedas y subir de nivel → objetos más fuertes en el lucky block
 --   · Tablón de cómo se juega y los 7 objetos
 -- Todo en un anillo alrededor del vestíbulo, mirando al centro, sin tapar el arco de salida (+Z).
@@ -201,8 +201,8 @@ local function buildLuck(parent, cf)
 	l.Text = "🍀 SUERTE / LUCK"
 	l.Parent = luckGui
 	local pp = Instance.new("ProximityPrompt")
-	pp.ActionText = "Mejorar suerte 🍀"
-	pp.ObjectText = "Suerte de objetos"
+	pp.ActionText = "Comprar +1 de suerte 🍀"
+	pp.ObjectText = "Más objetos raros en la carrera"
 	pp.HoldDuration = 0.3
 	pp.MaxActivationDistance = 14
 	pp.RequiresLineOfSight = false
@@ -221,10 +221,13 @@ local function buildLuck(parent, cf)
 		end
 		local cost = K.luckCost(level)
 		if not G.Data.spend(player, cost) then
-			G.Net.Event:FireClient(player, "toast", { text = string.format("🪙 %d / %d", d.coins, cost) })
+			G.Net.Event:FireClient(player, "toast", { text = string.format("💰 %d / %d", d.coins, cost) })
 			return
 		end
 		d.luck = level + 1
+		if G.Data.refresh then
+			G.Data.refresh(player)
+		end
 		G.Data.save(player)
 		G.Net.Event:FireClient(player, "toast", { text = string.format("🍀 ¡Suerte nivel %d! Objetos más fuertes", d.luck) })
 		Hub.refreshLuck(player)
@@ -246,11 +249,11 @@ local function buildHelp(parent, cf)
 	local body = board(parent, cf, 22, 18, "🎁 CÓMO SE JUEGA", Color3.fromRGB(120, 200, 255))
 	local lines = {
 		"🏁 Llega el primero a la meta",
-		"🎁 Cada 9 s recibes un lucky block (E / botón)",
+		"🎁 Cada 10 s recibes un lucky block (E / botón)",
 		"⚪ Común  🔵 Raro  🟣 Épico  🟡 Legendario  🔴 Mítico",
 		"17 objetos: cuanto mejor, más difícil que salga",
 		"🍀 Más suerte = objetos más fuertes",
-		"🪙 Monedas por puesto: 50 · 30 · 20",
+		"💰 Monedas por puesto: 50 · 30 · 20",
 	}
 	for i, t in ipairs(lines) do
 		row(body, i, #lines, t, "", WHITE)
@@ -271,12 +274,24 @@ function Hub.init(g)
 		return CFrame.lookAt(pos, Vector3.new(c.X, pos.Y, c.Z))
 	end
 	-- (0º = hacia la carrera: ahí está el arco; los tablones van detrás y a los lados)
-	local winsBody = board(f, ringCF(150, 26) * CFrame.new(0, 11, 0), 20, 16, "🏆 VICTORIAS", GOLD)
-	local coinsBody = board(f, ringCF(210, 26) * CFrame.new(0, 11, 0), 20, 16, "🪙 MONEDAS", Color3.fromRGB(255, 170, 60))
-	buildHelp(f, ringCF(90, 27) * CFrame.new(0, 11, 0))
-	buildLuck(f, ringCF(270, 22))
+	local winsBody = board(f, ringCF(155, 46) * CFrame.new(0, 11, 0), 20, 16, "🏆 VICTORIAS", GOLD)
+	local coinsBody = board(f, ringCF(205, 46) * CFrame.new(0, 11, 0), 20, 16, "💰 MONEDAS", Color3.fromRGB(255, 170, 60))
+	buildHelp(f, ringCF(95, 46) * CFrame.new(0, 11, 0))
+	buildLuck(f, ringCF(250, 38))
+	-- cartel que explica la suerte, junto al santuario
+	local luckInfo = board(f, ringCF(228, 48) * CFrame.new(0, 9, 0), 18, 12, "🍀 ¿QUÉ ES LA SUERTE?", Color3.fromRGB(120, 255, 150))
+	local infoLines = {
+		"Con monedas subes tu nivel de suerte (máx. 10)",
+		"Más suerte = más objetos raros, épicos,",
+		"legendarios y míticos en la carrera",
+		"Ve al trébol 🍀 y pulsa E (o tócalo)",
+	}
+	for i, t in ipairs(infoLines) do
+		row(luckInfo, i, #infoLines, t, "", WHITE)
+		luckInfo["Row" .. i].Text = "  " .. t
+	end
 	-- récords: detrás y por encima de los otros dos, mirando al centro
-	local bestBody = board(f, ringCF(180, 33) * CFrame.new(0, 19, 0), 20, 14, "⏱ RÉCORDS", Color3.fromRGB(120, 230, 255))
+	local bestBody = board(f, ringCF(180, 50) * CFrame.new(0, 11, 0), 20, 16, "⏱ RÉCORDS", Color3.fromRGB(120, 230, 255))
 	f.Parent = workspace
 	local wins, coins, best
 	if not RunService:IsStudio() then

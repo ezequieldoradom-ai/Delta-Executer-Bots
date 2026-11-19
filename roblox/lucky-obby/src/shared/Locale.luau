@@ -25,7 +25,7 @@ local T = {
 	hurry = { es = "⚠️ ¡%s ha llegado! Quedan %s s", en = "⚠️ %s finished! %s s left" },
 	results = { es = "🏆 Resultados", en = "🏆 Results" },
 	winner = { es = "🏆 ¡%s gana la carrera!", en = "🏆 %s wins the race!" },
-	coins = { es = "+%s 🪙", en = "+%s 🪙" },
+	coins = { es = "+%s 💰", en = "+%s 💰" },
 	lucky = { es = "🎁 ¡LUCKY BLOCK!", en = "🎁 LUCKY BLOCK!" },
 	use = { es = "Usar", en = "Use" },
 	noItem = { es = "Sin objeto", en = "No item" },

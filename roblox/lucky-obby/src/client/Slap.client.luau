@@ -43,6 +43,11 @@ local S = {
 	boom = snd(SFXID.boom or "rbxasset://sounds/impact_explosion_03.mp3", 0.9, 0.8),
 	whoosh = snd(SFXID.whoosh or "rbxasset://sounds/action_jump.mp3", 0.8, 1.8),
 	tick = snd("rbxasset://sounds/action_footsteps_plastic.mp3", 0.4, 2),
+	ouch = snd(SFXID.ouch or "rbxasset://sounds/ouch.ogg", 1, 1),
+	oof = snd(SFXID.oof or "rbxasset://sounds/oof.ogg", 1, 1),
+	jump = snd("rbxasset://sounds/action_jump.mp3", 0.9, 0.9),
+	land = snd("rbxasset://sounds/action_jump_land.mp3", 1, 0.7),
+	swoosh = snd("rbxasset://sounds/action_falling.ogg", 0.5, 1.6),
 }
 local function play(name, pitch, vol)
 	local s = S[name]
@@ -104,8 +109,8 @@ end
 
 -- panel de la mesa (abajo a la izquierda)
 local panel = Instance.new("Frame")
-panel.AnchorPoint = Vector2.new(0, 1)
-panel.Position = UDim2.new(0, 14, 1, -200)
+panel.AnchorPoint = Vector2.new(0, 0)
+panel.Position = UDim2.new(0, 14, 0, 120) -- arriba a la izquierda (abajo va el panel de estadísticas)
 panel.Size = UDim2.fromOffset(300, 92)
 panel.BackgroundColor3 = Color3.fromRGB(40, 22, 60)
 panel.BackgroundTransparency = 0.15
@@ -250,6 +255,7 @@ end
 local station = nil -- info de mi mesa (o nil)
 local charging = nil -- { t0, period }
 local cine = false -- primer plano en curso
+local punch = Vector3.zero -- golpe de cámara (pitch, yaw, roll) que se va calmando
 local shake = 0
 
 local function amSeated()
@@ -316,8 +322,8 @@ RunService:BindToRenderStep("SlapCamera", Enum.RenderPriority.Camera.Value + 1, 
 			cam.CameraType = Enum.CameraType.Scriptable
 			local look = hrp.CFrame.LookVector
 			local s = shake > 0 and Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * shake or Vector3.zero
-			cam.CFrame = CFrame.lookAt(head.Position + look * 0.7 + s, head.Position + look * 12 + Vector3.new(0, -1.5, 0))
-			cam.FieldOfView = 70
+			cam.CFrame = CFrame.lookAt(head.Position + look * 0.7 + s, head.Position + look * 12 + Vector3.new(0, -1.5, 0)) * CFrame.Angles(punch.X, punch.Y, punch.Z)
+			cam.FieldOfView = 70 + punch.Magnitude * 25
 		end
 	elseif camLocked then
 		camLocked = false
@@ -326,6 +332,7 @@ RunService:BindToRenderStep("SlapCamera", Enum.RenderPriority.Camera.Value + 1, 
 	if shake > 0 then
 		shake = math.max(0, shake - dt * 2.5)
 	end
+	punch = punch * math.max(0, 1 - dt * 5) -- vuelve al centro
 end)
 
 -- BARRA DE FUERZA --------------------------------------------------------------------
@@ -543,7 +550,92 @@ local function soundAt(pos, name, pitch, vol)
 	end)
 end
 
+-- CINEMÁTICA DEL SALTO -----------------------------------------------------------------
+local bars = {}
+for i, y in ipairs({ 0, 1 }) do
+	local b = Instance.new("Frame")
+	b.AnchorPoint = Vector2.new(0, y)
+	b.Position = UDim2.fromScale(0, y)
+	b.Size = UDim2.new(1, 0, 0, 0)
+	b.BackgroundColor3 = Color3.new(0, 0, 0)
+	b.BorderSizePixel = 0
+	b.ZIndex = 7
+	b.Parent = gui
+	bars[i] = b
+end
+local function letterbox(on)
+	for _, b in ipairs(bars) do
+		TweenService:Create(b, TweenInfo.new(0.25), { Size = UDim2.new(1, 0, on and 0.11 or 0, 0) }):Play()
+	end
+end
+local STYLE_NAME = {
+	clasico = { "🖐️ GUANTAZO CLÁSICO", "🖐️ CLASSIC SLAP" },
+	giratorio = { "🌀 GUANTAZO GIRATORIO", "🌀 SPINNING SLAP" },
+	voltereta = { "🤸 VOLTERETA MORTAL", "🤸 FLIP SLAP" },
+	doble = { "✌️ DOBLE GUANTAZO", "✌️ DOUBLE SLAP" },
+	gancho = { "🥊 GANCHO AL CIELO", "🥊 UPPERCUT SLAP" },
+	supremo = { "💀 GUANTAZO SUPREMO", "💀 SUPREME SLAP" },
+}
+local windupConn = nil
+local function endWindup()
+	if windupConn then
+		windupConn:Disconnect()
+		windupConn = nil
+		letterbox(false)
+		local cam = workspace.CurrentCamera
+		cam.FieldOfView = 70
+		cam.CameraType = Enum.CameraType.Custom
+		cine = false
+	end
+end
+local function onWindup(d)
+	if cine or not station or station.id ~= d.station or (dodging and not dodging.done) then
+		return
+	end
+	local sChar = typeof(d.slapperChar) == "Instance" and d.slapperChar
+	local vChar = typeof(d.victimChar) == "Instance" and d.victimChar
+	local sh = sChar and sChar:FindFirstChild("HumanoidRootPart")
+	local vh = vChar and vChar:FindFirstChild("Head")
+	if not sh or not vh then
+		return
+	end
+	local names = STYLE_NAME[d.style] or STYLE_NAME.clasico
+	shout(L(names[1], names[2]), d.style == "supremo" and Color3.fromRGB(255, 70, 70) or GOLD, 1.2)
+	soundAt(sh.Position, "jump", 0.8, 1)
+	soundAt(sh.Position, "swoosh", 1.2 + (tonumber(d.power) or 0.5) * 0.6, 0.6)
+	cine = true
+	letterbox(true)
+	local cam = workspace.CurrentCamera
+	cam.CameraType = Enum.CameraType.Scriptable
+	local air = math.max(0.5, tonumber(d.air) or 1)
+	local seatCF = typeof(d.seatCF) == "CFrame" and d.seatCF or CFrame.new(vh.Position)
+	local t0 = os.clock()
+	local side = math.random() < 0.5 and -1 or 1
+	-- tres planos según el estilo: contrapicado girando, lateral y cenital
+	local shot = math.random(1, 3)
+	windupConn = RunService.RenderStepped:Connect(function()
+		local a = math.clamp((os.clock() - t0) / air, 0, 1)
+		local target = sh.Parent and sh.Position or vh.Position
+		local mid = target:Lerp(vh.Position, 0.35)
+		local pos
+		if shot == 1 then -- contrapicado que gira alrededor del que salta
+			local ang = side * (a * 2.4) + 0.6
+			pos = target + Vector3.new(math.cos(ang) * 11, -3 + a * 2, math.sin(ang) * 11)
+		elseif shot == 2 then -- lateral, se acerca
+			pos = mid + seatCF.RightVector * side * (16 - a * 7) + Vector3.new(0, 3, 0)
+		else -- desde arriba, bajando con él
+			pos = target + seatCF.LookVector * -6 + Vector3.new(0, 12 - a * 6, 0)
+		end
+		cam.CFrame = CFrame.lookAt(pos, mid)
+		cam.FieldOfView = 62 - a * 18
+		if a >= 1 then
+			endWindup()
+		end
+	end)
+end
+
 local function onHit(d)
+	endWindup()
 	local victimChar = (typeof(d.victimChar) == "Instance" and d.victimChar) or charOf(d.victim)
 	local head = victimChar and victimChar:FindFirstChild("Head")
 	local hrp = victimChar and victimChar:FindFirstChild("HumanoidRootPart")
@@ -569,9 +661,27 @@ local function onHit(d)
 			end)
 		end
 	end
+	if head and not d.supreme then
+		task.delay(0.08, function()
+			soundAt(head.Position, math.random() < 0.5 and "ouch" or "oof", 0.85 + math.random() * 0.5, 0.9)
+		end)
+	end
+	if d.style == "doble" and head then
+		task.delay(0.16, function()
+			soundAt(head.Position, "slap", 1.5, 0.9)
+		end)
+	end
 	if isVictim then
-		-- el sentado no ve el primer plano: solo el golpe
+		-- el sentado no ve el primer plano: solo el golpe, que le gira la cámara de golpe
 		shake = 0.6 + power * 1.4
+		local side = math.random() < 0.5 and -1 or 1
+		if d.style == "gancho" then
+			punch = Vector3.new(0.35 + power * 0.4, 0, side * 0.15)
+		elseif d.supreme then
+			punch = Vector3.new(0.3, side * 1.1, side * 0.6)
+		else
+			punch = Vector3.new(0.05, side * (0.25 + power * 0.55), side * (0.15 + power * 0.3))
+		end
 		doFlash(d.supreme and Color3.fromRGB(255, 30, 30) or WHITE, 0.25)
 		shout(d.supreme and L("💀 ¡GUANTAZO SUPREMO!", "💀 SUPREME SLAP!") or "💥 ¡PAM!", d.supreme and Color3.fromRGB(255, 70, 70) or GOLD, 1.4)
 		return
@@ -620,10 +730,21 @@ end
 local POSES = {
 	windup = CFrame.Angles(math.rad(20), math.rad(-70), math.rad(115)),
 	strike = CFrame.Angles(math.rad(-10), math.rad(75), math.rad(80)),
+	backhand = CFrame.Angles(math.rad(-5), math.rad(-60), math.rad(95)),
+	uppercut = CFrame.Angles(math.rad(-150), math.rad(10), math.rad(20)),
 	rest = CFrame.new(),
 }
 local anims = {} -- [userId .. kind] = { who, kind, from, to, t0, dur, style }
 local function jointOf(char, kind)
+	if kind == "root" then
+		local lt = char:FindFirstChild("LowerTorso")
+		local j = lt and lt:FindFirstChild("Root")
+		if not j then
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			j = hrp and hrp:FindFirstChild("RootJoint")
+		end
+		return j
+	end
 	if kind == "arm" then
 		local arm = char:FindFirstChild("RightUpperArm")
 		local j = arm and arm:FindFirstChild("RightShoulder")
@@ -645,6 +766,11 @@ local function startAnim(d)
 	local who = tonumber(d.who) or 0
 	if typeof(d.char) == "Instance" then
 		who = d.char -- clave: el propio personaje
+	end
+	if d.pose == "spin" or d.pose == "flip" then -- giro de todo el cuerpo durante el salto
+		local turns = d.pose == "spin" and 2 or 1
+		anims[tostring(who) .. "root"] = { who = who, kind = "root", spin = d.pose, turns = turns, t0 = os.clock(), dur = math.max(0.3, tonumber(d.time) or 1) }
+		return
 	end
 	if d.pose == "jolt" then
 		local pw = tonumber(d.power) or 0.5
@@ -672,6 +798,18 @@ RunService.Stepped:Connect(function()
 		end
 		local j = char and jointOf(char, a.kind)
 		local t = math.clamp((now - a.t0) / a.dur, 0, 1)
+		if j and a.kind == "root" then
+			local e = TweenService:GetValue(t, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+			local ang = e * math.pi * 2 * a.turns
+			local cf = a.spin == "spin" and CFrame.Angles(0, ang, 0) or CFrame.Angles(-ang, 0, 0)
+			pcall(function()
+				j.Transform = j.Transform * cf
+			end)
+			if t >= 1 then
+				anims[key] = nil
+			end
+			continue
+		end
 		if j then
 			local cf = a.from:Lerp(a.to, TweenService:GetValue(t, a.style, Enum.EasingDirection.Out))
 			pcall(function()
@@ -748,6 +886,8 @@ Net.OnClientEvent:Connect(function(kind, d)
 				at:Destroy()
 			end)
 		end
+	elseif kind == "windup" and type(d) == "table" then
+		onWindup(d)
 	elseif kind == "anim" and type(d) == "table" then
 		startAnim(d)
 	elseif kind == "msg" then

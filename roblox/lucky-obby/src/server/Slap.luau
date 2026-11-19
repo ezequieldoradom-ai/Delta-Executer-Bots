@@ -13,13 +13,13 @@ local TweenService = game:GetService("TweenService")
 local Slap = {}
 local G
 
-local PLAZA = Vector3.new(0, 0, -205) -- centro de la plaza (detrás del vestíbulo, unida por un puente)
+local PLAZA = Vector3.new(-125, 0, -40) -- centro de la plaza (a un lado del vestíbulo, en la isla; ver Decor.PLAZA)
 local PLAZA_R = 44
 local STATION_R = 28
 local MAX_PLAYERS = 4
 local AREA = 24 -- si te alejas más de esto de tu mesa, sales del juego
-local BAR_PERIOD = 0.9 -- segundos de 0 a 1 (luego vuelve)
-local RED_W = 0.07 -- ancho del cuadradito rojo (fracción de la barra)
+local BAR_PERIOD = 0.72 -- segundos de 0 a 1 (luego vuelve)
+local RED_W = 0.045 -- ancho del cuadradito rojo (fracción de la barra): difícil de clavar
 local DODGE_WINDOW = 0.4
 local GUESS_TIME = 10
 local IDLE_PICK = 30 -- si nadie pega en este tiempo, le toca a uno al azar
@@ -441,16 +441,32 @@ function Slap.stop(p, clientPos)
 		pos = math.clamp(clientPos, 0, 1)
 	end
 	st.power = pos
-	st.supreme = math.abs(pos - st.redPos) <= RED_W / 2 + 0.01
+	st.supreme = math.abs(pos - st.redPos) <= RED_W / 2 + 0.008
 	if Slap.debugSupreme then -- solo pruebas en Studio
 		st.supreme, pos, st.power = true, st.redPos, st.redPos
 		Slap.debugSupreme = false
+	end
+	if st.supreme then
+		pos, st.power = 1, 1 -- el rojo es el golpe al 100 %
 	end
 	setPhase(st, "windup")
 	armPose(p.Character, "windup", 0.35)
 	pcall(Slap.epicJump, p, pos, st.supreme)
 	-- la esquiva sale justo antes de que caiga del salto (0,4 s) y el guantazo llega al aterrizar
 	local air = math.min(2.2, 2 * Slap.jumpVel(pos, st.supreme) / workspace.Gravity)
+	-- ESTILO de guantazo al azar (el supremo, siempre el más bestia) + cinemática para la mesa
+	local STYLES = { "clasico", "giratorio", "voltereta", "doble", "gancho" }
+	st.style = st.supreme and "supremo" or STYLES[math.random(1, #STYLES)]
+	if st.style == "giratorio" or st.style == "supremo" then
+		pcall(animAll, p.Character, "spin", air, pos)
+	elseif st.style == "voltereta" then
+		pcall(animAll, p.Character, "flip", air, pos)
+	end
+	for _, m in ipairs(st.members) do
+		if m ~= st.seated then
+			send(m, "windup", { station = st.id, slapper = p.UserId, slapperChar = p.Character, victimChar = st.seated and st.seated.Character, style = st.style, air = air, power = st.power, seatCF = st.cf })
+		end
+	end
 	st.dodged = false
 	st.dodgeSentAt = nil
 	st.dodgeKey = math.random(1, 4)
@@ -491,8 +507,17 @@ function Slap.resolve(st)
 		refresh(st)
 		return
 	end
-	armPose(slapper.Character, "strike", 0.07, Enum.EasingStyle.Linear)
-	task.delay(0.35, function()
+	if st.style == "gancho" then
+		armPose(slapper.Character, "uppercut", 0.08)
+	else
+		armPose(slapper.Character, "strike", 0.07)
+	end
+	if st.style == "doble" then -- ida y vuelta
+		task.delay(0.16, function()
+			armPose(slapper.Character, "backhand", 0.08)
+		end)
+	end
+	task.delay(st.style == "doble" and 0.5 or 0.35, function()
 		armPose(slapper.Character, "rest", 0.3)
 	end)
 	local head = victim.Character and victim.Character:FindFirstChild("Head")
@@ -521,7 +546,7 @@ function Slap.resolve(st)
 	-- ¡PAM!
 	setPhase(st, "result")
 	for _, w in ipairs(watchers) do
-		send(w, "hit", { station = st.id, victim = victim.UserId, victimChar = victim.Character, slapper = slapper.UserId, power = st.power, supreme = st.supreme, seatCF = st.cf })
+		send(w, "hit", { station = st.id, victim = victim.UserId, victimChar = victim.Character, slapper = slapper.UserId, power = st.power, supreme = st.supreme, seatCF = st.cf, style = st.style })
 	end
 	local hum = humOf(slapper)
 	if hum then
@@ -621,26 +646,35 @@ local function build()
 	local f = Instance.new("Folder")
 	f.Name = "SlapPlaza"
 	local lobby = G.Config.COURSE.LOBBY - Vector3.new(0, 4, 0) -- centro del suelo del vestíbulo (y = 0)
-	-- puente desde el vestíbulo
-	local z0, z1 = lobby.Z - 34, PLAZA.Z + PLAZA_R - 1
-	part({ Name = "Bridge", Size = Vector3.new(12, 1, z0 - z1), CFrame = CFrame.new(0, 0.5, (z0 + z1) / 2), Color = Color3.fromRGB(240, 235, 225), Material = Enum.Material.WoodPlanks }, f)
+	-- camino de piedra desde el vestíbulo, con farolillos
+	local A = Vector3.new(lobby.X, 0, lobby.Z)
+	local Bp = Vector3.new(PLAZA.X, 0, PLAZA.Z)
+	local dirAB = (Bp - A).Unit
+	local p0, p1 = A + dirAB * 56, Bp - dirAB * (PLAZA_R - 1)
+	local len = (p1 - p0).Magnitude
+	local pathCF = CFrame.lookAt((p0 + p1) / 2 + Vector3.new(0, 0.45, 0), (p0 + p1) / 2 + Vector3.new(0, 0.45, 0) + dirAB)
+	part({ Name = "Path", Size = Vector3.new(12, 1, len), CFrame = pathCF, Color = Color3.fromRGB(225, 215, 200), Material = Enum.Material.Cobblestone }, f)
 	for _, sx in ipairs({ -1, 1 }) do
-		part({ Name = "BridgeRail", Size = Vector3.new(0.6, 0.6, z0 - z1), CFrame = CFrame.new(sx * 6, 2.6, (z0 + z1) / 2), Color = Color3.fromRGB(255, 200, 60), Material = Enum.Material.Neon }, f)
-		for z = z1 + 2, z0 - 2, 6 do
-			part({ Name = "BridgePost", Size = Vector3.new(0.6, 2.2, 0.6), CFrame = CFrame.new(sx * 6, 1.6, z), Color = Color3.fromRGB(150, 100, 60), Material = Enum.Material.Wood }, f)
+		for d = -len / 2 + 4, len / 2 - 4, 12 do
+			local lp = (pathCF * CFrame.new(sx * 7.5, 2.5, d)).Position
+			part({ Name = "LampPost", Size = Vector3.new(0.6, 5, 0.6), CFrame = CFrame.new(lp), Color = Color3.fromRGB(60, 50, 45), Material = Enum.Material.Metal }, f)
+			local bulb = part({ Name = "Lamp", Shape = Enum.PartType.Ball, Size = Vector3.new(1.4, 1.4, 1.4), CFrame = CFrame.new(lp + Vector3.new(0, 3, 0)), Color = Color3.fromRGB(255, 220, 140), Material = Enum.Material.Neon, CanCollide = false }, f)
+			local pl = Instance.new("PointLight")
+			pl.Color = Color3.fromRGB(255, 210, 140)
+			pl.Range = 12
+			pl.Brightness = 1.2
+			pl.Parent = bulb
 		end
 	end
 	-- isla de la plaza
 	part({ Name = "PlazaFloor", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, PLAZA_R * 2, PLAZA_R * 2), CFrame = CFrame.new(PLAZA) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(235, 225, 245), Material = Enum.Material.Pavement }, f)
 	part({ Name = "PlazaRim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.2, PLAZA_R * 2 + 2, PLAZA_R * 2 + 2), CFrame = CFrame.new(PLAZA - Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(255, 120, 200), Material = Enum.Material.Neon }, f)
-	for k = 0, 4 do
-		local rr = PLAZA_R * (1 - k * 0.18)
-		part({ Name = "PlazaRock", Shape = Enum.PartType.Cylinder, Size = Vector3.new(7, rr * 2, rr * 2), CFrame = CFrame.new(PLAZA - Vector3.new(0, 4.5 + k * 6.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(135 - k * 10, 110 - k * 8, 95 - k * 6), Material = Enum.Material.Rock }, f)
-	end
-	-- cartel de entrada
-	local gate = part({ Name = "PlazaSign", Size = Vector3.new(26, 5, 1), CFrame = CFrame.new(PLAZA + Vector3.new(0, 11, PLAZA_R - 2)), Color = Color3.fromRGB(40, 25, 60), Material = Enum.Material.SmoothPlastic }, f)
+	-- cartel de entrada, en el lado que da al vestíbulo
+	local toLobby = -dirAB
+	local gateCF = CFrame.lookAt(PLAZA + toLobby * (PLAZA_R - 2) + Vector3.new(0, 11, 0), PLAZA + toLobby * (PLAZA_R + 10) + Vector3.new(0, 11, 0))
+	local gate = part({ Name = "PlazaSign", Size = Vector3.new(26, 5, 1), CFrame = gateCF, Color = Color3.fromRGB(40, 25, 60), Material = Enum.Material.SmoothPlastic }, f)
 	for _, sx in ipairs({ -1, 1 }) do
-		part({ Name = "SignPost", Size = Vector3.new(1.2, 11, 1.2), CFrame = CFrame.new(PLAZA + Vector3.new(sx * 13.6, 5.5, PLAZA_R - 2)), Color = Color3.fromRGB(255, 120, 200), Material = Enum.Material.Neon }, f)
+		part({ Name = "SignPost", Size = Vector3.new(1.2, 11, 1.2), CFrame = gateCF * CFrame.new(sx * 13.6, -5.5, 0), Color = Color3.fromRGB(255, 120, 200), Material = Enum.Material.Neon }, f)
 	end
 	local sg = Instance.new("SurfaceGui")
 	sg.Face = Enum.NormalId.Back
@@ -711,18 +745,6 @@ local function build()
 		broadcast(st)
 	end
 	f.Parent = workspace
-	-- quitar islas decorativas del vestíbulo que tapen el puente o la plaza
-	local deco = workspace:FindFirstChild("LobbyDecor")
-	if deco then
-		for _, p in ipairs(deco:GetChildren()) do
-			if p:IsA("BasePart") and (p.Name == "IslandTop" or p.Name == "IslandRock" or p.Name == "Bush") then
-				local pos = p.Position
-				if pos.Z < lobby.Z - 25 and math.abs(pos.X) < PLAZA_R + 20 then
-					p:Destroy()
-				end
-			end
-		end
-	end
 end
 
 function Slap.init(g)

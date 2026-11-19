@@ -162,6 +162,9 @@ local function hookRecords()
 			local old = d.best or 0
 			if old <= 0 or t < old then
 				d.best = t
+				if G.Data.refresh then
+					G.Data.refresh(player)
+				end
 				notify(player, "record", { time = t, old = old })
 			end
 		end
@@ -238,10 +241,10 @@ local function buildShop()
 	local f = Instance.new("Folder")
 	f.Name = "TrailShop"
 	local c = C.LOBBY - Vector3.new(0, 3, 0) -- suelo del vestíbulo
-	local angles = { 30, 60, 120, 240, 300, 330 } -- huecos libres entre tablones, santuario y arco
+	local angles = { 30, 50, 70, 118, 138, 322 } -- en la mitad delantera, a los lados del arco
 	for i, tr in ipairs(Extras.TRAILS) do
 		local a = math.rad(angles[i])
-		local pos = c + Vector3.new(math.sin(a) * 19, 0, math.cos(a) * 19)
+		local pos = c + Vector3.new(math.sin(a) * 34, 0, math.cos(a) * 34)
 		local main = tr.colors[math.ceil(#tr.colors / 2)]
 		part({ Name = "Pedestal", Shape = Enum.PartType.Cylinder, Size = Vector3.new(3, 5, 5), CFrame = CFrame.new(pos + Vector3.new(0, 1.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(245, 245, 250), Material = Enum.Material.Marble, CanCollide = true }, f)
 		part({ Name = "PedestalRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 5.4, 5.4), CFrame = CFrame.new(pos + Vector3.new(0, 3.05, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = main, Material = Enum.Material.Neon }, f)
@@ -255,11 +258,11 @@ local function buildShop()
 		a1.Parent = orb
 		makeTrail(orb, a0, a1, tr)
 		table.insert(orbs, { part = orb, center = pos + Vector3.new(0, 6, 0), phase = i })
-		local label = billboard(orb, string.format('%s %s\n<font color="#FFE36B">🪙 %d</font>', tr.icon, string.upper(tr.es), tr.price), Color3.new(1, 1, 1), 7, 2.6, Vector3.new(0, 3, 0))
+		local label = billboard(orb, string.format('%s %s\n<font color="#FFE36B">💰 %d</font>', tr.icon, string.upper(tr.es), tr.price), Color3.new(1, 1, 1), 7, 2.6, Vector3.new(0, 3, 0))
 		local _ = label
 		local pp = Instance.new("ProximityPrompt")
 		pp.ActionText = "Comprar / Equipar"
-		pp.ObjectText = tr.icon .. " " .. tr.es .. " · 🪙" .. tr.price
+		pp.ObjectText = tr.icon .. " " .. tr.es .. " · 💰" .. tr.price
 		pp.HoldDuration = 0.2
 		pp.MaxActivationDistance = 10
 		pp.RequiresLineOfSight = false
@@ -284,7 +287,7 @@ local function buildShop()
 				notify(player, "toast", { text = tr.icon .. " ¡Has comprado la estela " .. tr.es .. "!" })
 				G.Net.Event:FireClient(player, "boxPop", { pos = orb.Position })
 			else
-				notify(player, "toast", { text = string.format("🪙 %d / %d", d.coins, tr.price) })
+				notify(player, "toast", { text = string.format("💰 %d / %d", d.coins, tr.price) })
 				return
 			end
 			G.Data.save(player)

@@ -35,6 +35,10 @@ local decor = script:FindFirstChild("Decor")
 if decor then
 	require(decor).init(G)
 end
+local plaza = script:FindFirstChild("Plaza")
+if plaza then
+	require(plaza).init(G) -- suelo del vestíbulo, caminos con señales y portal al obby (Shadow)
+end
 local extras = script:FindFirstChild("Extras")
 if extras then
 	require(extras).init(G) -- cajas lucky, récords y tienda de estelas (Shadow)

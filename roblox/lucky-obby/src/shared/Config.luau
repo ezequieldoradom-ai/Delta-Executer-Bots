@@ -25,7 +25,7 @@ Config.COURSE = {
 	LOBBY = Vector3.new(0, 4, -90),
 }
 
-Config.LUCKY_EVERY = 9 -- segundos entre lucky blocks (si no llevas ya un objeto)
+Config.LUCKY_EVERY = 10 -- segundos entre lucky blocks (si no llevas ya un objeto)
 Config.ROLL_TIME = 1.1 -- la caja gira antes de enseñar el objeto
 Config.KNOCK = 70 -- fuerza de empuje base
 Config.SHIELD_TIME = 8

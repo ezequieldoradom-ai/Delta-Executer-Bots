@@ -19,7 +19,7 @@ local function stats(player)
 	if not ls then
 		ls = Instance.new("Folder")
 		ls.Name = "leaderstats"
-		for _, n in ipairs({ "🏆", "🪙" }) do
+		for _, n in ipairs({ "🏆", "💰" }) do
 			local v = Instance.new("IntValue")
 			v.Name = n
 			v.Parent = ls
@@ -27,8 +27,11 @@ local function stats(player)
 		ls.Parent = player
 	end
 	ls["🏆"].Value = d.wins
-	ls["🪙"].Value = d.coins
+	ls["💰"].Value = d.coins
+	player:SetAttribute("Best", d.best or 0) -- para el panel de abajo a la izquierda
+	player:SetAttribute("Luck", d.luck or 0)
 end
+Data.refresh = stats
 
 function Data.load(player)
 	local d = { coins = 0, wins = 0, luck = 0, best = 0, trails = {}, trail = "", loaded = true }

@@ -102,6 +102,11 @@ function Race.finish(player)
 	s.finishTime = os.clock() - Race.startedAt
 	table.insert(Race.finishers, player)
 	local place = #Race.finishers
+	for _, os2 in pairs(Race.sessions) do
+		if os2.isBot and os2.finished then
+			place += 1 -- bots que ya habían llegado
+		end
+	end
 	-- corriendo solo no hay premio por puesto ni victoria (se podría granjear); solo lo de terminar
 	local contested = (Race.fieldSize or 0) >= 2
 	local coins = (contested and (C.REWARDS[place] or 0) or 0) + C.REWARD_FINISH

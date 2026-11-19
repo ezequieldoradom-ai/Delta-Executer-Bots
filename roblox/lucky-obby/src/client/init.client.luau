@@ -443,7 +443,7 @@ RunService.Heartbeat:Connect(function()
 		respawn()
 		return
 	end
-	if #workspace:GetPartBoundsInBox(hrp.CFrame * CFrame.new(0, -0.4, 0), Vector3.new(2.2, 5.2, 1.6), killParams) > 0 then
+	if #workspace:GetPartBoundsInBox(hrp.CFrame * CFrame.new(0, -0.9, 0), Vector3.new(2.2, 6.2, 1.6), killParams) > 0 then
 		respawn()
 		return
 	end
@@ -470,8 +470,9 @@ task.spawn(function()
 			local lv = player:GetAttribute("LuckLevel") or 0
 			local cost = player:GetAttribute("LuckCost") or -1
 			local mult = math.floor(lv * Config.LUCK.STEP * 100 + 0.5)
-			l.Text = string.format('🍀 %s %d <font color="#FFE36B">(+%d%%)</font>\n%s', Locale.lang() == "es" and "SUERTE NV" or "LUCK LV", lv, mult,
-				cost >= 0 and string.format("🪙 %d → %s %d", cost, Locale.lang() == "es" and "NV" or "LV", lv + 1) or "MAX")
+			local es = Locale.lang() == "es"
+			l.Text = string.format('🍀 %s %d/10 <font color="#FFE36B">(+%d%% %s)</font>\n%s', es and "TU SUERTE:" or "YOUR LUCK:", lv, mult, es and "objetos raros" or "rare items",
+				cost >= 0 and string.format(es and "Comprar nivel %d: %d 💰 (pulsa E)" or "Buy level %d: %d 💰 (press E)", lv + 1, cost) or "MAX")
 		end
 		task.wait(0.5)
 	end

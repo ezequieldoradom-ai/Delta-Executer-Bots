@@ -17,9 +17,20 @@ local G, C
 
 local bananas = {} -- { part, owner, untilT }
 
+local function isBot(p)
+	return type(p) == "table" and p.IsBot == true
+end
 local function hrpOf(player)
-	local char = typeof(player) == "Instance" and player.Character
+	local char = (typeof(player) == "Instance" or isBot(player)) and player.Character
 	return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function humOf(player)
+	local char = (typeof(player) == "Instance" or isBot(player)) and player.Character
+	return char and char:FindFirstChildOfClass("Humanoid")
+end
+local function nameOf(player)
+	return (typeof(player) == "Instance" or isBot(player)) and player.DisplayName or "?"
 end
 
 local function notify(player, kind, data)
@@ -50,18 +61,32 @@ function Items.knock(target, vel, by, itemId)
 	end
 	if typeof(target) == "Instance" then
 		G.Net.Knock:FireClient(target, vel)
+	elseif isBot(target) then
+		-- a los bots los empuja el servidor (son suyos)
+		local hrp = hrpOf(target)
+		local hum = hrp and hrp.Parent:FindFirstChildOfClass("Humanoid")
+		if hrp and hum then
+			hum.PlatformStand = true
+			hrp.AssemblyLinearVelocity = vel
+			task.delay(0.7, function()
+				if hum.Parent then
+					hum.PlatformStand = false
+					hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+				end
+			end)
+		end
 	end
 	local item = C.ITEM_BY_ID[itemId]
 	if by then
 		notify(target, "hitBy", { name = by.DisplayName, item = itemId })
-		notify(by, "youHit", { name = typeof(target) == "Instance" and target.DisplayName or "?" })
+		notify(by, "youHit", { name = (typeof(target) == "Instance" or isBot(target)) and target.DisplayName or "?" })
 	end
 	s.lastHitAt = os.clock()
 	return item ~= nil
 end
 
 -- Proyectil simulado en el servidor (pieza visual anclada que avanza cada paso)
-local function projectile(owner, from, vel, gravity, life, radius, look, onHit)
+local function projectile(owner, from, vel, gravity, life, radius, look, onHit, onEnd)
 	local p = Instance.new("Part")
 	p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch, p.CastShadow = true, false, false, false, false
 	for k, v in pairs(look) do
@@ -99,6 +124,9 @@ local function projectile(owner, from, vel, gravity, life, radius, look, onHit)
 		if hit or os.clock() - t0 > life then
 			conn:Disconnect()
 			Debris:AddItem(p, 0.05)
+			if onEnd then
+				task.spawn(onEnd, hit and hit.Position or pos)
+			end
 		end
 	end)
 end
@@ -209,7 +237,7 @@ function USE.freeze(player)
 	for other, s in pairs(G.Race.sessions) do
 		if other ~= player and s.racing and not s.finished and not (s.immuneUntil and os.clock() < s.immuneUntil) then
 			s.frozenUntil = os.clock() + C.FREEZE_TIME
-			local hum = typeof(other) == "Instance" and other.Character and other.Character:FindFirstChildOfClass("Humanoid")
+			local hum = humOf(other)
 			if hum then
 				hum.WalkSpeed = 0
 				hum.JumpHeight = 0
@@ -221,14 +249,6 @@ function USE.freeze(player)
 end
 
 -- OBJETOS NUEVOS (Shadow) ---------------------------------------------------
-local function humOf(player)
-	local char = typeof(player) == "Instance" and player.Character
-	return char and char:FindFirstChildOfClass("Humanoid")
-end
-local function nameOf(player)
-	return typeof(player) == "Instance" and player.DisplayName or "?"
-end
-
 -- velocidad temporal (no pisa la congelación); al acabar vuelve a la normal (lo hace tick)
 function Items.setSpeed(player, speed, secs)
 	local s = G.Race.sessions[player]
@@ -359,6 +379,8 @@ function USE.bomb(player, hrp, aim)
 	projectile(player, from + dir * 2, dir * 70 + Vector3.new(0, 34, 0), 110, 2.4, 4, { Name = "Bomb", Shape = Enum.PartType.Ball, Size = Vector3.new(2, 2, 2), Color = Color3.fromRGB(40, 40, 50), Material = Enum.Material.SmoothPlastic }, function(target)
 		local t = hrpOf(target)
 		explode(player, t and t.Position or from, 13, C.KNOCK * 1.1, "bomb")
+	end, function(at)
+		explode(player, at, 13, C.KNOCK * 1.1, "bomb") -- aunque no dé a nadie, explota donde cae
 	end)
 	return true
 end
@@ -540,15 +562,14 @@ local function tick()
 		if s.speedUntil and now >= s.speedUntil then
 			s.speedUntil = nil
 			s.boostSpeed = nil
-			local char = not (s.frozenUntil and now < s.frozenUntil) and typeof(player) == "Instance" and player.Character
-			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			local hum = not (s.frozenUntil and now < s.frozenUntil) and humOf(player)
 			if hum then
 				hum.WalkSpeed = normal
 			end
 		end
 		if s.frozenUntil and now >= s.frozenUntil then
 			s.frozenUntil = nil
-			local hum = typeof(player) == "Instance" and player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			local hum = humOf(player)
 			if hum then
 				-- si llevaba turbo/corona/miel que aún dura, recupera esa velocidad
 				hum.WalkSpeed = (s.speedUntil and s.boostSpeed) or normal
