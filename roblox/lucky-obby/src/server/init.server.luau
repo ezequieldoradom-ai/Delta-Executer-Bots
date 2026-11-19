@@ -97,7 +97,7 @@ if game:GetService("RunService"):IsStudio() then
 				return "sin bot en carrera"
 			end
 			local hrp = player.Character.HumanoidRootPart
-			local from = target.h.Position - Vector3.new(0, 0, 9) + Vector3.new(0, 1, 0)
+			local from = target.h.Position - Vector3.new(0, 0, 5)
 			hrp.CFrame = CFrame.lookAt(from, target.h.Position)
 			task.wait(0.3)
 			local s = G.Race.sessions[player]
@@ -108,7 +108,7 @@ if game:GetService("RunService"):IsStudio() then
 			task.wait(2.5)
 			local hit = (target.s.lastHitAt or 0) > before
 			local frozen = target.s.frozenUntil ~= frozenBefore
-			return string.format("%s ok=%s used=%s hitBot=%s frozenBot=%s", arg, tostring(ok), tostring(res), tostring(hit), tostring(frozen))
+			return string.format("%s racing=%s ok=%s used=%s hitBot=%s frozenBot=%s", arg, tostring(s.racing), tostring(ok), tostring(res), tostring(hit), tostring(frozen))
 		end
 		if cmd == "supreme" then
 			G.Slap.debugSupreme = true

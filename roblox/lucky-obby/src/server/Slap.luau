@@ -622,7 +622,24 @@ function Slap.guess(p, userId)
 		return
 	end
 	local slapper = st.slapper
-	if slapper and userId == slapper.UserId then
+	-- SUSPENSE: toda la mesa ve "X dice que fue... Y" y, un momento después, si acertó
+	local guessedName = "?"
+	for _, m in ipairs(st.members) do
+		if m.UserId == userId then
+			guessedName = m.DisplayName
+		end
+	end
+	local correct = slapper ~= nil and userId == slapper.UserId
+	for _, m in ipairs(st.members) do
+		send(m, "guessed", { seated = p.DisplayName, seatedId = p.UserId, guessed = guessedName, guessedId = userId, correct = correct, slapper = slapper and slapper.DisplayName or "?", slapperId = slapper and slapper.UserId or 0, timeout = userId == -1 })
+	end
+	st.phase = "reveal"
+	task.wait(1.6)
+	if st.phase ~= "reveal" or st.seated ~= p then
+		return
+	end
+	st.phase = "guessing"
+	if correct then
 		msgAll(st, "🎯 ¡" .. p.DisplayName .. " ha acertado! Fue " .. slapper.DisplayName .. ". ¡Se sienta!")
 		if #st.members >= 3 then -- con 2 en la mesa acertar es regalado: sin premio
 			reward(p, 5)

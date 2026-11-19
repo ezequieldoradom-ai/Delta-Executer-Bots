@@ -193,7 +193,7 @@ local _2 = dodgeLabel
 local guessPanel = Instance.new("Frame")
 guessPanel.AnchorPoint = Vector2.new(0.5, 0.5)
 guessPanel.Position = UDim2.fromScale(0.5, 0.55)
-guessPanel.Size = UDim2.fromOffset(460, 300)
+guessPanel.Size = UDim2.fromOffset(600, 330)
 guessPanel.BackgroundColor3 = Color3.fromRGB(40, 22, 60)
 guessPanel.BackgroundTransparency = 0.05
 guessPanel.Visible = false
@@ -206,10 +206,65 @@ guessList.BackgroundTransparency = 1
 guessList.Position = UDim2.fromOffset(20, 70)
 guessList.Size = UDim2.new(1, -40, 1, -90)
 guessList.Parent = guessPanel
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 10)
+local layout = Instance.new("UIGridLayout")
+layout.CellSize = UDim2.fromOffset(160, 210)
+layout.CellPadding = UDim2.fromOffset(16, 10)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = guessList
+local gGrad = Instance.new("UIGradient")
+gGrad.Rotation = 90
+gGrad.Color = ColorSequence.new(Color3.fromRGB(90, 55, 150), Color3.fromRGB(30, 18, 50))
+gGrad.Parent = guessPanel
+
+-- foto de perfil (los bots no tienen: robot)
+local function headshot(parent, userId, size)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromOffset(size, size)
+	frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	frame.Parent = parent
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 0)
+	local st = Instance.new("UIStroke")
+	st.Thickness = 3
+	st.Color = GOLD
+	st.Parent = frame
+	if userId and userId > 0 then
+		local img = Instance.new("ImageLabel")
+		img.BackgroundTransparency = 1
+		img.Size = UDim2.fromScale(1, 1)
+		img.Image = string.format("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150", userId)
+		img.Parent = frame
+		Instance.new("UICorner", img).CornerRadius = UDim.new(1, 0)
+	else
+		local l = Instance.new("TextLabel")
+		l.BackgroundTransparency = 1
+		l.Size = UDim2.fromScale(1, 1)
+		l.TextScaled = true
+		l.Text = "🤖"
+		l.Parent = frame
+	end
+	return frame, st
+end
+
+-- REVELACIÓN para toda la mesa: "X dice que fue... Y" → ✅ / ❌
+local reveal = Instance.new("Frame")
+reveal.AnchorPoint = Vector2.new(0.5, 0)
+reveal.Position = UDim2.new(0.5, 0, 0, 150)
+reveal.Size = UDim2.fromOffset(560, 150)
+reveal.BackgroundColor3 = Color3.fromRGB(30, 20, 50)
+reveal.BackgroundTransparency = 0.08
+reveal.Visible = false
+reveal.ZIndex = 12
+reveal.Parent = gui
+corner(reveal, 22)
+local revealStroke = stroke(reveal, GOLD, 4)
+local revealText = text(reveal, { Position = UDim2.fromOffset(150, 14), Size = UDim2.new(1, -165, 0, 46), Text = "", ZIndex = 13, TextXAlignment = Enum.TextXAlignment.Left })
+local revealName = text(reveal, { Position = UDim2.fromOffset(150, 60), Size = UDim2.new(1, -165, 0, 54), Text = "", ZIndex = 13, TextColor3 = GOLD, TextXAlignment = Enum.TextXAlignment.Left })
+local revealVerdict = text(reveal, { Position = UDim2.fromOffset(150, 112), Size = UDim2.new(1, -165, 0, 30), Text = "", ZIndex = 13, Font = Enum.Font.FredokaOne, TextXAlignment = Enum.TextXAlignment.Left })
+local revealPic = nil
+local revealScale = Instance.new("UIScale")
+revealScale.Parent = reveal
+local revealId = 0
 
 -- textos grandes
 local big = text(gui, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.28), Size = UDim2.fromOffset(900, 110), Text = "", TextTransparency = 1, TextStrokeTransparency = 1, ZIndex = 9 })
@@ -469,9 +524,30 @@ local function startGuess(d)
 		end
 	end
 	for i, o in ipairs(d.options or {}) do
-		local b = text(guessList, { Button = true, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 56), Text = "👉 " .. tostring(o.name), BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(90, 60, 140) })
-		corner(b, 14)
-		stroke(b, WHITE, 2)
+		local b = text(guessList, { Button = true, LayoutOrder = i, Text = "", BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(70, 45, 115), AutoButtonColor = true })
+		corner(b, 18)
+		local bs = stroke(b, WHITE, 2)
+		local pic = headshot(b, tonumber(o.id), 110)
+		pic.AnchorPoint = Vector2.new(0.5, 0)
+		pic.Position = UDim2.new(0.5, 0, 0, 14)
+		text(b, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 132), Size = UDim2.new(1, -14, 0, 34), Text = tostring(o.name) })
+		text(b, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 168), Size = UDim2.new(1, -30, 0, 26), Text = L("👉 ¡FUE ÉL!", "👉 IT WAS THEM!"), TextColor3 = GOLD, Font = Enum.Font.FredokaOne })
+		local sc = Instance.new("UIScale")
+		sc.Parent = b
+		b.MouseEnter:Connect(function()
+			TweenService:Create(sc, TweenInfo.new(0.15), { Scale = 1.06 }):Play()
+			bs.Color = GOLD
+			play("tick", 2.2)
+		end)
+		b.MouseLeave:Connect(function()
+			TweenService:Create(sc, TweenInfo.new(0.15), { Scale = 1 }):Play()
+			bs.Color = WHITE
+		end)
+		-- entrada en cascada
+		sc.Scale = 0.3
+		task.delay(0.06 * i, function()
+			TweenService:Create(sc, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		end)
 		b.Activated:Connect(function()
 			guessPanel.Visible = false
 			Net:FireServer("guess", o.id)
@@ -933,6 +1009,70 @@ Net.OnClientEvent:Connect(function(kind, d)
 				at:Destroy()
 			end)
 		end
+	elseif kind == "guessed" and type(d) == "table" then
+		revealId += 1
+		local my = revealId
+		guessPanel.Visible = false
+		if revealPic then
+			revealPic:Destroy()
+		end
+		local pic, ps = headshot(reveal, tonumber(d.guessedId), 116)
+		pic.Position = UDim2.fromOffset(17, 17)
+		pic.ZIndex = 13
+		revealPic = pic
+		revealStroke.Color = GOLD
+		ps.Color = GOLD
+		revealText.Text = d.timeout and (tostring(d.seated) .. L(" no ha dicho nadie…", " didn't answer…")) or (tostring(d.seated) .. L(" dice que fue…", " says it was…"))
+		revealName.Text = d.timeout and "⏱" or (tostring(d.guessed) .. "…")
+		revealVerdict.Text = ""
+		reveal.Visible = true
+		revealScale.Scale = 0.4
+		TweenService:Create(revealScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+		play("tick", 1.2)
+		task.delay(1.2, function()
+			if revealId ~= my then
+				return
+			end
+			if d.correct then
+				revealStroke.Color = Color3.fromRGB(110, 255, 140)
+				ps.Color = Color3.fromRGB(110, 255, 140)
+				revealVerdict.TextColor3 = Color3.fromRGB(110, 255, 140)
+				revealVerdict.Text = L("✅ ¡ACIERTO! Ahora se sienta él", "✅ CORRECT! They take the seat")
+				play("jump", 1.6, 1)
+				task.delay(0.12, function()
+					play("tick", 2.6, 0.8)
+				end)
+				doFlash(Color3.fromRGB(110, 255, 140), 0.7)
+			else
+				revealStroke.Color = Color3.fromRGB(255, 70, 80)
+				ps.Color = Color3.fromRGB(255, 70, 80)
+				revealVerdict.TextColor3 = Color3.fromRGB(255, 110, 110)
+				revealVerdict.Text = L("❌ ¡FALLO! Fue ", "❌ WRONG! It was ") .. tostring(d.slapper)
+				-- sonido de error: zumbido grave doble
+				play("tick", 0.45, 1)
+				task.delay(0.16, function()
+					play("tick", 0.4, 1)
+				end)
+				play("oof", 0.7, 0.6)
+				doFlash(Color3.fromRGB(255, 40, 40), 0.75)
+				-- temblor del cartel
+				for k = 1, 6 do
+					task.delay(k * 0.04, function()
+						reveal.Rotation = (k % 2 == 0 and 2 or -2)
+					end)
+				end
+				task.delay(0.3, function()
+					reveal.Rotation = 0
+				end)
+			end
+			revealScale.Scale = 1.12
+			TweenService:Create(revealScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+			task.delay(2.2, function()
+				if revealId == my then
+					reveal.Visible = false
+				end
+			end)
+		end)
 	elseif kind == "windup" and type(d) == "table" then
 		onWindup(d)
 	elseif kind == "anim" and type(d) == "table" then
