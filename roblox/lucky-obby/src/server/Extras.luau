@@ -268,7 +268,7 @@ local function buildShop()
 		pp.RequiresLineOfSight = false
 		local anchor = part({ Name = "PromptAnchor", Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(pos + Vector3.new(0, 3.5, 0)), Transparency = 1 }, f)
 		pp.Parent = anchor
-		pp.Triggered:Connect(function(player)
+		local function buy(player)
 			local d = G.Data.profiles[player]
 			if not d then
 				return
@@ -292,7 +292,10 @@ local function buildShop()
 			end
 			G.Data.save(player)
 			applyTrail(player)
-		end)
+		end
+		Extras.shop = Extras.shop or {}
+		Extras.shop[tr.id] = buy -- (también para pruebas)
+		pp.Triggered:Connect(buy)
 	end
 	f.Parent = workspace
 	for _, o in ipairs(orbs) do -- giran en cada cliente (Extras.client, etiqueta FxOrbit)

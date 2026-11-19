@@ -209,7 +209,7 @@ local function buildLuck(parent, cf)
 	pp.Parent = signPart
 	signPart.Position = (cf * CFrame.new(0, 4, 0)).Position
 	luckGui.StudsOffsetWorldSpace = Vector3.new(0, 13, 0)
-	pp.Triggered:Connect(function(player)
+	local function buyLuck(player)
 		local d = G.Data.profiles[player]
 		if not d then
 			return
@@ -231,7 +231,9 @@ local function buildLuck(parent, cf)
 		G.Data.save(player)
 		G.Net.Event:FireClient(player, "toast", { text = string.format("🍀 ¡Suerte nivel %d! Objetos más fuertes", d.luck) })
 		Hub.refreshLuck(player)
-	end)
+	end
+	Hub.buyLuck = buyLuck -- (también para pruebas)
+	pp.Triggered:Connect(buyLuck)
 end
 
 -- El cartel de la suerte enseña TU nivel (cada jugador lo ve en su pantalla con el atributo LuckLevel)

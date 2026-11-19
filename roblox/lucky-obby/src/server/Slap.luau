@@ -583,6 +583,10 @@ function Slap.resolve(st)
 	local head = victim.Character and victim.Character:FindFirstChild("Head")
 	local headPos = head and head.Position or st.cf.Position
 	local watchers = nearbyPlayers(headPos, 110)
+	if Slap.debugDodge then -- solo pruebas en Studio: forzar esquiva
+		Slap.debugDodge = nil
+		st.dodged = true
+	end
 	Slap.stats = Slap.stats or { hits = 0, dodges = 0 }
 	if st.dodged then
 		Slap.stats.dodges += 1
@@ -957,6 +961,9 @@ Slap.COUNT = 6
 Slap.PLAZA = PLAZA
 function Slap.debugJoin(p, k) -- solo para pruebas en Studio
 	join(p, stations[k or 1])
+end
+function Slap.station(k) -- (pruebas)
+	return stations[k]
 end
 function Slap.debugState(k)
 	local st = stations[k or 1]

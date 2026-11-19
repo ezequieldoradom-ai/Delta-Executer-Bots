@@ -80,6 +80,12 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			return table.concat(t, " | ") .. " || kinds=" .. table.concat(G.Course.kinds or {}, ",")
 		end
+		if cmd == "selftest" then
+			task.spawn(function()
+				require(script.SelfTest).run(G, player, require(script.Hub), require(script.Extras), require(script.Feedback), require(script.Bots))
+			end)
+			return "lanzado"
+		end
 		if cmd == "stopat" then -- pega YA parando la barra a 'arg' de distancia del rojo y devuelve el resultado
 			G.Slap.lastResult = nil
 			G.Slap.debugPos = arg

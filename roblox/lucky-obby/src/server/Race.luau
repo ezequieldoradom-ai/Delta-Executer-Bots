@@ -124,6 +124,7 @@ function Race.finish(player)
 		task.delay(3.5, function()
 			if Race.sessions[player] == s and s.finished then
 				s.item, s.rolling = nil, false
+				player:SetAttribute("Checkpoint", nil)
 				setWalk(player, 16, 7.2)
 				teleport(player, C.COURSE.LOBBY + Vector3.new(math.random(-8, 8), 0, math.random(-6, 6)))
 			end
@@ -140,6 +141,7 @@ function Race.quit(player)
 	end
 	s.racing, s.item, s.rolling = false, nil, false
 	s.speedUntil, s.frozenUntil, s.immuneUntil = nil, nil, nil
+	player:SetAttribute("Checkpoint", nil) -- si no, tu pantalla te "devolvería" a tu punto de control
 	setWalk(player, 16, 7.2)
 	teleport(player, C.COURSE.LOBBY + Vector3.new(math.random(-8, 8), 0, math.random(-6, 6)))
 	G.Net.Event:FireClient(player, "toast", { text = "🚪 Has salido de la carrera" })

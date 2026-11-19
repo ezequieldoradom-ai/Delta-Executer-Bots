@@ -85,7 +85,7 @@ function Feedback.init(G)
 	local rf = Instance.new("RemoteFunction")
 	rf.Name = "Feedback"
 	rf.Parent = game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
-	rf.OnServerInvoke = function(p, action, a, b)
+	local function handle(p, action, a, b)
 		if action == "isOwner" then
 			return isOwner(p)
 		elseif action == "send" then
@@ -116,6 +116,8 @@ function Feedback.init(G)
 		end
 		return nil
 	end
+	Feedback.handle = handle -- (también para pruebas)
+	rf.OnServerInvoke = handle
 	Players.PlayerRemoving:Connect(function(p)
 		last[p] = nil
 	end)
