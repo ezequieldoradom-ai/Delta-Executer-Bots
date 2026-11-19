@@ -150,6 +150,15 @@ local function rollAnim(final, seconds)
 		itemIcon.Text = it.icon
 		itemName.Text = Locale.name(it)
 		itemBtn.BackgroundColor3 = it.color:Lerp(Color3.fromRGB(30, 20, 50), 0.55)
+		-- rareza: de raro para arriba se anuncia en grande con su color
+		local rr = Config.RARITY and Config.RARITY[it.rarity or 1]
+		if rr and (it.rarity or 1) >= 2 then
+			local stars = string.rep("⭐", it.rarity - 1)
+			shout(stars .. " " .. string.upper(Locale.lang() == "es" and rr.es or rr.en) .. " " .. stars, rr.color, it.rarity >= 4 and 2 or 1.2)
+			if it.rarity >= 4 then
+				play("reward", 0.8)
+			end
+		end
 	end
 	bump(itemBtn, 1.35)
 	play("reward", 1.2)
@@ -219,7 +228,16 @@ end)
 
 Remotes:WaitForChild("Event").OnClientEvent:Connect(function(kind, d)
 	d = type(d) == "table" and d or {}
-	if kind == "toast" then -- avisos del vestíbulo (santuario de la suerte)
+	if kind == "launch" and typeof(d.vel) == "Vector3" then -- supersalto (sin caerse)
+		local char = player.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hrp and hum then
+			hum:ChangeState(Enum.HumanoidStateType.Jumping)
+			hrp.AssemblyLinearVelocity = d.vel
+			play("whoosh", 0.9)
+		end
+	elseif kind == "toast" then -- avisos del vestíbulo y de los objetos
 		toast(tostring(d.text or ""), Color3.fromRGB(140, 255, 160))
 		play("pop", 1.1)
 	elseif kind == "lucky" then

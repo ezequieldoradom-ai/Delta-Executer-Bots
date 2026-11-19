@@ -6,7 +6,10 @@
 --   shield  escudo: bloquea el siguiente golpe (8 s)
 --   swap    cambiazo: te cambias de sitio con alguien que va por delante
 --   freeze  congelación: todos los demás quietos 2 s
+-- (Shadow) nuevos, por rareza: boost/jump/glue (comunes), bomb (raro), ghost/lightning/tornado (épicos),
+--   portal (legendario), meteor/crown (míticos). Ver Config.RARITY.
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
 
 local Items = {}
@@ -29,6 +32,10 @@ end
 function Items.knock(target, vel, by, itemId)
 	local s = G.Race.sessions[target]
 	if not s then
+		return false
+	end
+	if s.immuneUntil and os.clock() < s.immuneUntil then
+		notify(target, "blocked")
 		return false
 	end
 	if s.shieldUntil and os.clock() < s.shieldUntil then
@@ -208,6 +215,242 @@ function USE.freeze(player)
 	return true
 end
 
+-- OBJETOS NUEVOS (Shadow) ---------------------------------------------------
+local function humOf(player)
+	local char = typeof(player) == "Instance" and player.Character
+	return char and char:FindFirstChildOfClass("Humanoid")
+end
+local function nameOf(player)
+	return typeof(player) == "Instance" and player.DisplayName or "?"
+end
+
+-- velocidad temporal (no pisa la congelación); al acabar vuelve a la normal (lo hace tick)
+function Items.setSpeed(player, speed, secs)
+	local s = G.Race.sessions[player]
+	if not s then
+		return
+	end
+	s.speedUntil = os.clock() + secs
+	local hum = humOf(player)
+	if hum and not (s.frozenUntil and os.clock() < s.frozenUntil) then
+		hum.WalkSpeed = speed
+	end
+end
+local setSpeed = Items.setSpeed
+
+-- brillo y partículas pegados al personaje unos segundos
+local function aura(player, secs, color, withFire)
+	local char = typeof(player) == "Instance" and player.Character
+	if not char then
+		return
+	end
+	local h = Instance.new("Highlight")
+	h.FillColor = color
+	h.FillTransparency = 0.55
+	h.OutlineColor = color
+	h.DepthMode = Enum.HighlightDepthMode.Occluded
+	h.Parent = char
+	Debris:AddItem(h, secs)
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		local pe = Instance.new("ParticleEmitter")
+		pe.Texture = withFire and "rbxasset://textures/particles/fire_main.dds" or "rbxasset://textures/particles/sparkles_main.dds"
+		pe.Rate = 40
+		pe.Lifetime = NumberRange.new(0.4, 0.8)
+		pe.Speed = NumberRange.new(1, 3)
+		pe.SpreadAngle = Vector2.new(180, 180)
+		pe.LightEmission = 1
+		pe.Color = ColorSequence.new(color)
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.2), NumberSequenceKeypoint.new(1, 0) })
+		pe.Parent = hrp
+		Debris:AddItem(pe, secs)
+	end
+end
+
+-- pieza visual temporal (sin colisión)
+local function fxPart(props, life)
+	local p = Instance.new("Part")
+	p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch, p.CastShadow = true, false, false, false, false
+	for k, v in pairs(props) do
+		p[k] = v
+	end
+	p.Parent = workspace
+	Debris:AddItem(p, life)
+	return p
+end
+
+-- explosión que empuja a todos los corredores cercanos (menos a quien la lanza)
+local function explode(owner, pos, radius, power, itemId)
+	local e = Instance.new("Explosion")
+	e.Position = pos
+	e.BlastRadius = radius
+	e.BlastPressure = 0
+	e.DestroyJointRadiusPercent = 0
+	e.Parent = workspace
+	for other, s in pairs(G.Race.sessions) do
+		local o = other ~= owner and s.racing and hrpOf(other)
+		if o and (o.Position - pos).Magnitude <= radius then
+			local flat = Vector3.new(o.Position.X - pos.X, 0, o.Position.Z - pos.Z)
+			flat = flat.Magnitude > 0.1 and flat.Unit or Vector3.new(0, 0, 1)
+			Items.knock(other, flat * power + Vector3.new(0, power * 0.6, 0), owner, itemId)
+		end
+	end
+end
+
+-- corredores ordenados por avance (el primero, delante)
+local function racersByProgress()
+	local list = {}
+	for other, s in pairs(G.Race.sessions) do
+		if s.racing and not s.finished and hrpOf(other) then
+			table.insert(list, other)
+		end
+	end
+	table.sort(list, function(a, b)
+		return G.Race.sessions[a].progress > G.Race.sessions[b].progress
+	end)
+	return list
+end
+
+-- 🚀 Turbo: corres mucho más rápido 3 s
+function USE.boost(player)
+	setSpeed(player, C.BOOST_SPEED, C.BOOST_TIME)
+	aura(player, C.BOOST_TIME, Color3.fromRGB(255, 140, 50), true)
+	notify(player, "toast", { text = "🚀 ¡TURBO!" })
+	return true
+end
+
+-- 🦘 Supersalto: salto enorme hacia delante
+function USE.jump(player, hrp)
+	local fwd = Vector3.new(hrp.CFrame.LookVector.X, 0, hrp.CFrame.LookVector.Z)
+	fwd = fwd.Magnitude > 0.1 and fwd.Unit or Vector3.new(0, 0, 1)
+	notify(player, "launch", { vel = fwd * 45 + Vector3.new(0, 95, 0) })
+	aura(player, 1.5, Color3.fromRGB(120, 255, 140), false)
+	return true
+end
+
+-- 🍯 Miel: charco detrás de ti; quien lo pisa va lentísimo 2,5 s
+function USE.glue(player, hrp)
+	local behind = hrp.Position - hrp.CFrame.LookVector * 3.5 - Vector3.new(0, 2.9, 0)
+	local p = Instance.new("Part")
+	p.Name = "Honey"
+	p.Shape = Enum.PartType.Cylinder
+	p.Anchored, p.CanCollide, p.CanQuery, p.CastShadow = true, false, false, false
+	p.Size = Vector3.new(0.3, 7, 7)
+	p.Color = Color3.fromRGB(255, 170, 30)
+	p.Material = Enum.Material.Glass
+	p.Transparency = 0.2
+	p.CFrame = CFrame.new(behind) * CFrame.Angles(0, 0, math.rad(90))
+	p.Parent = workspace
+	table.insert(bananas, { part = p, owner = player, untilT = os.clock() + 25, kind = "glue", radius = 3.8 })
+	return true
+end
+
+-- 💣 Bomba: se lanza en parábola y explota al tocar a alguien (empuja a todos los de alrededor)
+function USE.bomb(player, hrp, aim)
+	local from = hrp.Position + Vector3.new(0, 2.5, 0)
+	local dir = aim - from
+	dir = Vector3.new(dir.X, 0, dir.Z).Magnitude > 0.1 and Vector3.new(dir.X, 0, dir.Z).Unit or hrp.CFrame.LookVector
+	projectile(player, from + dir * 2, dir * 70 + Vector3.new(0, 34, 0), 110, 2.4, 4, { Name = "Bomb", Shape = Enum.PartType.Ball, Size = Vector3.new(2, 2, 2), Color = Color3.fromRGB(40, 40, 50), Material = Enum.Material.SmoothPlastic }, function(target)
+		local t = hrpOf(target)
+		explode(player, t and t.Position or from, 13, C.KNOCK * 1.1, "bomb")
+	end)
+	return true
+end
+
+-- 👻 Fantasma: 5 s inmune a todo y algo más rápido
+function USE.ghost(player)
+	local s = G.Race.sessions[player]
+	s.immuneUntil = os.clock() + C.GHOST_TIME
+	setSpeed(player, 26, C.GHOST_TIME)
+	aura(player, C.GHOST_TIME, Color3.fromRGB(220, 220, 255), false)
+	notify(player, "toast", { text = "👻 ¡Modo fantasma!" })
+	return true
+end
+
+-- ⚡ Rayo: cae sobre el que va primero (si eres tú, sobre el segundo): lo lanza y lo frena 2 s
+function USE.lightning(player)
+	local list = racersByProgress()
+	local target = list[1] ~= player and list[1] or list[2]
+	local o = target and hrpOf(target)
+	if not o then
+		return false -- nadie a quien darle: no se gasta
+	end
+	fxPart({ Name = "Bolt", Size = Vector3.new(1.2, 80, 1.2), CFrame = CFrame.new(o.Position + Vector3.new(0, 40, 0)), Color = Color3.fromRGB(255, 250, 140), Material = Enum.Material.Neon }, 0.35)
+	fxPart({ Name = "BoltGlow", Shape = Enum.PartType.Ball, Size = Vector3.new(10, 10, 10), CFrame = CFrame.new(o.Position), Color = Color3.fromRGB(255, 255, 200), Material = Enum.Material.Neon, Transparency = 0.4 }, 0.3)
+	if Items.knock(target, Vector3.new(0, 70, 0), player, "lightning") ~= false then
+		setSpeed(target, 8, 2)
+	end
+	return true
+end
+
+-- 🌪️ Tornado: un remolino enorme a tu alrededor que lanza lejos a todos
+function USE.tornado(player, hrp)
+	local tw = fxPart({ Name = "Tornado", Shape = Enum.PartType.Cylinder, Size = Vector3.new(30, 8, 8), CFrame = CFrame.new(hrp.Position + Vector3.new(0, 10, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(200, 220, 230), Material = Enum.Material.ForceField }, 1.2)
+	TweenService:Create(tw, TweenInfo.new(1.1), { Size = Vector3.new(36, 64, 64), Transparency = 1 }):Play()
+	for other, s in pairs(G.Race.sessions) do
+		local o = other ~= player and s.racing and hrpOf(other)
+		if o then
+			local d = o.Position - hrp.Position
+			if d.Magnitude <= 32 then
+				local flat = Vector3.new(d.X, 0, d.Z)
+				flat = flat.Magnitude > 0.1 and flat.Unit or hrp.CFrame.LookVector
+				Items.knock(other, flat * C.KNOCK * 1.4 + Vector3.new(0, 55, 0), player, "tornado")
+			end
+		end
+	end
+	G.Net.Event:FireAllClients("gustFx", { pos = hrp.Position })
+	return true
+end
+
+-- 🌀 Portal: te lleva al siguiente punto de control
+function USE.portal(player, hrp)
+	local s = G.Race.sessions[player]
+	local cp = G.Course.checkpoints[(s.cp or 0) + 1]
+	if not cp then
+		return false -- ya pasaste el último: no se gasta
+	end
+	for _, at in ipairs({ hrp.Position, cp.pos }) do
+		local ring = fxPart({ Name = "Portal", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 2, 2), CFrame = CFrame.new(at) * CFrame.Angles(0, math.rad(90), 0), Color = Color3.fromRGB(140, 100, 255), Material = Enum.Material.Neon, Transparency = 0.2 }, 1)
+		TweenService:Create(ring, TweenInfo.new(0.9), { Size = Vector3.new(0.4, 12, 12), Transparency = 1 }):Play()
+	end
+	hrp.CFrame = CFrame.new(cp.pos) * hrp.CFrame.Rotation
+	notify(player, "toast", { text = "🌀 ¡Portal!" })
+	return true
+end
+
+-- ☄️ Lluvia de meteoritos: un meteorito cae sobre cada corredor que va por delante de ti
+function USE.meteor(player)
+	local s = G.Race.sessions[player]
+	for other, os2 in pairs(G.Race.sessions) do
+		local o = other ~= player and os2.racing and not os2.finished and os2.progress > s.progress and hrpOf(other)
+		if o then
+			local target = o.Position
+			local m = fxPart({ Name = "Meteor", Shape = Enum.PartType.Ball, Size = Vector3.new(5, 5, 5), CFrame = CFrame.new(target + Vector3.new(30, 90, -20)), Color = Color3.fromRGB(255, 110, 40), Material = Enum.Material.Neon }, 1.2)
+			local fire = Instance.new("Fire")
+			fire.Size = 12
+			fire.Heat = 20
+			fire.Parent = m
+			TweenService:Create(m, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { CFrame = CFrame.new(target) }):Play()
+			task.delay(0.8, function()
+				local now = hrpOf(other)
+				explode(player, now and now.Position or target, 9, C.KNOCK * 1.2, "meteor")
+			end)
+		end
+	end
+	G.Net.Event:FireAllClients("toast", { text = "☄️ ¡" .. nameOf(player) .. " ha invocado una lluvia de meteoritos!" })
+	return true
+end
+
+-- 👑 Corona dorada: 8 s inmune, muy rápido y brillando en oro
+function USE.crown(player)
+	local s = G.Race.sessions[player]
+	s.immuneUntil = os.clock() + C.CROWN_TIME
+	setSpeed(player, 32, C.CROWN_TIME)
+	aura(player, C.CROWN_TIME, Color3.fromRGB(255, 205, 50), false)
+	G.Net.Event:FireAllClients("toast", { text = "👑 ¡" .. nameOf(player) .. " lleva la CORONA DORADA!" })
+	return true
+end
+
 -- Usar el objeto que llevas (aim = punto al que apuntas)
 function Items.use(player, aim)
 	local s = G.Race.sessions[player]
@@ -266,12 +509,19 @@ local function tick()
 		else
 			for player, s in pairs(G.Race.sessions) do
 				local hrp = s.racing and hrpOf(player)
-				if hrp and player ~= b.owner and (hrp.Position - b.part.Position).Magnitude < 3.2 then
+				if hrp and player ~= b.owner and (hrp.Position - b.part.Position).Magnitude < (b.radius or 3.2) then
 					b.part:Destroy()
 					table.remove(bananas, i)
-					local fwd = hrp.CFrame.LookVector
-					if Items.knock(player, fwd * 30 + Vector3.new(math.random(-20, 20), 20, 0), nil, "banana") ~= nil then
-						notify(player, "slipped", { time = C.SLIP_TIME })
+					if b.kind == "glue" then
+						if not (s.immuneUntil and now < s.immuneUntil) then
+							Items.setSpeed(player, 7, C.GLUE_TIME)
+							notify(player, "toast", { text = "🍯 ¡Pegado en la miel!" })
+						end
+					else
+						local fwd = hrp.CFrame.LookVector
+						if Items.knock(player, fwd * 30 + Vector3.new(math.random(-20, 20), 20, 0), nil, "banana") ~= nil then
+							notify(player, "slipped", { time = C.SLIP_TIME })
+						end
 					end
 					break
 				end
@@ -279,6 +529,14 @@ local function tick()
 		end
 	end
 	for player, s in pairs(G.Race.sessions) do
+		if s.speedUntil and now >= s.speedUntil then
+			s.speedUntil = nil
+			local char = not (s.frozenUntil and now < s.frozenUntil) and typeof(player) == "Instance" and player.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum then
+				hum.WalkSpeed = G.Race.WALK
+			end
+		end
 		if s.frozenUntil and now >= s.frozenUntil then
 			s.frozenUntil = nil
 			local hum = typeof(player) == "Instance" and player.Character and player.Character:FindFirstChildOfClass("Humanoid")

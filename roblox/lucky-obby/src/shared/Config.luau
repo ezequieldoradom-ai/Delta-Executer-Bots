@@ -8,14 +8,14 @@ Config.ROUND = {
 	MIN_PLAYERS = 1, -- para empezar (con 1 se puede practicar solo)
 	INTERMISSION = 15, -- espera en el vestíbulo entre carreras
 	COUNTDOWN = 3, -- 3, 2, 1, ¡YA!
-	RACE_TIME = 180, -- tiempo máximo de carrera
-	AFTER_WINNER = 25, -- cuando llega el primero, los demás tienen estos segundos
+	RACE_TIME = 330, -- tiempo máximo de carrera
+	AFTER_WINNER = 35, -- cuando llega el primero, los demás tienen estos segundos
 	RESULTS = 6, -- pantalla de resultados
 }
 
 Config.COURSE = {
 	START = Vector3.new(0, 60, 0), -- salida (la carrera avanza hacia +Z)
-	SEGMENTS = 16,
+	SEGMENTS = 30, -- obby largo: 10 tramos de 3 (un bioma por tramo)
 	SEG_LEN = 38,
 	WIDTH = 18,
 	CHECKPOINT_EVERY = 3, -- un punto de control cada 3 tramos
@@ -30,29 +30,57 @@ Config.SHIELD_TIME = 8
 Config.FREEZE_TIME = 2
 Config.SLIP_TIME = 1.2
 
--- Objetos: tier 1 = flojos (los dan más al primero), 2 = medios, 3 = fuertes (los dan más al último)
+-- RAREZAS: cuanto mejor es el objeto, menos sale (y más a los que van detrás o tienen más suerte)
+Config.RARITY = {
+	{ es = "Común", en = "Common", color = Color3.fromRGB(200, 200, 210), weight = 100 },
+	{ es = "Raro", en = "Rare", color = Color3.fromRGB(80, 170, 255), weight = 42 },
+	{ es = "Épico", en = "Epic", color = Color3.fromRGB(190, 90, 255), weight = 16 },
+	{ es = "Legendario", en = "Legendary", color = Color3.fromRGB(255, 190, 40), weight = 5 },
+	{ es = "Mítico", en = "Mythic", color = Color3.fromRGB(255, 70, 110), weight = 1.4 },
+}
+
 Config.ITEMS = {
-	{ id = "rock", icon = "🪨", es = "Piedra", en = "Rock", tier = 1, color = Color3.fromRGB(150, 140, 130) },
-	{ id = "banana", icon = "🍌", es = "Cáscara", en = "Banana peel", tier = 1, color = Color3.fromRGB(255, 220, 60) },
-	{ id = "shield", icon = "🛡️", es = "Escudo", en = "Shield", tier = 1, color = Color3.fromRGB(90, 200, 255) },
-	{ id = "bow", icon = "🏹", es = "Arco", en = "Bow", tier = 2, color = Color3.fromRGB(190, 130, 70) },
-	{ id = "gust", icon = "🌬️", es = "Soplido", en = "Gust", tier = 2, color = Color3.fromRGB(200, 240, 255) },
-	{ id = "swap", icon = "🔀", es = "Cambiazo", en = "Swap", tier = 3, color = Color3.fromRGB(200, 110, 255) },
-	{ id = "freeze", icon = "❄️", es = "Congelación", en = "Freeze", tier = 3, color = Color3.fromRGB(150, 230, 255) },
+	-- comunes
+	{ id = "rock", icon = "🪨", es = "Piedra", en = "Rock", rarity = 1, color = Color3.fromRGB(150, 140, 130) },
+	{ id = "banana", icon = "🍌", es = "Cáscara", en = "Banana peel", rarity = 1, color = Color3.fromRGB(255, 220, 60) },
+	{ id = "boost", icon = "🚀", es = "Turbo", en = "Turbo", rarity = 1, color = Color3.fromRGB(255, 140, 60) },
+	{ id = "jump", icon = "🦘", es = "Supersalto", en = "Super jump", rarity = 1, color = Color3.fromRGB(120, 255, 140) },
+	{ id = "glue", icon = "🍯", es = "Miel", en = "Honey trap", rarity = 1, color = Color3.fromRGB(255, 170, 40) },
+	-- raros
+	{ id = "shield", icon = "🛡️", es = "Escudo", en = "Shield", rarity = 2, color = Color3.fromRGB(90, 200, 255) },
+	{ id = "bow", icon = "🏹", es = "Arco", en = "Bow", rarity = 2, color = Color3.fromRGB(190, 130, 70) },
+	{ id = "gust", icon = "🌬️", es = "Soplido", en = "Gust", rarity = 2, color = Color3.fromRGB(200, 240, 255) },
+	{ id = "bomb", icon = "💣", es = "Bomba", en = "Bomb", rarity = 2, color = Color3.fromRGB(90, 90, 110) },
+	-- épicos
+	{ id = "ghost", icon = "👻", es = "Fantasma", en = "Ghost", rarity = 3, color = Color3.fromRGB(220, 220, 255) },
+	{ id = "lightning", icon = "⚡", es = "Rayo", en = "Lightning", rarity = 3, color = Color3.fromRGB(255, 240, 90) },
+	{ id = "tornado", icon = "🌪️", es = "Tornado", en = "Tornado", rarity = 3, color = Color3.fromRGB(170, 200, 210) },
+	-- legendarios
+	{ id = "swap", icon = "🔀", es = "Cambiazo", en = "Swap", rarity = 4, color = Color3.fromRGB(200, 110, 255) },
+	{ id = "freeze", icon = "❄️", es = "Congelación", en = "Freeze", rarity = 4, color = Color3.fromRGB(150, 230, 255) },
+	{ id = "portal", icon = "🌀", es = "Portal", en = "Portal", rarity = 4, color = Color3.fromRGB(120, 90, 255) },
+	-- míticos
+	{ id = "meteor", icon = "☄️", es = "Lluvia de meteoritos", en = "Meteor shower", rarity = 5, color = Color3.fromRGB(255, 90, 40) },
+	{ id = "crown", icon = "👑", es = "Corona dorada", en = "Golden crown", rarity = 5, color = Color3.fromRGB(255, 205, 50) },
 }
 Config.ITEM_BY_ID = {}
 for _, it in ipairs(Config.ITEMS) do
 	Config.ITEM_BY_ID[it.id] = it
+	it.tier = it.rarity -- compatibilidad
 end
 
--- Peso de cada objeto según tu puesto: p = 0 si vas primero, 1 si vas último
+-- Duraciones de los objetos nuevos
+Config.BOOST_TIME, Config.BOOST_SPEED = 3, 36
+Config.GHOST_TIME = 5
+Config.CROWN_TIME = 8
+Config.GLUE_TIME = 2.5
+
+-- Peso de cada objeto según tu puesto: p = 0 si vas primero, 1 si vas último.
+-- Base por rareza (100 · 42 · 16 · 5 · 1,4) y los de detrás multiplican las rarezas altas (el último, x4 los míticos).
 function Config.itemWeight(item, p)
-	if item.tier == 1 then
-		return 0.25 + 1.2 * (1 - p)
-	elseif item.tier == 2 then
-		return 0.7
-	end
-	return 0.05 + 1.3 * p * p
+	local r = item.rarity or 1
+	local base = Config.RARITY[r].weight
+	return base * math.max(0.15, 1 + (r - 1) * (p - 0.35) * 1.2)
 end
 
 function Config.rollItem(p, rng)

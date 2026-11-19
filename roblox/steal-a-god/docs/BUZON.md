@@ -233,3 +233,11 @@ El dueño pidió "una zona segura top, con leaderboard, suerte para objetos". Pr
 - `src/server/Hub.luau` (nuevo): tablones 🏆 VICTORIAS y 🪙 MONEDAS (OrderedDataStore `LuckyObby_Wins_v1`/`LuckyObby_Coins_v1`; en Studio, jugadores del servidor), tablón "Cómo se juega" y santuario 🍀 de SUERTE (ProximityPrompt, compra con monedas).
 - `Data`: campo `luck` (0–10) guardado + `Data.spend`. `Config.LUCK`, `luckCost`, `luckP`. `Items.grant` usa `C.luckP(p, luck)`.
 - Cliente: evento `toast` y cartel de suerte con tu nivel (atributos `LuckLevel`/`LuckCost`).
+
+## 2026-11-19 02:55 · Shadow — Lucky Obby Race: biomas, obby largo y 17 objetos por rareza
+Pedido del dueño ("todo lo que puedas y efectos", "obby largo, muchos más objetos, cuanto más buenos menos probabilidad"). Probado en Studio, sin errores:
+- Obby largo: `SEGMENTS = 30` (10 tramos), `RACE_TIME = 330`, `AFTER_WINNER = 35`.
+- 8 biomas (`Decor.BIOMES`): pradera al principio, cielo dorado al final y en medio caramelo, volcán, glaciar, galaxia, cementerio y desierto, barajados por semilla. El suelo cambia de material pero con `CustomPhysicalProperties` de plástico (el hielo no resbala). Adornos por bioma, lava que chisporrotea, haz en los JumpPads y columnas de luz en la meta.
+- `src/client/Biomes.client.luau` (nuevo): por tramo cambia hora, niebla, tinte y luz ambiente (solo en tu pantalla), pone clima alrededor de la cámara y muestra el nombre del bioma.
+- Objetos: `Config.RARITY` (Común 100 · Raro 42 · Épico 16 · Legendario 5 · Mítico 1,4) y `itemWeight` por rareza y puesto. 10 nuevos en `Items`: boost, jump (evento `launch` en el cliente, sin caída), glue (trampa de miel), bomb, ghost/crown (`immuneUntil`), lightning (al líder), tornado, portal (siguiente punto de control), meteor. Hay `Items.setSpeed` y `tick` devuelve la velocidad normal. El cliente anuncia la rareza (⭐) a partir de Raro. `test_full` ajustado a las rarezas.
+- `init.server`: `ServerStorage.StudioDebug` (solo Studio) con `"use", player, id`.

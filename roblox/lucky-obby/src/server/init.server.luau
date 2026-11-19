@@ -39,3 +39,22 @@ G.Items.init(G)
 G.Race.init(G)
 G.Race.start()
 print("🏁 Lucky Obby Race listo")
+
+-- Solo en Studio: ServerStorage.StudioDebug:Invoke("use", player, itemId) da y usa un objeto (para probar)
+if game:GetService("RunService"):IsStudio() then
+	local bf = Instance.new("BindableFunction")
+	bf.Name = "StudioDebug"
+	bf.OnInvoke = function(cmd, player, arg)
+		if cmd == "use" then
+			local s = G.Race.sessions[player]
+			if not s then
+				return "sin sesión"
+			end
+			s.item, s.rolling = arg, false
+			local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			local ok, res = pcall(G.Items.use, player, hrp and hrp.Position + hrp.CFrame.LookVector * 30)
+			return tostring(ok) .. " " .. tostring(res) .. " racing=" .. tostring(s.racing)
+		end
+	end
+	bf.Parent = game:GetService("ServerStorage")
+end

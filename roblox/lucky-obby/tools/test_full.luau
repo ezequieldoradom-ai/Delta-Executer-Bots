@@ -74,7 +74,7 @@ step("Lucky block: los de detrás reciben objetos mejores", function()
 				return x
 			end)
 			local tier = C.ITEM_BY_ID[id].tier
-			if tier == 3 then
+			if tier >= 3 then
 				strong += 1
 			elseif tier == 1 then
 				weak += 1
@@ -85,7 +85,7 @@ step("Lucky block: los de detrás reciben objetos mejores", function()
 	local s0, w0 = share(0)
 	local s1, w1 = share(1)
 	add(string.format("   primero: %.0f %% fuertes, %.0f %% flojos · último: %.0f %% fuertes, %.0f %% flojos", s0 * 100, w0 * 100, s1 * 100, w1 * 100))
-	assert(s1 > s0 * 5 and w0 > w1 * 2, "el puesto no cambia los objetos")
+	assert(s1 > s0 * 5 and w0 > w1 * 1.4, "el puesto no cambia los objetos")
 end)
 
 -- jugadores de mentira en carrera

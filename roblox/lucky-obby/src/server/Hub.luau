@@ -243,8 +243,8 @@ local function buildHelp(parent, cf)
 	local lines = {
 		"🏁 Llega el primero a la meta",
 		"🎁 Cada 9 s recibes un lucky block (E / botón)",
-		"🪨 Piedra · 🏹 Arco · 🍌 Cáscara · 🌬️ Soplido",
-		"🛡️ Escudo · 🔀 Cambiazo · ❄️ Congelación",
+		"⚪ Común  🔵 Raro  🟣 Épico  🟡 Legendario  🔴 Mítico",
+		"17 objetos: cuanto mejor, más difícil que salga",
 		"🍀 Más suerte = objetos más fuertes",
 		"🪙 Monedas por puesto: 50 · 30 · 20",
 	}
