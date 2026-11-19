@@ -131,6 +131,51 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 
 	-- D. GUANTAZOS ------------------------------------------------------------------------
 	safe("guantazos", function()
+		-- no se puede entrar en una mesa con la partida empezada
+		local busy
+		waitFor(function()
+			for kk = 1, 6 do
+				local stk = G.Slap.station(kk)
+				if stk.match and #stk.members < 4 then
+					busy = kk
+					return true
+				end
+			end
+		end, 60)
+		if busy then
+			check("no se entra con la partida en curso", G.Slap.join(p, busy) == false)
+		else
+			check("había una partida en curso para probar", false)
+		end
+		-- mesa vacía: al entrar 2, cuenta atrás de 15 s
+		local empty
+		for kk = 1, 6 do
+			if #G.Slap.station(kk).members == 0 then
+				empty = kk
+				break
+			end
+		end
+		if empty then
+			local ste = G.Slap.station(empty)
+			G.Slap.join(p, empty)
+			check("solo: la mesa espera", ste.phase == "idle", ste.phase)
+			local deadline = os.clock() + 40
+			while #ste.members < 2 and os.clock() < deadline do
+				task.wait(0.5) -- los bots buscan mesa
+			end
+			if #ste.members >= 2 then
+				check("con 2: cuenta atrás", ste.phase == "starting" and ste.countdown ~= nil, ste.phase)
+				local t0 = os.clock()
+				waitFor(function()
+					return ste.match
+				end, 20)
+				check("la partida empieza a los ~15 s", ste.match and math.abs(os.clock() - t0 - 15) < 3, string.format("%.1f s", os.clock() - t0))
+			else
+				check("con 2: cuenta atrás", false, "no vino ningún bot")
+			end
+			G.Slap.leave(p)
+			task.wait(1)
+		end
 		local k
 		waitFor(function()
 			for kk = 1, 6 do

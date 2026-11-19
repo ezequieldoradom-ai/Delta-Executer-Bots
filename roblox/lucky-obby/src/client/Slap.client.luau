@@ -347,7 +347,9 @@ local function updateUI()
 		end
 	end
 	panelTitle.Text = string.format("🖐️ %s %d · %d/%d", L("MESA", "TABLE"), station.id or 0, n, station.max or 4)
-	if station.phase == "idle" then
+	if station.phase == "starting" then
+		panelInfo.Text = string.format(L("⏳ La partida empieza en %d s…", "⏳ Match starts in %d s…"), station.startsIn or 0)
+	elseif station.phase == "idle" then
 		panelInfo.Text = L("Esperando a otro jugador…", "Waiting for another player…")
 	elseif amSeated() then
 		panelInfo.Text = L("Estás sentado. ¡Alguien te va a dar!", "You're seated. Someone's going to slap you!")

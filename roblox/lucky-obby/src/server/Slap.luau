@@ -17,6 +17,7 @@ local PLAZA = Vector3.new(-125, 0, -40) -- centro de la plaza (a un lado del ves
 local PLAZA_R = 44
 local STATION_R = 28
 local MAX_PLAYERS = 4
+local START_DELAY = 15 -- cuenta atrás antes de empezar una partida
 local AREA = 24 -- si te alejas más de esto de tu mesa, sales del juego
 local BAR_PERIOD = 0.6 -- segundos de 0 a 1 (luego vuelve)
 local RED_W = 0.032 -- ancho del cuadradito rojo (fracción de la barra): muy difícil de clavar
@@ -30,6 +31,7 @@ local COLORS = {
 
 local stations = {}
 local stationOf = {} -- [player] = station
+Slap.respawnHere = {} -- [player] = true si lo eliminaron en una mesa
 
 local function hrpOf(p)
 	local c = p.Character
@@ -285,6 +287,8 @@ local function info(st, viewer)
 		-- quién pega solo lo saben los que están de pie
 		slapper = (viewer ~= st.seated and st.slapper) and st.slapper.UserId or 0,
 		max = MAX_PLAYERS,
+		startsIn = st.countdown and math.max(0, math.ceil(st.countdown - os.clock())) or nil,
+		inMatch = st.match == true,
 		cf = st.cf,
 	}
 end
@@ -347,13 +351,53 @@ local function refresh(st)
 			unseat(st, st.seated)
 		end
 		st.seated, st.slapper = nil, nil
+		st.countdown, st.cdToken, st.startNow = nil, nil, nil
 		if st.match then
 			declareWinner(st, st.members[1])
 		end
 		setPhase(st, "idle")
+	elseif not st.match then
+		-- CUENTA ATRÁS de 15 s antes de empezar (se puede entrar mientras; luego, no)
+		if not st.countdown then
+			st.countdown = os.clock() + START_DELAY
+			local token = {}
+			st.cdToken = token
+			setPhase(st, "starting")
+			msgAll(st, string.format("⏳ ¡La partida empieza en %d s! Aún puede entrar gente", START_DELAY))
+			task.spawn(function()
+				while st.cdToken == token and os.clock() < st.countdown do
+					broadcast(st)
+					task.wait(1)
+				end
+				if st.cdToken ~= token then
+					return
+				end
+				st.countdown, st.cdToken = nil, nil
+				if #st.members >= 2 then
+					st.startNow = true
+				end
+				refresh(st)
+			end)
+		else
+			broadcast(st)
+		end
+		if st.startNow then
+			st.startNow = nil
+			st.match = true -- empieza una partida a eliminación
+			st.eliminated = {}
+			for _, m in ipairs(st.members) do
+				local h = humOf(m)
+				if h and h.Health > 0 then
+					h.Health = h.MaxHealth
+				end
+			end
+			st.matchSize = #st.members
+			msgAll(st, "🖐️ ¡Empieza la partida! Si te quedas sin vida o te dan un SUPREMO, eliminado")
+			pickSeated(st)
+		end
 	elseif not st.seated or not table.find(st.members, st.seated) then
 		if not st.match then
-			st.match = true -- empieza una partida a eliminación
+			st.match = true
 			st.eliminated = {}
 			for _, m in ipairs(st.members) do
 				local h = humOf(m)
@@ -410,9 +454,9 @@ local function join(p, st)
 		send(p, "msg", "🚫 Mesa llena (4/4)")
 		return
 	end
-	if st.match and st.eliminated and st.eliminated[p] then
-		send(p, "msg", "💀 Estás eliminado: espera a que acabe esta partida")
-		return
+	if st.match then
+		send(p, "msg", "⏳ Partida en curso: espera a que termine para entrar")
+		return false
 	end
 	if stationOf[p] then
 		Slap.leave(p)
@@ -644,6 +688,7 @@ function Slap.resolve(st)
 		unseat(st, victim)
 		st.eliminated = st.eliminated or {}
 		st.eliminated[victim] = true
+		Slap.respawnHere[victim] = true -- al reaparecer, en la plaza de los guantazos
 		stationOf[victim] = nil
 		local vi = table.find(st.members, victim)
 		if vi then
@@ -882,6 +927,15 @@ function Slap.init(g)
 				seatPlayer(st, p)
 			elseif st then
 				hold(st, p)
+			elseif Slap.respawnHere[p] then
+				Slap.respawnHere[p] = nil
+				local hrp = hrpOf(p)
+				if hrp then
+					local lobby = G.Config.COURSE.LOBBY
+					local toLobby = (Vector3.new(lobby.X, 0, lobby.Z) - Vector3.new(PLAZA.X, 0, PLAZA.Z)).Unit
+					local spot = PLAZA + toLobby * (PLAZA_R - 9) + Vector3.new(math.random(-4, 4), 4, math.random(-4, 4))
+					hrp.CFrame = CFrame.lookAt(spot, Vector3.new(PLAZA.X, spot.Y, PLAZA.Z))
+				end
 			end
 		end)
 	end)
