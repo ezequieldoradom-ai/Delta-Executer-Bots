@@ -80,6 +80,33 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			return table.concat(t, " | ") .. " || kinds=" .. table.concat(G.Course.kinds or {}, ",")
 		end
+		if cmd == "stopat" then -- pega YA parando la barra a 'arg' de distancia del rojo y devuelve el resultado
+			G.Slap.lastResult = nil
+			G.Slap.debugPos = arg
+			if not G.Slap.request(player) then
+				G.Slap.debugPos = nil
+				local sid = G.Slap.stationOf(player)
+				return "no me toca", sid, sid and G.Slap.debugState(sid)
+			end
+			task.wait(0.4)
+			G.Slap.stop(player, nil)
+			for _ = 1, 40 do
+				if G.Slap.lastResult then
+					break
+				end
+				task.wait(0.1)
+			end
+			local r = G.Slap.lastResult
+			return r and string.format("dist=%.3f fuerza=%d%% supremo=%s esquivado=%s", arg, math.floor(r.power * 100), tostring(r.supreme), tostring(r.dodged)) or "sin resultado"
+		end
+		if cmd == "lastresult" then
+			local r = G.Slap.lastResult
+			return r and string.format("fuerza=%d%% supremo=%s esquivado=%s", math.floor(r.power * 100), tostring(r.supreme), tostring(r.dodged)) or "nada"
+		end
+		if cmd == "slapstats" then
+			local t = G.Slap.stats or { hits = 0, dodges = 0 }
+			return t.hits, t.dodges
+		end
 		if cmd == "slapnow" then -- me toca pegar ya (si estoy de pie en una mesa esperando)
 			local ok = G.Slap.request(player)
 			return ok

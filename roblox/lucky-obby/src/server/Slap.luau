@@ -256,7 +256,7 @@ end
 
 local function seatPlayer(st, p)
 	local hum, hrp = humOf(p), hrpOf(p)
-	if not hum or not hrp or hum.Health <= 0 then
+	if not hum or not hrp or hum.Health <= 0 or not hum:IsDescendantOf(workspace) or hum:GetState() == Enum.HumanoidStateType.Dead then
 		return false
 	end
 	hrp.AssemblyLinearVelocity = Vector3.zero
@@ -492,6 +492,10 @@ function Slap.stop(p, clientPos)
 			pos = math.clamp(clientPos, 0, 1)
 		end
 	end
+	if Slap.debugPos then -- solo pruebas en Studio: parar la barra a esta distancia del rojo
+		pos = math.clamp(st.redPos + Slap.debugPos, 0, 1)
+		Slap.debugPos = nil
+	end
 	-- FUERZA = lo cerca que la paras del rojo (en el rojo, 100 % y supremo)
 	local dist = math.abs(pos - st.redPos)
 	st.power = math.clamp(1 - dist / 0.55, 0.1, 1)
@@ -585,6 +589,13 @@ function Slap.resolve(st)
 	local head = victim.Character and victim.Character:FindFirstChild("Head")
 	local headPos = head and head.Position or st.cf.Position
 	local watchers = nearbyPlayers(headPos, 110)
+	Slap.stats = Slap.stats or { hits = 0, dodges = 0 }
+	if st.dodged then
+		Slap.stats.dodges += 1
+	else
+		Slap.stats.hits += 1
+	end
+	Slap.lastResult = { power = st.power, supreme = st.supreme, dodged = st.dodged }
 	if st.dodged then
 		-- se agacha y el guantazo da al aire: ahora se sienta el que iba a pegar
 		setPhase(st, "result")
