@@ -1,0 +1,6 @@
+[
+ {"name":"b1-centauro-alto","cam":[66,30,108,56,6,96,40]},
+ {"name":"b2-centauro-lado","cam":[49.5,6,105.5,56.5,6.5,95.5,70]},
+ {"name":"b3-hecate-alto","cam":[-40,26,84,-56,8,95,45]},
+ {"name":"b4-hecate-espalda","cam":[-66,10,108,-56,9,95,60]}
+]

@@ -1,0 +1,837 @@
+[
+ {
+  "text": "Día",
+  "start": 0,
+  "end": 0.32
+ },
+ {
+  "text": "cuatro.",
+  "start": 0.4,
+  "end": 0.88
+ },
+ {
+  "text": "Esta",
+  "start": 1.28,
+  "end": 1.52
+ },
+ {
+  "text": "noche,",
+  "start": 1.6,
+  "end": 2.16
+ },
+ {
+  "text": "Dylan,",
+  "start": 2.24,
+  "end": 2.8
+ },
+ {
+  "text": "nuestro",
+  "start": 2.84,
+  "end": 3.12
+ },
+ {
+  "text": "jefe",
+  "start": 3.2,
+  "end": 3.36
+ },
+ {
+  "text": "visionario,",
+  "start": 3.44,
+  "end": 4.24
+ },
+ {
+  "text": "despertó",
+  "start": 4.36,
+  "end": 4.8
+ },
+ {
+  "text": "gritando.",
+  "start": 4.84,
+  "end": 5.56
+ },
+ {
+  "text": "Ha",
+  "start": 5.76,
+  "end": 5.84
+ },
+ {
+  "text": "tenido",
+  "start": 5.92,
+  "end": 6.24
+ },
+ {
+  "text": "una",
+  "start": 6.32,
+  "end": 6.4
+ },
+ {
+  "text": "visión…",
+  "start": 6.64,
+  "end": 7.44
+ },
+ {
+  "text": "y",
+  "start": 7.52,
+  "end": 7.6
+ },
+ {
+  "text": "no",
+  "start": 7.76,
+  "end": 7.84
+ },
+ {
+  "text": "es",
+  "start": 7.92,
+  "end": 8
+ },
+ {
+  "text": "buena.",
+  "start": 8.08,
+  "end": 8.6
+ },
+ {
+  "text": "Pero",
+  "start": 8.8,
+  "end": 8.96
+ },
+ {
+  "text": "antes:",
+  "start": 9.16,
+  "end": 9.44
+ },
+ {
+  "text": "ya",
+  "start": 9.76,
+  "end": 9.92
+ },
+ {
+  "text": "somos",
+  "start": 10,
+  "end": 10.32
+ },
+ {
+  "text": "ciento",
+  "start": 10.4,
+  "end": 10.72
+ },
+ {
+  "text": "ochenta",
+  "start": 10.8,
+  "end": 11.12
+ },
+ {
+  "text": "y",
+  "start": 11.2,
+  "end": 11.28
+ },
+ {
+  "text": "ocho.",
+  "start": 11.32,
+  "end": 11.6
+ },
+ {
+  "text": "Y",
+  "start": 11.92,
+  "end": 11.96
+ },
+ {
+  "text": "el",
+  "start": 12,
+  "end": 12.04
+ },
+ {
+  "text": "comentario",
+  "start": 12.08,
+  "end": 12.56
+ },
+ {
+  "text": "más",
+  "start": 12.64,
+  "end": 12.8
+ },
+ {
+  "text": "votado",
+  "start": 12.88,
+  "end": 13.28
+ },
+ {
+  "text": "pedía",
+  "start": 13.36,
+  "end": 13.68
+ },
+ {
+  "text": "que",
+  "start": 13.72,
+  "end": 13.76
+ },
+ {
+  "text": "se",
+  "start": 13.84,
+  "end": 13.92
+ },
+ {
+  "text": "agrande",
+  "start": 14,
+  "end": 14.32
+ },
+ {
+  "text": "la",
+  "start": 14.36,
+  "end": 14.4
+ },
+ {
+  "text": "isla.",
+  "start": 14.48,
+  "end": 14.96
+ },
+ {
+  "text": "Así",
+  "start": 15.12,
+  "end": 15.36
+ },
+ {
+  "text": "que",
+  "start": 15.44,
+  "end": 15.6
+ },
+ {
+  "text": "la",
+  "start": 15.84,
+  "end": 15.92
+ },
+ {
+  "text": "tierra",
+  "start": 16,
+  "end": 16.24
+ },
+ {
+  "text": "tembló,",
+  "start": 16.32,
+  "end": 17.12
+ },
+ {
+  "text": "salió",
+  "start": 17.2,
+  "end": 17.52
+ },
+ {
+  "text": "lava",
+  "start": 17.6,
+  "end": 17.84
+ },
+ {
+  "text": "del",
+  "start": 17.92,
+  "end": 18
+ },
+ {
+  "text": "mar…",
+  "start": 18.08,
+  "end": 18.8
+ },
+ {
+  "text": "y",
+  "start": 18.84,
+  "end": 18.88
+ },
+ {
+  "text": "la",
+  "start": 18.96,
+  "end": 19.04
+ },
+ {
+  "text": "isla",
+  "start": 19.12,
+  "end": 19.44
+ },
+ {
+  "text": "creció.",
+  "start": 19.52,
+  "end": 20.08
+ },
+ {
+  "text": "Esto",
+  "start": 20.48,
+  "end": 20.88
+ },
+ {
+  "text": "pasa",
+  "start": 20.92,
+  "end": 21.12
+ },
+ {
+  "text": "de",
+  "start": 21.2,
+  "end": 21.28
+ },
+ {
+  "text": "verdad:",
+  "start": 21.36,
+  "end": 22
+ },
+ {
+  "text": "en",
+  "start": 22.08,
+  "end": 22.16
+ },
+ {
+  "text": "mil",
+  "start": 22.24,
+  "end": 22.32
+ },
+ {
+  "text": "novecientos",
+  "start": 22.36,
+  "end": 22.84
+ },
+ {
+  "text": "sesenta",
+  "start": 22.88,
+  "end": 23.2
+ },
+ {
+  "text": "y",
+  "start": 23.28,
+  "end": 23.36
+ },
+ {
+  "text": "tres,",
+  "start": 23.44,
+  "end": 23.84
+ },
+ {
+  "text": "un",
+  "start": 23.88,
+  "end": 23.92
+ },
+ {
+  "text": "volcán",
+  "start": 24,
+  "end": 24.32
+ },
+ {
+  "text": "creó",
+  "start": 24.4,
+  "end": 24.64
+ },
+ {
+  "text": "una",
+  "start": 24.72,
+  "end": 24.8
+ },
+ {
+  "text": "isla",
+  "start": 24.88,
+  "end": 25.04
+ },
+ {
+  "text": "nueva",
+  "start": 25.2,
+  "end": 25.44
+ },
+ {
+  "text": "junto",
+  "start": 25.52,
+  "end": 25.76
+ },
+ {
+  "text": "a",
+  "start": 25.787,
+  "end": 25.813
+ },
+ {
+  "text": "Islandia,",
+  "start": 25.84,
+  "end": 26.48
+ },
+ {
+  "text": "llamada",
+  "start": 26.56,
+  "end": 26.96
+ },
+ {
+  "text": "Surtsey.",
+  "start": 27.12,
+  "end": 27.68
+ },
+ {
+  "text": "Todos",
+  "start": 28,
+  "end": 28.32
+ },
+ {
+  "text": "lo",
+  "start": 28.36,
+  "end": 28.4
+ },
+ {
+  "text": "celebraron…",
+  "start": 28.48,
+  "end": 29.52
+ },
+ {
+  "text": "menos",
+  "start": 29.6,
+  "end": 29.84
+ },
+ {
+  "text": "Dylan.",
+  "start": 29.88,
+  "end": 30.4
+ },
+ {
+  "text": "Porque",
+  "start": 30.56,
+  "end": 30.8
+ },
+ {
+  "text": "en",
+  "start": 30.84,
+  "end": 30.88
+ },
+ {
+  "text": "su",
+  "start": 30.96,
+  "end": 31.04
+ },
+ {
+  "text": "visión",
+  "start": 31.28,
+  "end": 31.52
+ },
+ {
+  "text": "vio",
+  "start": 31.68,
+  "end": 31.84
+ },
+ {
+  "text": "algo",
+  "start": 31.92,
+  "end": 32.16
+ },
+ {
+  "text": "más:",
+  "start": 32.24,
+  "end": 32.88
+ },
+ {
+  "text": "una",
+  "start": 33,
+  "end": 33.12
+ },
+ {
+  "text": "isla",
+  "start": 33.2,
+  "end": 33.44
+ },
+ {
+  "text": "más",
+  "start": 33.6,
+  "end": 33.76
+ },
+ {
+  "text": "grande",
+  "start": 33.84,
+  "end": 34.24
+ },
+ {
+  "text": "se",
+  "start": 34.32,
+  "end": 34.4
+ },
+ {
+  "text": "ve",
+  "start": 34.48,
+  "end": 34.56
+ },
+ {
+  "text": "desde",
+  "start": 34.68,
+  "end": 34.88
+ },
+ {
+  "text": "mucho",
+  "start": 35.04,
+  "end": 35.36
+ },
+ {
+  "text": "más",
+  "start": 35.44,
+  "end": 35.52
+ },
+ {
+  "text": "lejos.",
+  "start": 35.6,
+  "end": 36.08
+ },
+ {
+  "text": "Vio",
+  "start": 36.48,
+  "end": 36.64
+ },
+ {
+  "text": "el",
+  "start": 36.72,
+  "end": 36.8
+ },
+ {
+  "text": "mar",
+  "start": 36.88,
+  "end": 37.04
+ },
+ {
+  "text": "en",
+  "start": 37.12,
+  "end": 37.2
+ },
+ {
+  "text": "llamas…",
+  "start": 37.24,
+  "end": 38.08
+ },
+ {
+  "text": "velas",
+  "start": 38.16,
+  "end": 38.48
+ },
+ {
+  "text": "negras",
+  "start": 38.56,
+  "end": 38.96
+ },
+ {
+  "text": "en",
+  "start": 39,
+  "end": 39.04
+ },
+ {
+  "text": "el",
+  "start": 39.12,
+  "end": 39.2
+ },
+ {
+  "text": "horizonte…",
+  "start": 39.24,
+  "end": 40.24
+ },
+ {
+  "text": "y",
+  "start": 40.28,
+  "end": 40.32
+ },
+ {
+  "text": "un",
+  "start": 40.4,
+  "end": 40.48
+ },
+ {
+  "text": "número:",
+  "start": 40.56,
+  "end": 41.44
+ },
+ {
+  "text": "tres.",
+  "start": 41.64,
+  "end": 41.92
+ },
+ {
+  "text": "Tres",
+  "start": 42.48,
+  "end": 42.64
+ },
+ {
+  "text": "días.",
+  "start": 42.8,
+  "end": 43.52
+ },
+ {
+  "text": "Nadie",
+  "start": 43.76,
+  "end": 44.08
+ },
+ {
+  "text": "sabe",
+  "start": 44.12,
+  "end": 44.32
+ },
+ {
+  "text": "si",
+  "start": 44.4,
+  "end": 44.48
+ },
+ {
+  "text": "es",
+  "start": 44.52,
+  "end": 44.56
+ },
+ {
+  "text": "verdad.",
+  "start": 44.64,
+  "end": 45.2
+ },
+ {
+  "text": "Pero",
+  "start": 45.36,
+  "end": 45.52
+ },
+ {
+  "text": "Dylan",
+  "start": 45.6,
+  "end": 45.92
+ },
+ {
+  "text": "nunca",
+  "start": 46.16,
+  "end": 46.48
+ },
+ {
+  "text": "se",
+  "start": 46.56,
+  "end": 46.64
+ },
+ {
+  "text": "ha",
+  "start": 46.667,
+  "end": 46.693
+ },
+ {
+  "text": "equivocado.",
+  "start": 46.72,
+  "end": 47.36
+ },
+ {
+  "text": "Así",
+  "start": 47.6,
+  "end": 47.84
+ },
+ {
+  "text": "que",
+  "start": 47.92,
+  "end": 48
+ },
+ {
+  "text": "tenemos",
+  "start": 48.16,
+  "end": 48.64
+ },
+ {
+  "text": "tres",
+  "start": 48.76,
+  "end": 48.88
+ },
+ {
+  "text": "días",
+  "start": 48.96,
+  "end": 49.2
+ },
+ {
+  "text": "para",
+  "start": 49.28,
+  "end": 49.36
+ },
+ {
+  "text": "prepararnos.",
+  "start": 49.44,
+  "end": 50.32
+ },
+ {
+  "text": "¿Construimos",
+  "start": 50.48,
+  "end": 51.12
+ },
+ {
+  "text": "una",
+  "start": 51.2,
+  "end": 51.28
+ },
+ {
+  "text": "muralla?",
+  "start": 51.36,
+  "end": 51.76
+ },
+ {
+  "text": "¿Entrenamos",
+  "start": 52,
+  "end": 52.56
+ },
+ {
+  "text": "un",
+  "start": 52.6,
+  "end": 52.64
+ },
+ {
+  "text": "ejército?",
+  "start": 52.72,
+  "end": 53.52
+ },
+ {
+  "text": "¿O",
+  "start": 53.547,
+  "end": 53.6
+ },
+ {
+  "text": "huimos",
+  "start": 53.68,
+  "end": 54
+ },
+ {
+  "text": "de",
+  "start": 54.08,
+  "end": 54.16
+ },
+ {
+  "text": "la",
+  "start": 54.2,
+  "end": 54.24
+ },
+ {
+  "text": "isla?",
+  "start": 54.32,
+  "end": 54.64
+ },
+ {
+  "text": "Comenta",
+  "start": 54.96,
+  "end": 55.28
+ },
+ {
+  "text": "tu",
+  "start": 55.36,
+  "end": 55.44
+ },
+ {
+  "text": "plan:",
+  "start": 55.56,
+  "end": 56
+ },
+ {
+  "text": "el",
+  "start": 56.08,
+  "end": 56.16
+ },
+ {
+  "text": "comentario",
+  "start": 56.2,
+  "end": 56.64
+ },
+ {
+  "text": "con",
+  "start": 56.72,
+  "end": 56.8
+ },
+ {
+  "text": "más",
+  "start": 56.88,
+  "end": 57.04
+ },
+ {
+  "text": "likes…",
+  "start": 57.12,
+  "end": 57.76
+ },
+ {
+  "text": "se",
+  "start": 57.8,
+  "end": 57.84
+ },
+ {
+  "text": "hará",
+  "start": 57.92,
+  "end": 58.04
+ },
+ {
+  "text": "mañana.",
+  "start": 58.08,
+  "end": 58.88
+ },
+ {
+  "text": "Faltan",
+  "start": 58.92,
+  "end": 59.36
+ },
+ {
+  "text": "ochocientos",
+  "start": 59.48,
+  "end": 60.08
+ },
+ {
+  "text": "doce",
+  "start": 60.16,
+  "end": 60.32
+ },
+ {
+  "text": "habitantes",
+  "start": 60.4,
+  "end": 60.88
+ },
+ {
+  "text": "para",
+  "start": 60.96,
+  "end": 61.12
+ },
+ {
+  "text": "ser",
+  "start": 61.2,
+  "end": 61.28
+ },
+ {
+  "text": "un",
+  "start": 61.36,
+  "end": 61.44
+ },
+ {
+  "text": "pueblo.",
+  "start": 61.52,
+  "end": 62.16
+ },
+ {
+  "text": "Y",
+  "start": 62.2,
+  "end": 62.24
+ },
+ {
+  "text": "créeme…",
+  "start": 62.32,
+  "end": 63.12
+ },
+ {
+  "text": "vamos",
+  "start": 63.16,
+  "end": 63.44
+ },
+ {
+  "text": "a",
+  "start": 63.48,
+  "end": 63.52
+ },
+ {
+  "text": "necesitar",
+  "start": 63.56,
+  "end": 64.08
+ },
+ {
+  "text": "a",
+  "start": 64.16,
+  "end": 64.24
+ },
+ {
+  "text": "todos.",
+  "start": 64.44,
+  "end": 65.12
+ },
+ {
+  "text": "Sígueme",
+  "start": 65.16,
+  "end": 65.52
+ },
+ {
+  "text": "en",
+  "start": 65.56,
+  "end": 65.6
+ },
+ {
+  "text": "Aprende.",
+  "start": 65.68,
+  "end": 66.4
+ }
+]

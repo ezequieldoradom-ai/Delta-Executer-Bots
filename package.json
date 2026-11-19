@@ -1,14 +1,33 @@
-
 {
   "name": "delta-bot",
   "version": "1.0.0",
   "description": "Bot de soporte Delta Executer",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node bot.js",
+    "remotion:studio": "remotion studio remotion/index.jsx",
+    "remotion:render": "remotion render remotion/index.jsx DeltaIntro out/delta-intro.mp4",
+    "render:tunel": "remotion render remotion/index.jsx TunelTierra out/tunel-tierra.mp4",
+    "voz": "NODE_USE_ENV_PROXY=1 node scripts/voz.mjs",
+    "render:agujero": "remotion render remotion/index.jsx AgujeroMoneda out/agujero-moneda.mp4",
+    "render:civ01": "remotion render remotion/index.jsx Civilizacion01 out/civilizacion-01.mp4",
+    "render:civ02": "remotion render remotion/index.jsx Civilizacion02 out/civilizacion-02.mp4",
+    "render:civ03": "remotion render remotion/index.jsx Civilizacion03 out/civilizacion-dia-03.mp4",
+    "render:civ04": "remotion render remotion/index.jsx Civilizacion04 out/civilizacion-dia-04.mp4",
+    "render:yt20000": "remotion render remotion/index.jsx YT-Despertar20000 out/yt-despertar-20000.mp4",
+    "render:fosa": "remotion render remotion/index.jsx YT-FosaMarianas out/yt-fosa-marianas.mp4",
+    "render:civ05": "remotion render remotion/index.jsx Civilizacion05 out/civilizacion-dia-05.mp4 --browser-executable=/opt/pw-browsers/chromium",
+    "render:futuro": "remotion render remotion/index.jsx YT-Futuro5s out/yt-futuro-5s.mp4 --browser-executable=/opt/pw-browsers/chromium",
+    "render:short-futuro": "remotion render remotion/index.jsx Short-Futuro out/short-futuro.mp4 --browser-executable=/opt/pw-browsers/chromium"
   },
   "dependencies": {
+    "@remotion/cli": "^4.0.542",
+    "@remotion/google-fonts": "^4.0.542",
+    "@remotion/media": "^4.0.542",
     "discord.js": "^14.11.0",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.542"
   }
 }

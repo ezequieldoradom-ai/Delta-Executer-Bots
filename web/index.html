@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aprended</title>
+<meta name="description" content="Curiosidades e historias donde tú eliges qué pasa después. Shorts cada día, vídeos largos de ¿Qué pasaría si…? y la serie La civilización.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#0b0626; --bg2:#1a0b4a; --bg3:#3b0f6b;
+    --txt:#fff; --muted:rgba(255,255,255,.72);
+    --glass:rgba(255,255,255,.08); --line:rgba(255,255,255,.16);
+    --gold:#fde047; --sea:#38bdf8; --leaf:#22c55e;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    font-family:'Nunito',system-ui,sans-serif;color:var(--txt);
+    background:radial-gradient(1200px 800px at 15% -10%,#5b21b6 0%,transparent 55%),
+               radial-gradient(900px 700px at 110% 30%,#be185d 0%,transparent 55%),
+               radial-gradient(900px 700px at -10% 110%,#0e7490 0%,transparent 55%),
+               linear-gradient(160deg,var(--bg1),var(--bg2) 50%,var(--bg3));
+    background-color:var(--bg1);
+    background-attachment:fixed;
+    overflow-x:hidden;
+    padding-block:calc(env(safe-area-inset-top) + 28px) calc(env(safe-area-inset-bottom) + 36px);
+    padding-left:max(20px, env(safe-area-inset-left, 0px));
+    padding-right:max(20px, env(safe-area-inset-right, 0px));
+    display:flex;justify-content:center;
+  }
+  /* estrellas */
+  .stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+  .star{position:absolute;border-radius:50%;background:#fff;animation:tw 3s ease-in-out infinite}
+  @keyframes tw{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:1;transform:scale(1.2)}}
+  /* emojis flotando */
+  .float{position:fixed;font-size:26px;pointer-events:none;z-index:0;opacity:.55;animation:fl 9s ease-in-out infinite;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
+  @keyframes fl{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-22px) rotate(8deg)}}
+
+  .wrap{position:relative;z-index:1;width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;gap:22px}
+
+  /* avatar */
+  .avatar{position:relative;width:118px;height:118px;margin-top:6px}
+  .ring{position:absolute;inset:-6px;border-radius:50%;
+    background:conic-gradient(from 0deg,#f59e0b,#ec4899,#8b5cf6,#06b6d4,#22c55e,#f59e0b);
+    animation:spin 6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .avatar-in{position:absolute;inset:0;border-radius:50%;background:linear-gradient(145deg,#1e1048,#3b0f6b);
+    display:grid;place-items:center;font-size:56px;border:4px solid #140838}
+  .bulb{animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 #fde047)}50%{transform:scale(1.08);filter:drop-shadow(0 0 18px #fde047)}}
+
+  h1{font-family:'Fredoka',sans-serif;font-weight:700;font-size:44px;letter-spacing:.5px;line-height:1;
+    background:linear-gradient(90deg,#fde047,#f472b6,#a78bfa,#67e8f9,#fde047);background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite;text-align:center}
+  @keyframes shine{to{background-position:300% 0}}
+  .tag{color:var(--muted);text-align:center;font-weight:700;font-size:16px;margin-top:-10px}
+
+  /* qué pasaría si */
+  .tease{width:100%;background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:16px 18px;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .tease small{display:block;text-transform:uppercase;letter-spacing:2px;font-size:11px;font-weight:800;color:var(--gold);margin-bottom:6px}
+  .q{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:500;min-height:52px;display:flex;align-items:center;justify-content:center;transition:opacity .45s, transform .45s}
+  .q.out{opacity:0;transform:translateY(8px)}
+
+  /* botones */
+  .links{width:100%;display:flex;flex-direction:column;gap:14px}
+  .btn{position:relative;display:flex;align-items:center;gap:14px;width:100%;padding:16px 18px;border-radius:20px;
+    text-decoration:none;color:#fff;font-weight:800;font-size:18px;overflow:hidden;
+    box-shadow:0 12px 28px rgba(0,0,0,.35);transition:transform .18s ease, box-shadow .18s ease}
+  .btn:active{transform:scale(.97)}
+  .btn:focus-visible,.opt:focus-visible,.vid:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+  @media(hover:hover){.btn:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 18px 36px rgba(0,0,0,.45)}}
+  .btn::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-20deg);animation:sweep 3.8s ease-in-out infinite}
+  .btn.tt::after{animation-delay:1.3s}
+  .btn.yt::after{animation-delay:2.6s}
+  @keyframes sweep{0%,60%{left:-60%}100%{left:130%}}
+  .ig{background:linear-gradient(120deg,#f59e0b 0%,#ef4444 30%,#ec4899 60%,#8b5cf6 100%)}
+  .tt{background:linear-gradient(120deg,#0f0f14 0%,#1f1f2b 100%);border:1px solid rgba(255,255,255,.12)}
+  .tt .ico{background:linear-gradient(135deg,#22d3ee,#f43f5e)}
+  .yt{background:linear-gradient(120deg,#dc2626 0%,#b91c1c 55%,#7f1d1d 100%)}
+  .ico{flex:0 0 46px;height:46px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.2)}
+  .ico svg{width:24px;height:24px}
+  .lbl{display:flex;flex-direction:column;line-height:1.15;flex:1;min-width:0}
+  .lbl span{font-size:13px;font-weight:700;opacity:.85}
+  .arrow{font-size:22px;opacity:.9;transition:transform .2s}
+  .btn:hover .arrow{transform:translateX(4px)}
+  .new{position:absolute;top:10px;right:46px;font-size:11px;font-weight:800;letter-spacing:1px;background:var(--gold);color:#1a0b4a;border-radius:999px;padding:3px 8px}
+
+  /* sección genérica */
+  .panel{width:100%;background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:18px;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .eyebrow{text-transform:uppercase;letter-spacing:2px;font-size:11px;font-weight:800;color:var(--gold);margin-bottom:8px}
+  .panel h2{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;line-height:1.15;margin-bottom:6px}
+  .panel p{color:var(--muted);font-weight:700;font-size:15px;line-height:1.4}
+
+  /* la civilización */
+  .civ{background:linear-gradient(160deg,rgba(14,116,144,.35),rgba(34,197,94,.18));border-color:rgba(103,232,249,.35)}
+  .civ-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+  .stat{background:rgba(0,0,0,.25);border-radius:14px;padding:10px 6px;text-align:center}
+  .stat b{display:block;font-family:'Fredoka',sans-serif;font-size:22px;font-variant-numeric:tabular-nums}
+  .stat span{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .bar{height:12px;border-radius:999px;background:rgba(0,0,0,.35);overflow:hidden}
+  .bar i{display:block;height:100%;width:18.8%;border-radius:999px;background:linear-gradient(90deg,var(--leaf),var(--gold))}
+  .bar-l{display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:var(--muted);margin-top:6px}
+  .how{margin-top:12px;font-size:14px}
+
+  /* vídeos largos */
+  .vids{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+  .vid{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:16px;padding:10px 12px;transition:transform .15s}
+  .vid:active{transform:scale(.98)}
+  @media(hover:hover){.vid:hover{transform:translateX(3px)}}
+  .thumb{flex:0 0 64px;height:40px;border-radius:10px;display:grid;place-items:center;font-size:22px}
+  .thumb.ice{background:linear-gradient(135deg,#bfdbfe,#60a5fa)}
+  .thumb.sea{background:linear-gradient(135deg,#0e7490,#020617)}
+  .vid .lbl{font-size:15px}
+  .vid .lbl span{font-size:12px}
+
+
+  /* destacado de YouTube */
+  .feat{position:relative;display:block;width:100%;text-decoration:none;color:#fff;border-radius:24px;overflow:hidden;
+    background:#0b0b14;border:1px solid rgba(255,255,255,.14);box-shadow:0 16px 40px rgba(0,0,0,.45);transition:transform .18s}
+  @media(hover:hover){.feat:hover{transform:translateY(-3px)}}
+  .feat:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+  .screen{position:relative;aspect-ratio:16/9;max-width:100%;background:linear-gradient(180deg,#0e3a66 0%,#04122a 60%,#010409 100%);display:grid;place-items:center}
+  .screen .eyes{position:absolute;inset:0}
+  .screen .eyes i{position:absolute;width:10px;height:6px;border-radius:50%;background:#c8ffef;box-shadow:0 0 10px #7fffd4;animation:blink 4s infinite}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  .play{width:64px;height:64px;border-radius:50%;background:#dc2626;display:grid;place-items:center;box-shadow:0 0 0 0 rgba(220,38,38,.6);animation:ping 2s infinite}
+  @keyframes ping{0%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}100%{box-shadow:0 0 0 22px rgba(220,38,38,0)}}
+  .play svg{width:26px;height:26px;margin-left:4px}
+  .dur{position:absolute;right:10px;bottom:10px;background:rgba(0,0,0,.8);border-radius:6px;padding:2px 7px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+  .live{position:absolute;left:10px;top:10px;background:var(--gold);color:#1a0b4a;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;letter-spacing:1px}
+  .feat-t{padding:14px 16px 16px}
+  .feat-t b{display:block;font-family:'Fredoka',sans-serif;font-size:19px;line-height:1.2}
+  .feat-t span{display:block;margin-top:4px;color:var(--muted);font-weight:700;font-size:14px}
+  .feat-cta{display:inline-flex;align-items:center;gap:8px;margin-top:12px;background:#dc2626;border-radius:999px;padding:9px 16px;font-weight:800;font-size:15px}
+
+  /* elige tu camino */
+  .choose{width:100%;text-align:center;margin-top:4px}
+  .choose h2{font-family:'Fredoka',sans-serif;font-size:18px;font-weight:500;color:var(--muted);margin-bottom:12px}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .opt{border:1px solid var(--line);background:var(--glass);color:#fff;border-radius:18px;padding:14px 10px;
+    font-family:inherit;font-weight:800;font-size:15px;cursor:pointer;transition:transform .15s, background .2s}
+  .opt:active{transform:scale(.95)}
+  .opt .big{display:block;font-size:30px;margin-bottom:4px}
+  .result{margin-top:12px;min-height:22px;font-weight:700;color:var(--gold);opacity:0;transition:opacity .3s}
+  .result.show{opacity:1}
+
+  .stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .chip{font-size:13px;font-weight:800;padding:8px 12px;border-radius:999px;background:var(--glass);border:1px solid var(--line)}
+
+  footer{color:rgba(255,255,255,.5);font-size:12px;text-align:center;margin-top:6px}
+
+  /* confeti */
+  .conf{position:fixed;top:-12px;width:9px;height:14px;border-radius:2px;z-index:5;pointer-events:none;animation:drop linear forwards}
+  @keyframes drop{to{transform:translateY(110vh) rotate(720deg)}}
+
+  .appear{animation:in .7s ease both}
+  @keyframes in{from{opacity:.001;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="stars" id="stars"></div>
+  <div class="float" style="top:12%;left:6%">🪐</div>
+  <div class="float" style="top:22%;right:7%;animation-delay:-3s">🧠</div>
+  <div class="float" style="top:58%;left:4%;animation-delay:-5s">🦖</div>
+  <div class="float" style="top:72%;right:6%;animation-delay:-1.5s">🌋</div>
+  <div class="float" style="top:88%;left:40%;animation-delay:-6s">🔭</div>
+
+  <main class="wrap">
+    <div class="avatar appear"><div class="ring"></div><div class="avatar-in"><span class="bulb">💡</span></div></div>
+
+    <h1 class="appear" style="animation-delay:.1s">Aprended</h1>
+    <p class="tag appear" style="animation-delay:.2s">Curiosidades e historias donde <b>tú eliges</b> qué pasa después ✨</p>
+
+
+    <a class="feat appear" style="animation-delay:.25s" href="https://www.youtube.com/@aprendedconmigo" target="_blank" rel="noopener" aria-label="Ver los vídeos largos en YouTube">
+      <div class="screen">
+        <div class="eyes" aria-hidden="true">
+          <i style="left:12%;top:24%"></i><i style="left:15%;top:24%"></i>
+          <i style="left:80%;top:30%;animation-delay:1.2s"></i><i style="left:83%;top:30%;animation-delay:1.2s"></i>
+          <i style="left:62%;top:72%;animation-delay:2.4s"></i><i style="left:65%;top:72%;animation-delay:2.4s"></i>
+        </div>
+        <span class="live">🎬 NUEVO EN YOUTUBE</span>
+        <span class="play"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="#fff"/></svg></span>
+        <span class="dur">8:10</span>
+      </div>
+      <div class="feat-t">
+        <b>¿Qué pasaría si bajaras a la Fosa de las Marianas?</b>
+        <span>Ahora también hago vídeos largos de 8 minutos, con todo el detalle.</span>
+        <span class="feat-cta">▶ Ver en YouTube</span>
+      </div>
+    </a>
+
+    <div class="tease appear" style="animation-delay:.3s">
+      <small>¿Qué pasaría si…?</small>
+      <div class="q" id="q">…la Luna desapareciera esta noche? 🌙</div>
+    </div>
+
+    <nav class="links" aria-label="Redes sociales">
+      <a class="btn yt appear" style="animation-delay:.35s" href="https://www.youtube.com/@aprendedconmigo" target="_blank" rel="noopener">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="4"/><path d="M10 9.2v5.6l4.8-2.8z" fill="#fff"/></svg></span>
+        <span class="lbl">YouTube<span>@aprendedconmigo · vídeos largos</span></span>
+        <span class="new">NUEVO</span>
+        <span class="arrow">→</span>
+      </a>
+      <a class="btn tt appear" style="animation-delay:.4s" href="https://www.tiktok.com/@aprended" target="_blank" rel="noopener">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></span>
+        <span class="lbl">TikTok<span>@Aprended</span></span>
+        <span class="arrow">→</span>
+      </a>
+      <a class="btn ig appear" style="animation-delay:.45s" href="https://www.instagram.com/aprendedconmigo/" target="_blank" rel="noopener">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#fff"/></svg></span>
+        <span class="lbl">Instagram<span>@aprendedconmigo</span></span>
+        <span class="arrow">→</span>
+      </a>
+    </nav>
+
+    <section class="panel civ appear" style="animation-delay:.5s" aria-labelledby="civ-t">
+      <div class="eyebrow">🏝️ La serie</div>
+      <h2 id="civ-t">La civilización</h2>
+      <p>Cada seguidor es un habitante de nuestra isla. Y cada día, el comentario con más likes se hace realidad.</p>
+      <div class="civ-stats">
+        <div class="stat"><b>4</b><span>Día</span></div>
+        <div class="stat"><b>188</b><span>Habitantes</span></div>
+        <div class="stat"><b>Dylan</b><span>Jefe 👑</span></div>
+      </div>
+      <div class="bar" role="img" aria-label="188 de 1.000 habitantes para convertirse en pueblo"><i></i></div>
+      <div class="bar-l"><span>Aldea · 188</span><span>Pueblo · 1.000</span></div>
+      <p class="how">👉 Síguenos para vivir en la isla y comenta tu oficio o tu idea en el último vídeo.</p>
+    </section>
+
+    <section class="panel appear" style="animation-delay:.55s" aria-labelledby="yt-t">
+      <div class="eyebrow">🎬 Vídeos largos en YouTube</div>
+      <h2 id="yt-t">¿Qué pasaría si…?</h2>
+      <div class="vids">
+        <a class="vid" href="https://www.youtube.com/@aprendedconmigo" target="_blank" rel="noopener">
+          <span class="thumb sea">🦑</span>
+          <span class="lbl">…bajaras a la Fosa de las Marianas?<span>8 min · el punto más profundo del planeta</span></span>
+        </a>
+        <a class="vid" href="https://www.youtube.com/@aprendedconmigo" target="_blank" rel="noopener">
+          <span class="thumb ice">🦣</span>
+          <span class="lbl">…despertaras hace 20.000 años?<span>8 min · en plena Edad de Hielo</span></span>
+        </a>
+      </div>
+    </section>
+
+    <section class="choose appear" style="animation-delay:.6s">
+      <h2>Tú decides: ¿qué vemos hoy? 👇</h2>
+      <div class="opts">
+        <button class="opt" id="opt-espacio" data-r="¡Al espacio! 🚀 Síguenos para ver qué pasa…"><span class="big">🚀</span>Viajar al espacio</button>
+        <button class="opt" id="opt-pasado" data-r="¡Al pasado! 🦕 Síguenos para ver qué pasa…"><span class="big">⏳</span>Volver al pasado</button>
+      </div>
+      <div class="result" id="res" aria-live="polite"></div>
+    </section>
+
+    <div class="stats appear" style="animation-delay:.7s">
+      <span class="chip">⏱️ Shorts cada día</span>
+      <span class="chip">🎬 Vídeos largos</span>
+      <span class="chip">🏝️ Serie interactiva</span>
+    </div>
+
+    <footer class="appear" style="animation-delay:.8s">Hecho con curiosidad · Aprended 💡</footer>
+  </main>
+
+<script>
+  // estrellas
+  const s=document.getElementById('stars');
+  for(let i=0;i<70;i++){const d=document.createElement('div');d.className='star';const z=Math.random()*2.4+0.6;
+    d.style.cssText=`width:${z}px;height:${z}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s`;s.appendChild(d)}
+
+  // preguntas rotando
+  const qs=["…la Luna desapareciera esta noche? 🌙","…bajaras al fondo del océano? 🦑","…despertaras hace 20.000 años? 🦣","…la Tierra girara al revés? 🌍","…los dinosaurios siguieran vivos? 🦖","…durmieras 100 años? 😴","…tuvieras un clon? 👯"];
+  let i=0;const q=document.getElementById('q');
+  setInterval(()=>{q.classList.add('out');setTimeout(()=>{i=(i+1)%qs.length;q.textContent=qs[i];q.classList.remove('out')},450)},3200);
+
+  // confeti
+  function confetti(){const c=['#fde047','#f472b6','#a78bfa','#67e8f9','#22c55e','#fb923c'];
+    for(let k=0;k<40;k++){const e=document.createElement('div');e.className='conf';e.style.left=Math.random()*100+'vw';
+      e.style.background=c[k%c.length];e.style.animationDuration=(1.6+Math.random()*1.6)+'s';e.style.animationDelay=(Math.random()*.3)+'s';
+      document.body.appendChild(e);setTimeout(()=>e.remove(),3600)}}
+
+  const res=document.getElementById('res');
+  document.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>{res.textContent=b.dataset.r;res.classList.add('show');confetti()}));
+</script>
+</body>
+</html>
