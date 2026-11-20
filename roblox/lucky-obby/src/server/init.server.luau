@@ -81,6 +81,45 @@ if game:GetService("RunService"):IsStudio() then
 	local bf = Instance.new("BindableFunction")
 	bf.Name = "StudioDebug"
 	bf.OnInvoke = function(cmd, player, arg)
+		if cmd == "hillplay" then -- entra en la colina y, en partida, empuja al más cercano cada segundo (para ver la animación)
+			task.spawn(function()
+				local H = G.Hill
+				while H.st.phase == "playing" or H.st.phase == "result" do
+					task.wait(1)
+				end
+				if not H.memberOf(player) then
+					H.join(player)
+				end
+				local t = os.clock()
+				while H.st.phase ~= "playing" and os.clock() - t < 60 do
+					task.wait(0.3)
+				end
+				print("DBG HILLGO", H.st.phase, #H.st.members)
+				for _ = 1, arg or 30 do
+					local c = player.Character
+					local h = c and c:FindFirstChild("HumanoidRootPart")
+					if not h or not H.st.alive[player] then
+						break
+					end
+					local best, bd
+					for _, m in ipairs(H.st.members) do
+						local mh = m ~= player and H.st.alive[m] and m.Character and m.Character:FindFirstChild("HumanoidRootPart")
+						if mh then
+							local d = (mh.Position - h.Position).Magnitude
+							if not bd or d < bd then
+								best, bd = mh, d
+							end
+						end
+					end
+					if best then
+						h.CFrame = CFrame.lookAt(best.Position - (best.Position - h.Position).Unit * 4, best.Position)
+						H.push(player)
+					end
+					task.wait(1)
+				end
+			end)
+			return true
+		end
 		if cmd == "slapjoin" then
 			G.Slap.debugJoin(player, arg)
 			return G.Slap.debugState(arg)

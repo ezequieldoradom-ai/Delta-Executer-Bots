@@ -18,6 +18,7 @@ local PLAZA_R = 44
 local STATION_R = 28
 local MAX_PLAYERS = 4
 local START_DELAY = 15 -- cuenta atrás antes de empezar una partida
+local FULL_DELAY = 5 -- si se llena la mesa, la cuenta baja a esto
 local AREA = 24 -- si te alejas más de esto de tu mesa, sales del juego
 local BAR_PERIOD = 0.6 -- segundos de 0 a 1 (luego vuelve)
 local RED_W = 0.032 -- ancho del cuadradito rojo (fracción de la barra): muy difícil de clavar
@@ -362,11 +363,12 @@ local function refresh(st)
 	elseif not st.match then
 		-- CUENTA ATRÁS de 15 s antes de empezar (se puede entrar mientras; luego, no)
 		if not st.countdown then
-			st.countdown = os.clock() + START_DELAY
+			local delay = #st.members >= MAX_PLAYERS and FULL_DELAY or START_DELAY
+			st.countdown = os.clock() + delay
 			local token = {}
 			st.cdToken = token
 			setPhase(st, "starting")
-			msgAll(st, string.format("⏳ ¡La partida empieza en %d s! Aún puede entrar gente", START_DELAY))
+			msgAll(st, string.format("⏳ ¡La partida empieza en %d s! Aún puede entrar gente", delay))
 			task.spawn(function()
 				while st.cdToken == token and os.clock() < st.countdown do
 					broadcast(st)
@@ -382,6 +384,11 @@ local function refresh(st)
 				refresh(st)
 			end)
 		else
+			-- mesa llena (4/4): no hace falta esperar más, quedan 5 s como mucho
+			if #st.members >= MAX_PLAYERS and st.countdown - os.clock() > FULL_DELAY + 0.5 then
+				st.countdown = os.clock() + FULL_DELAY
+				msgAll(st, string.format("🔥 ¡Mesa llena! Empieza en %d s", FULL_DELAY))
+			end
 			broadcast(st)
 		end
 		if st.startNow then
@@ -1021,6 +1028,14 @@ Slap.COUNT = 6
 Slap.PLAZA = PLAZA
 function Slap.debugJoin(p, k) -- solo para pruebas en Studio
 	join(p, stations[k or 1])
+end
+function Slap.debugSeat(k, p) -- (pruebas) sienta a p para que le peguen; solo entre rondas
+	local st = stations[k or 1]
+	if st and table.find(st.members, p) and st.phase == "waiting" and st.seated ~= p then
+		pickSeated(st, p)
+		return true
+	end
+	return false
 end
 function Slap.station(k) -- (pruebas)
 	return stations[k]

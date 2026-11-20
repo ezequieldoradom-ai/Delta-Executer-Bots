@@ -184,12 +184,46 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 				waitFor(function()
 					return ste.match
 				end, 20)
-				check("la partida empieza a los ~15 s", ste.match and math.abs(os.clock() - t0 - 15) < 3, string.format("%.1f s", os.clock() - t0))
+				local full = #ste.members >= 4
+				check("la partida empieza a los ~15 s", ste.match and (full and os.clock() - t0 < 16 or math.abs(os.clock() - t0 - 15) < 3), string.format("%.1f s%s", os.clock() - t0, full and " (llena)" or ""))
 			else
 				check("con 2: cuenta atrás", false, "no vino ningún bot")
 			end
 			G.Slap.leave(p)
 			task.wait(1)
+		end
+		-- mesa LLENA (4/4): la cuenta atrás baja a 5 s
+		do
+			local free
+			for kk = 1, G.Slap.COUNT do
+				if #G.Slap.station(kk).members == 0 then
+					free = kk
+					break
+				end
+			end
+			local sb = {}
+			for _, b in ipairs(Bots.list) do
+				if b.role == "slap" and #sb < 3 then
+					table.insert(sb, b)
+				end
+			end
+			if free and #sb == 3 then
+				local stf = G.Slap.station(free)
+				G.Slap.join(p, free)
+				for _, b in ipairs(sb) do
+					if G.Slap.stationOf(b) then
+						G.Slap.leave(b)
+					end
+					G.Slap.join(b, free)
+				end
+				task.wait(0.3)
+				local left = stf.countdown and (stf.countdown - os.clock()) or -1
+				check("mesa llena: la cuenta baja a 5 s", #stf.members == 4 and left > 0 and left <= 5.5, string.format("%d jugadores · %.1f s", #stf.members, left))
+				G.Slap.leave(p)
+				task.wait(1)
+			else
+				check("mesa llena: la cuenta baja a 5 s", false, "sin mesa libre o sin 3 bots")
+			end
 		end
 		local k
 		waitFor(function()
@@ -270,10 +304,15 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 			check("el que pega sigue en la mesa", G.Slap.stationOf(p) == k)
 			task.wait(3.5)
 		end
-		-- adivinar MAL: sigues sentado
+		-- adivinar MAL: sigues sentado (si en 30 s no me ha tocado sentarme, me siento yo entre rondas)
 		if waitFor(function()
 			return st.seated == p and st.phase == "guessing"
-		end, 120) then
+		end, 30) or waitFor(function()
+			if st.seated ~= p then
+				G.Slap.debugSeat(k, p)
+			end
+			return st.seated == p and st.phase == "guessing"
+		end, 90) then
 			G.Slap.guess(p, -999)
 			task.wait(2.5)
 			check("fallar al adivinar: sigues sentado", st.seated == p, st.seated and st.seated.Name)
@@ -311,6 +350,14 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 			end
 		end
 		check("ranking Reyes de la colina", hasBoard)
+		if H.PAD and hrp() then
+			hrp().CFrame = CFrame.new(H.PAD + Vector3.new(0, 3, 0))
+			task.wait(1)
+			local d = hrp() and (Vector3.new(hrp().Position.X, 0, hrp().Position.Z) - Vector3.new(H.CENTER.X, 0, H.CENTER.Z)).Magnitude or 999
+			check("la plataforma del vestíbulo te lleva a la colina", d < H.R + 15, math.floor(d))
+		else
+			check("la plataforma del vestíbulo te lleva a la colina", false, "sin plataforma")
+		end
 		if G.Slap.stationOf(p) then
 			G.Slap.leave(p)
 		end

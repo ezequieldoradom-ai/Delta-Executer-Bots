@@ -560,7 +560,8 @@ local function build()
 	local beam = part({ Name = "LightBeam", Shape = Enum.PartType.Cylinder, Size = Vector3.new(160, 5, 5), CFrame = CFrame.new(c + Vector3.new(0, TOP + 80, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(255, 210, 110), Material = Enum.Material.Neon, Transparency = 0.86, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false }, f)
 	beam.Name = "LightBeam"
 	-- PLATAFORMA en el vestíbulo que te lleva a la entrada de la arena
-	local padXZ = flat(lobby) - d * 40
+	-- (hueco libre del vestíbulo, entre el centro y los puestos de estelas)
+	local padXZ = flat(lobby) - d * 22 + Vector3.new(d.Z, 0, -d.X) * 7
 	local hit = workspace:Raycast(Vector3.new(padXZ.X, lobby.Y + 30, padXZ.Z), Vector3.new(0, -80, 0))
 	local floorY = hit and hit.Position.Y or (lobby.Y - 3.5)
 	local padPos = Vector3.new(padXZ.X, floorY, padXZ.Z)
@@ -594,23 +595,26 @@ local function build()
 	pfx.Parent = pad
 	local cool = {}
 	local entry = CFrame.lookAt(c + d * (R + 9) + Vector3.new(0, 3.5, 0), c + Vector3.new(0, 3.5, 0))
-	pad.Touched:Connect(function(hitPart)
-		local char = hitPart.Parent
-		local p = char and Players:GetPlayerFromCharacter(char)
-		if not p or (cool[p] and os.clock() - cool[p] < 3) then
-			return
-		end
-		if G.Race.sessions[p] and G.Race.sessions[p].racing then
-			return
-		end
-		cool[p] = os.clock()
-		local hrp = hrpOf(p)
-		if hrp then
-			hrp.AssemblyLinearVelocity = Vector3.zero
-			hrp.CFrame = entry
-			send(p, "msg", "👑 ¡Pulsa en el poste para entrar a la arena!")
+	-- (por distancia: Touched falla si apareces encima o estás quieto)
+	task.spawn(function()
+		while pad.Parent do
+			task.wait(0.25)
+			for _, p in ipairs(Players:GetPlayers()) do
+				local hrp = hrpOf(p)
+				if hrp and not (cool[p] and os.clock() - cool[p] < 3) then
+					local dxz = flat(hrp.Position - padPos).Magnitude
+					local dy = hrp.Position.Y - padPos.Y
+					if dxz < 4 and dy > 0 and dy < 6 and not (G.Race.sessions[p] and G.Race.sessions[p].racing) then
+						cool[p] = os.clock()
+						hrp.AssemblyLinearVelocity = Vector3.zero
+						hrp.CFrame = entry
+						send(p, "msg", "👑 ¡Pulsa en el poste para entrar a la arena!")
+					end
+				end
+			end
 		end
 	end)
+	Hill.PAD = padPos
 	f.Parent = workspace
 	broadcast()
 end
