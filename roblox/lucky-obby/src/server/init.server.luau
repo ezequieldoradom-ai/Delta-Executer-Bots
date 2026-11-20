@@ -15,7 +15,7 @@ local G = {
 -- Canales servidor <-> cliente
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
-for _, name in ipairs({ "State", "Event", "Knock", "Use", "Join", "Slap", "Hill" }) do
+for _, name in ipairs({ "State", "Event", "Knock", "Use", "Join", "Slap", "Hill", "BotChat" }) do
 	local ev = Instance.new("RemoteEvent")
 	ev.Name = name
 	ev.Parent = remotes

@@ -1,5 +1,6 @@
 -- Lucky Obby Race — BOTS para servidores con poca gente (Shadow, petición del dueño)
--- Son NPC y se ven como bots (🤖 delante del nombre): no se hacen pasar por jugadores.
+-- Son NPC con aspecto y comportamiento de persona (ropa y pelo variados, saludan, bailan, hablan en bocadillos)
+-- para que el servidor se sienta vivo. No salen en la lista de jugadores ni cuentan en las clasificaciones.
 --   · Corredores: en cada carrera salen detrás de la parrilla y recorren el obby saltando huecos y lava;
 --     si caen o tocan algo que mata, vuelven a su punto de control. No usan objetos ni cuentan en el puesto.
 --   · Sillas: juegan a "¿Quién ha sido?" (se sientan, pegan con la barra, a veces esquivan y adivinan al azar).
@@ -11,14 +12,37 @@ local Players = game:GetService("Players")
 local Bots = {}
 local G, C
 
-local NAMES = { "Leo", "Mia", "Nico", "Sofi", "Hugo", "Vale", "Dani", "Luna", "Max", "Zoe", "Alex", "Noa", "Teo", "Ari", "Iker", "Lola" }
+local NAMES = {
+	"Luna", "sofii_gamer", "xHugox", "Valeee", "Nico_pro", "MiaaXD", "dani2013", "zoe_lindaa", "AlexPlays", "noaaa",
+	"teo_ytb", "Ari💜", "Iker_10", "lolaa", "MaxGG", "leoo", "Pablo_xd", "Carlaa", "martinaa_07", "Bruno",
+	"Lucas_007", "emmaa", "Paula_owo", "Gael", "SaraBlox", "elchino_99", "Nerea", "Marcos_YT", "julia💖", "Thiago",
+}
+local CHAT = {
+	hi = { "hola!", "holaa 👋", "hey", "q tal?", "hola :D", "holiii", "buenass" },
+	start = { "suerte!", "vamooos", "a ganar 😎", "gl", "vamos vamos", "esta la gano yo" },
+	fall = { "noooo", "casi 😭", "uff", "jajaja me caí", "otra vez no", "nooo la lava", "😭😭" },
+	finish = { "gg", "llegué!!", "gg wp", "ez", "siii", "🏆" },
+	slap = { "toma!", "jajaja", "😂", "pum", "eso dolió" },
+	guess = { "fuiste tú 👀", "seguro que fue este", "mmm...", "a ver..." },
+	push = { "fuera!", "jaja adios", "mi colina 😤", "sal de ahí" },
+	idle = { "alguien carrera?", "q aburrido", "jajaja", "me encanta este juego", "vamos a la colina?", "quien juega guantazos?", "lol" },
+}
 local ANIM = {
 	idle = "rbxassetid://507766388",
 	run = "rbxassetid://913376220",
 	jump = "rbxassetid://507765000",
 	fall = "rbxassetid://507767968",
 	sit = "rbxassetid://2506281703",
+	-- gestos (los emotes de Roblox)
+	wave = "rbxassetid://507770239",
+	point = "rbxassetid://507770453",
+	cheer = "rbxassetid://507770677",
+	laugh = "rbxassetid://507770818",
+	dance = "rbxassetid://507771019",
+	dance2 = "rbxassetid://507776043",
+	dance3 = "rbxassetid://507777268",
 }
+local EMOTES = { wave = true, point = true, cheer = true, laugh = true, dance = true, dance2 = true, dance3 = true }
 local TARGET = { -- [jugadores reales] = { corredores, sillas, colina }
 	[0] = { 0, 0, 0 },
 	[1] = { 3, 4, 4 },
@@ -80,6 +104,12 @@ local PRO = {
 	faces = { 494290547, 2409281591, 0 },
 }
 local DARK = { Color3.fromRGB(20, 20, 24), Color3.fromRGB(35, 30, 45), Color3.fromRGB(240, 240, 245), Color3.fromRGB(150, 20, 30), Color3.fromRGB(20, 40, 90) }
+-- ropa y pelo NORMALES del catálogo oficial de Roblox (gratis): así parecen gente cualquiera
+local CASUAL = {
+	hair = { 2956239660, 63690008, 451221329, 1103003368, 376526888, 376524487, 376548738, 376527350, 451220849, 3814474927, 3814476174, 62234425, 7193442167, 6993754725, 7193448258, 9174355709, 9243987340, 9244095135, 7193444640, 9243992729, 9244097555, 7193448988, 9244111257 },
+	shirts = { 144076358, 607785314, 398633584, 144076436, 398634295, 3670737444, 382538059, 398635081, 382537702, 382537085, 382538295, 4047884939, 4047884046, 4047886060 },
+	pants = { 144076760, 398634487, 398633812, 398635338, 382537806, 382538503, 382537569, 382537950 },
+}
 
 local function makeDesc(rng, withItems)
 	local desc = Instance.new("HumanoidDescription")
@@ -89,9 +119,17 @@ local function makeDesc(rng, withItems)
 	local pants = DARK[rng:NextInteger(1, #DARK)]
 	desc.TorsoColor, desc.LeftLegColor, desc.RightLegColor = shirt, pants, pants
 	if withItems then
-		desc.Head = PRO.heads[rng:NextInteger(1, #PRO.heads)]
-		desc.RightLeg = PRO.rightLegs[rng:NextInteger(1, #PRO.rightLegs)]
-		desc.HatAccessory = PRO.hats[rng:NextInteger(1, #PRO.hats)]
+		-- casi todos van "normales"; alguno de vez en cuando con algo caro (como en cualquier servidor)
+		desc.HairAccessory = tostring(CASUAL.hair[rng:NextInteger(1, #CASUAL.hair)])
+		desc.Shirt = CASUAL.shirts[rng:NextInteger(1, #CASUAL.shirts)]
+		desc.Pants = CASUAL.pants[rng:NextInteger(1, #CASUAL.pants)]
+		if rng:NextNumber() < 0.15 then
+			desc.HatAccessory = PRO.hats[rng:NextInteger(1, #PRO.hats)]
+			desc.HairAccessory = ""
+		end
+		if rng:NextNumber() < 0.08 then
+			desc.RightLeg = PRO.rightLegs[1]
+		end
 		desc.Face = PRO.faces[rng:NextInteger(1, #PRO.faces)]
 	end
 	return desc
@@ -127,6 +165,7 @@ local function buildCharacter(bot)
 		end
 	end
 	model:SetAttribute("IsBot", true)
+	model:SetAttribute("BotId", bot.UserId)
 	CollectionService:AddTag(model, "LuckyBot")
 	-- animaciones (las reproduce el servidor: se ven en todos los clientes)
 	local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
@@ -139,7 +178,7 @@ local function buildCharacter(bot)
 		end)
 		if okT then
 			tracks[k] = tr
-			tr.Priority = (k == "idle") and Enum.AnimationPriority.Idle or Enum.AnimationPriority.Movement
+			tr.Priority = (k == "idle") and Enum.AnimationPriority.Idle or (EMOTES[k] and Enum.AnimationPriority.Action or Enum.AnimationPriority.Movement)
 		end
 	end
 	local current
@@ -173,6 +212,33 @@ local function buildCharacter(bot)
 		end
 	end)
 	playT("idle")
+	-- gestos: saludar, bailar, reír… (se cortan al echar a correr)
+	bot.emote = function(k, dur)
+		local tr = tracks[k]
+		if not tr then
+			return
+		end
+		for e in pairs(EMOTES) do
+			if tracks[e] and tracks[e].IsPlaying then
+				tracks[e]:Stop(0.2)
+			end
+		end
+		tr:Play(0.2)
+		task.delay(dur or (k:sub(1, 5) == "dance" and 6 or 2.2), function()
+			if tr.IsPlaying then
+				tr:Stop(0.3)
+			end
+		end)
+	end
+	hum.Running:Connect(function(speed)
+		if speed > 2 then
+			for e in pairs(EMOTES) do
+				if tracks[e] and tracks[e].IsPlaying then
+					tracks[e]:Stop(0.2)
+				end
+			end
+		end
+	end)
 	return model
 end
 
@@ -222,11 +288,13 @@ local function newBot(role)
 		IsBot = true,
 		UserId = -1000 - nextId,
 		Name = name .. "Bot",
-		DisplayName = "🤖 " .. name,
+		DisplayName = name,
 		Parent = workspace, -- (algunos módulos comprueban .Parent)
 		role = role,
 		alive = true,
 		attrs = {},
+		chatty = 0.5 + math.random() * 0.8, -- cada uno habla más o menos
+		greeted = {},
 	}
 	function bot:GetNetworkPing()
 		return 0
@@ -256,6 +324,97 @@ local function removeBot(bot)
 	local i = table.find(bots, bot)
 	if i then
 		table.remove(bots, i)
+	end
+end
+
+-- HABLAR (bocadillos encima de la cabeza, como el chat de burbujas) -----------------------
+local lastChatAll = 0
+local function say(bot, kind, chance)
+	if not bot or not bot.alive or not bot.Character then
+		return
+	end
+	if math.random() > (chance or 1) * (bot.chatty or 1) then
+		return
+	end
+	local now = os.clock()
+	if now - lastChatAll < 2.5 or now - (bot.lastChat or 0) < 10 then
+		return
+	end
+	local list = CHAT[kind]
+	local head = bot.Character:FindFirstChild("Head")
+	if not list or not head then
+		return
+	end
+	lastChatAll, bot.lastChat = now, now
+	local msg = list[math.random(1, #list)]
+	bot.lastSaid = msg
+	task.delay(0.3 + math.random() * 0.9, function() -- tarda un poco en "escribir"
+		if bot.alive and head.Parent and G.Net.BotChat then
+			G.Net.BotChat:FireAllClients(head, msg)
+		end
+	end)
+end
+Bots.say = say
+
+local function emote(bot, k, dur)
+	if bot.emote then
+		pcall(bot.emote, k, dur)
+	end
+end
+Bots.emote = emote
+
+-- vida social: saludar a quien se acerca, bailar, reírse, saltar… (todos los bots, cuando están libres)
+local DANCES = { "dance", "dance2", "dance3", "cheer", "laugh", "point" }
+local function isBusy(bot)
+	if bot.racing then
+		return true
+	end
+	if G.Slap and G.Slap.stationOf then
+		local k = G.Slap.stationOf(bot)
+		if k then
+			return true
+		end
+	end
+	if G.Hill and G.Hill.memberOf(bot) and G.Hill.st.phase == "playing" then
+		return true
+	end
+	return false
+end
+local function socialLoop(bot)
+	task.wait(2 + math.random() * 4)
+	while bot.alive do
+		task.wait(3 + math.random() * 5)
+		local hum, hrp = humOf(bot), hrpOf(bot)
+		if hum and hrp and hum.Health > 0 and not isBusy(bot) and hum:GetState() ~= Enum.HumanoidStateType.Seated then
+			-- ¿alguien de verdad cerca al que no haya saludado?
+			local near, nd
+			for _, p in ipairs(Players:GetPlayers()) do
+				local ph = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+				if ph then
+					local d = (ph.Position - hrp.Position).Magnitude
+					if d < 22 and (not nd or d < nd) and os.clock() - (bot.greeted[p.UserId] or -1e9) > 180 then
+						near, nd = p, d
+					end
+				end
+			end
+			if near and math.random() < 0.7 then
+				bot.greeted[near.UserId] = os.clock()
+				local ph = near.Character.HumanoidRootPart
+				hum:MoveTo(hrp.Position) -- se para
+				hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(ph.Position.X, hrp.Position.Y, ph.Position.Z))
+				emote(bot, "wave")
+				say(bot, "hi", 0.8)
+			else
+				local r = math.random()
+				if r < 0.16 then
+					emote(bot, DANCES[math.random(1, #DANCES)])
+				elseif r < 0.26 then
+					hum.Jump = true
+				elseif r < 0.3 then
+					say(bot, "idle", 0.6)
+				end
+			end
+		end
 	end
 end
 
@@ -427,6 +586,7 @@ local function raceStep(bot)
 	end
 	if dead then
 		bot.deaths = (bot.deaths or 0) + 1
+		say(bot, "fall", 0.3)
 		hrp.AssemblyLinearVelocity = Vector3.zero
 		-- caídas seguidas en el mismo tramo: tras 3, el siguiente salto sale seguro; tras 5, pasa al siguiente
 		-- waypoint (como un jugador que al final lo consigue). Así nunca se queda atascado toda la carrera.
@@ -471,6 +631,10 @@ local function raceStep(bot)
 		if sess then
 			sess.finished = true
 		end
+		say(bot, "finish", 0.6)
+		task.delay(1.5, function()
+			emote(bot, math.random() < 0.5 and "cheer" or "dance")
+		end)
 		hum:MoveTo(Vector3.new(math.random(-6, 6), p.Y, finishZ + 10))
 		task.delay(0.6, function()
 			if hum.Parent then
@@ -560,6 +724,7 @@ local function raceLoop(bot)
 				end
 				hum.WalkSpeed = 0
 				bot.clumsy = math.random() * 0.06 + 0.03 -- nivel normal: fallan algún salto
+				say(bot, "start", 0.35)
 			elseif state == "racing" and hum and bot.racing then
 				hum.WalkSpeed = 20 * (0.88 + math.random() * 0.1)
 			elseif (state == "results" or state == "break") and bot.racing then
@@ -570,7 +735,7 @@ local function raceLoop(bot)
 					hrp.CFrame = CFrame.new(C.COURSE.LOBBY + Vector3.new(math.random(-10, 10), 3, math.random(-8, 8)))
 				end
 				if hum then
-					hum.WalkSpeed = 12
+					hum.WalkSpeed = 12 + math.random() * 4
 				end
 			end
 			wasState = state
@@ -621,6 +786,7 @@ local function slapBrain(bot)
 			task.delay(0.3 + math.random() * 1.6, function()
 				if bot.alive then
 					G.Slap.stop(bot, nil)
+					say(bot, "slap", 0.25)
 				end
 			end)
 		elseif kind == "dodge" and type(data) == "table" then
@@ -633,6 +799,7 @@ local function slapBrain(bot)
 			end
 		elseif kind == "guess" and type(data) == "table" then
 			local opts = data.options or {}
+			say(bot, "guess", 0.2)
 			task.delay(1.5 + math.random() * 2, function()
 				if bot.alive and #opts > 0 then
 					G.Slap.guess(bot, opts[math.random(1, #opts)].id)
@@ -739,6 +906,7 @@ local function hillLoop(bot)
 					-- mirar al objetivo y empujar
 					hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(nearest.Position.X, hrp.Position.Y, nearest.Position.Z))
 					H.push(bot)
+					say(bot, "push", 0.12)
 					nextPush = os.clock() + 1 + math.random() * 1.4
 				end
 				task.wait(0.25)
@@ -789,6 +957,7 @@ local function balance()
 				break
 			end
 			table.insert(bots, bot)
+			task.spawn(socialLoop, bot)
 			if role == "slap" then
 				bot.onSlap = slapBrain(bot)
 				task.spawn(slapLoop, bot)

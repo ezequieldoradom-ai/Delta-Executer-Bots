@@ -4,6 +4,7 @@
 --   · Panel "¿Quién ha sido?" con los nombres · cámara fija mirando al frente para el sentado
 --   · Primer plano del guantazo para todos los de cerca menos el sentado, con sonidos (y meme si es supremo)
 local ContextActionService = game:GetService("ContextActionService")
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -217,7 +218,7 @@ gGrad.Rotation = 90
 gGrad.Color = ColorSequence.new(Color3.fromRGB(90, 55, 150), Color3.fromRGB(30, 18, 50))
 gGrad.Parent = guessPanel
 
--- foto de perfil (los bots no tienen: robot)
+-- foto de perfil (a los NPC se les hace un retrato de su avatar)
 local function headshot(parent, userId, size)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.fromOffset(size, size)
@@ -236,12 +237,48 @@ local function headshot(parent, userId, size)
 		img.Parent = frame
 		Instance.new("UICorner", img).CornerRadius = UDim.new(1, 0)
 	else
-		local l = Instance.new("TextLabel")
-		l.BackgroundTransparency = 1
-		l.Size = UDim2.fromScale(1, 1)
-		l.TextScaled = true
-		l.Text = "🤖"
-		l.Parent = frame
+		-- NPC: retrato de su propio avatar (clon del personaje en un ViewportFrame)
+		local src
+		for _, m in ipairs(CollectionService:GetTagged("LuckyBot")) do
+			if m:GetAttribute("BotId") == userId then
+				src = m
+				break
+			end
+		end
+		local head = src and src:FindFirstChild("Head")
+		local okC, clone = pcall(function()
+			return src and src:Clone()
+		end)
+		if head and okC and clone then
+			local vp = Instance.new("ViewportFrame")
+			vp.BackgroundTransparency = 1
+			vp.Size = UDim2.fromScale(1, 1)
+			vp.Ambient = Color3.fromRGB(200, 200, 200)
+			vp.LightColor = Color3.new(1, 1, 1)
+			vp.Parent = frame
+			Instance.new("UICorner", vp).CornerRadius = UDim.new(1, 0)
+			local wm = Instance.new("WorldModel")
+			wm.Parent = vp
+			for _, d in ipairs(clone:GetDescendants()) do
+				if d:IsA("Script") or d:IsA("LocalScript") or d:IsA("BillboardGui") then
+					d:Destroy()
+				end
+			end
+			clone.Parent = wm
+			local h = clone:FindFirstChild("Head") or head
+			local cam = Instance.new("Camera")
+			cam.FieldOfView = 40
+			cam.CFrame = CFrame.lookAt((h.CFrame * CFrame.new(0, 0.15, -3.2)).Position, h.Position + Vector3.new(0, 0.15, 0))
+			cam.Parent = vp
+			vp.CurrentCamera = cam
+		else
+			local l = Instance.new("TextLabel")
+			l.BackgroundTransparency = 1
+			l.Size = UDim2.fromScale(1, 1)
+			l.TextScaled = true
+			l.Text = "🙂"
+			l.Parent = frame
+		end
 	end
 	return frame, st
 end

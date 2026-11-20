@@ -325,7 +325,7 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		check("con 2+: cuenta atrás", waitFor(function()
 			return H.st.phase == "starting"
 		end, 45), H.st.phase .. " · " .. #H.st.members)
-		local t0 = os.clock()
+		local t0 = (H.st.countdown or (os.clock() + 15)) - 15 -- desde que empezó la cuenta (puede que ya estuviera en marcha)
 		check("empieza a los ~15 s", waitFor(function()
 			return H.st.phase == "playing"
 		end, 20) and math.abs(os.clock() - t0 - 15) < 3, string.format("%.1f s", os.clock() - t0))
