@@ -10,6 +10,7 @@ local Lighting = game:GetService("Lighting")
 local Decor = {}
 -- disposición del vestíbulo (la usan también Hub, Extras, Lobby y Slap)
 Decor.LOBBY_R = 58 -- radio del suelo del vestíbulo
+Decor.HILL = Vector3.new(76, 0, -134) -- arena del "Rey de la colina" (a la derecha)
 Decor.PLAZA = Vector3.new(-125, 0, -40) -- plaza de "¿Quién ha sido?" (a un lado, no detrás de los tablones)
 Decor.ISLAND_CENTER = Vector3.new(-55, 0, -70)
 Decor.ISLAND_R = 175
@@ -247,7 +248,14 @@ local function lobby()
 			local t = math.clamp((Vector3.new(p.X, 0, p.Z) - A):Dot(ab) / ab:Dot(ab), 0, 1)
 			return (A + ab * t - Vector3.new(p.X, 0, p.Z)).Magnitude < 12
 		end)()
-		if not nearLobby and not nearPlaza and not onPath then
+		local nearHill = (Vector3.new(p.X, 0, p.Z) - Vector3.new(Decor.HILL.X, 0, Decor.HILL.Z)).Magnitude < 36
+		local onHillPath = (function()
+			local A, Bp = Vector3.new(c.X, 0, c.Z), Vector3.new(Decor.HILL.X, 0, Decor.HILL.Z)
+			local ab = Bp - A
+			local t = math.clamp((Vector3.new(p.X, 0, p.Z) - A):Dot(ab) / ab:Dot(ab), 0, 1)
+			return (A + ab * t - Vector3.new(p.X, 0, p.Z)).Magnitude < 12
+		end)()
+		if not nearLobby and not nearPlaza and not onPath and not nearHill and not onHillPath then
 			local h = rngD:NextNumber(7, 13)
 			local trunk = part({ Name = "Trunk", Size = Vector3.new(1.8, h, 1.8), CFrame = CFrame.new(p + Vector3.new(0, h / 2 + 0.5, 0)), Color = Color3.fromRGB(110, 75, 45), Material = Enum.Material.Wood, CastShadow = true }, f)
 			local _ = trunk

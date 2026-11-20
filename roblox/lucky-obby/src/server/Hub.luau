@@ -304,18 +304,30 @@ function Hub.init(g)
 		local pos = Vector3.new(pz.X, 0, pz.Z) + away * 40 + Vector3.new(0, 10, 0)
 		slapBody = board(f, CFrame.lookAt(pos, Vector3.new(pz.X, 10, pz.Z)), 18, 14, "🖐️ REYES DEL GUANTAZO", Color3.fromRGB(255, 120, 200))
 	end
+	local hillBody
+	if Decor.HILL then
+		local hz = Decor.HILL
+		local lobbyFlat = Vector3.new(C.LOBBY.X, 0, C.LOBBY.Z)
+		local away = (Vector3.new(hz.X, 0, hz.Z) - lobbyFlat).Unit
+		local pos = Vector3.new(hz.X, 0, hz.Z) + away * 30 + Vector3.new(0, 12, 0)
+		hillBody = board(f, CFrame.lookAt(pos, Vector3.new(hz.X, 12, hz.Z)), 18, 14, "👑 REYES DE LA COLINA", Color3.fromRGB(255, 205, 60))
+	end
 	f.Parent = workspace
-	local wins, coins, best, slaps
+	local wins, coins, best, slaps, hills
 	if not RunService:IsStudio() then
 		pcall(function()
 			wins = DataStoreService:GetOrderedDataStore("LuckyObby_Wins_v1")
 			coins = DataStoreService:GetOrderedDataStore("LuckyObby_Coins_v1")
 			best = DataStoreService:GetOrderedDataStore("LuckyObby_Best_v1")
 			slaps = DataStoreService:GetOrderedDataStore("LuckyObby_SlapWins_v1")
+			hills = DataStoreService:GetOrderedDataStore("LuckyObby_HillWins_v1")
 		end)
 	end
 	table.insert(boards, { body = winsBody, stat = "wins", store = wins })
 	table.insert(boards, { body = coinsBody, stat = "coins", store = coins })
+	if hillBody then
+		table.insert(boards, { body = hillBody, stat = "hillWins", store = hills })
+	end
 	if slapBody then
 		table.insert(boards, { body = slapBody, stat = "slapWins", store = slaps })
 	end

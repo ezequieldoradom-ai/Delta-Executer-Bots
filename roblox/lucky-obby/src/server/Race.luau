@@ -203,6 +203,9 @@ function Race.setJoined(player, on)
 	if on and G.Slap and G.Slap.leave then
 		G.Slap.leave(player) -- si estaba en un minijuego de la plaza, sale
 	end
+	if on and G.Hill and G.Hill.memberOf(player) then
+		G.Hill.leave(player)
+	end
 	return true
 end
 

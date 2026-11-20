@@ -171,6 +171,12 @@ function Plaza.init(g)
 		local side = Vector3.new(-toPlaza.Z, 0, toPlaza.X)
 		signpost(f, edge + side * 9, toPlaza, "🖐️ ¿QUIÉN HA SIDO? →", Color3.fromRGB(255, 120, 200))
 	end
+	if Decor.HILL then
+		local toHill = (Vector3.new(Decor.HILL.X, 0, Decor.HILL.Z) - Vector3.new(c.X, 0, c.Z)).Unit
+		local edge = Vector3.new(c.X, 0, c.Z) + toHill * (R + 1)
+		local side = Vector3.new(-toHill.Z, 0, toHill.X)
+		signpost(f, edge + side * 9, toHill, "👑 REY DE LA COLINA →", Color3.fromRGB(255, 200, 60))
+	end
 	-- bloques de obby flotando por la isla (algunos giran: los anima cada cliente con FxSpin)
 	local CS = game:GetService("CollectionService")
 	local rng = Random.new(21)
@@ -181,7 +187,8 @@ function Plaza.init(g)
 		local pos = mid + Vector3.new(math.cos(ang) * dist, rng:NextNumber(14, 48), math.sin(ang) * dist)
 		local far = (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(c.X, 0, c.Z)).Magnitude > R + 12
 		local nearPlaza = Decor.PLAZA and (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(Decor.PLAZA.X, 0, Decor.PLAZA.Z)).Magnitude < 55
-		if far and not nearPlaza and pos.Z < -15 then
+		local nearHill = Decor.HILL and (Vector3.new(pos.X, 0, pos.Z) - Vector3.new(Decor.HILL.X, 0, Decor.HILL.Z)).Magnitude < 40
+		if far and not nearPlaza and not nearHill and pos.Z < -15 then
 			local s = rng:NextNumber(4, 9)
 			local col = RAINBOW[rng:NextInteger(1, #RAINBOW)]
 			local b = part({ Name = "FloatBlock", Size = Vector3.new(s, s * rng:NextNumber(0.3, 1), s), CFrame = CFrame.new(pos) * CFrame.Angles(0, rng:NextNumber(0, 6), 0), Color = col, Material = Enum.Material.SmoothPlastic }, f)

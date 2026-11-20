@@ -464,6 +464,9 @@ local function join(p, st)
 	if stationOf[p] then
 		Slap.leave(p)
 	end
+	if G.Hill and G.Hill.memberOf(p) then
+		G.Hill.leave(p)
+	end
 	if G.Race.joined then
 		G.Race.joined[p] = nil -- si se mete a jugar aquí, no corre
 	end

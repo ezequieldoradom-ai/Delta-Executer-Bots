@@ -15,7 +15,7 @@ local G = {
 -- Canales servidor <-> cliente
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
-for _, name in ipairs({ "State", "Event", "Knock", "Use", "Join", "Slap" }) do
+for _, name in ipairs({ "State", "Event", "Knock", "Use", "Join", "Slap", "Hill" }) do
 	local ev = Instance.new("RemoteEvent")
 	ev.Name = name
 	ev.Parent = remotes
@@ -46,6 +46,10 @@ end
 local slap = script:FindFirstChild("Slap")
 if slap then
 	require(slap).init(G) -- minijuego "¿Quién ha sido?" en la plaza (Shadow)
+end
+local kinghill = script:FindFirstChild("KingHill")
+if kinghill then
+	require(kinghill).init(G) -- minijuego "Rey de la colina" (Shadow)
 end
 local feedback = script:FindFirstChild("Feedback")
 if feedback then

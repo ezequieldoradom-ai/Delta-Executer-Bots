@@ -19,12 +19,12 @@ local ANIM = {
 	fall = "rbxassetid://507767968",
 	sit = "rbxassetid://2506281703",
 }
-local TARGET = { -- [jugadores reales] = { corredores, sillas }
-	[0] = { 0, 0 },
-	[1] = { 4, 4 },
-	[2] = { 3, 4 },
-	[3] = { 2, 2 },
-	[4] = { 1, 2 },
+local TARGET = { -- [jugadores reales] = { corredores, sillas, colina }
+	[0] = { 0, 0, 0 },
+	[1] = { 3, 4, 4 },
+	[2] = { 3, 3, 4 },
+	[3] = { 2, 2, 3 },
+	[4] = { 1, 2, 2 },
 }
 local bots = {} -- lista de bots (tablas)
 local nextId = 0
@@ -198,7 +198,7 @@ local function spawnAt(bot, cf)
 		end
 		task.delay(3, function()
 			if bot.alive and bot.Character == model then
-				local spot = bot.role == "slap" and CFrame.new(G.Slap.PLAZA + Vector3.new(math.random(-6, 6), 4, math.random(-6, 6))) or CFrame.new(C.COURSE.LOBBY + Vector3.new(math.random(-8, 8), 3, math.random(-8, 8)))
+				local spot = bot.role == "slap" and CFrame.new(G.Slap.PLAZA + Vector3.new(math.random(-6, 6), 4, math.random(-6, 6))) or (bot.role == "hill" and G.Hill and CFrame.new(G.Hill.CENTER + Vector3.new(math.random(-6, 6), 4, G.Hill.R + 8))) or CFrame.new(C.COURSE.LOBBY + Vector3.new(math.random(-8, 8), 3, math.random(-8, 8)))
 				spawnAt(bot, spot)
 			end
 		end)
@@ -243,6 +243,9 @@ end
 local function removeBot(bot)
 	bot.alive = false
 	G.Race.sessions[bot] = nil
+	if bot.role == "hill" and G.Hill then
+		pcall(G.Hill.leave, bot)
+	end
 	if bot.role == "slap" and G.Slap then
 		pcall(G.Slap.leave, bot)
 	end
@@ -700,6 +703,54 @@ local function slapLoop(bot)
 	end
 end
 
+-- REY DE LA COLINA ----------------------------------------------------------------------
+-- Entran a la arena cuando no hay partida; en partida van hacia la colina y empujan al que tienen cerca.
+local function hillLoop(bot)
+	local H = G.Hill
+	local nextPush = 0
+	while bot.alive do
+		local st = H.st
+		local hum, hrp = humOf(bot), hrpOf(bot)
+		if hum and hrp and hum.Health > 0 then
+			if not H.memberOf(bot) then
+				if st.phase ~= "playing" and st.phase ~= "result" and #st.members < H.MAX and math.random() < 0.35 then
+					H.join(bot)
+					hum.WalkSpeed = 16 -- algo más lentos que un jugador (18): nivel normal
+				end
+				task.wait(1.5)
+			elseif st.phase == "playing" and st.alive[bot] then
+				-- hacia la colina, con un poco de desorden
+				local target = H.CENTER + Vector3.new(math.random(-3, 3), H.TOP + 2, math.random(-3, 3))
+				local nearest, nd = nil, math.huge
+				for _, m in ipairs(st.members) do
+					local mh = m ~= bot and st.alive[m] and hrpOf(m)
+					if mh then
+						local d = (mh.Position - hrp.Position).Magnitude
+						if d < nd then
+							nearest, nd = mh, d
+						end
+					end
+				end
+				if nearest and nd < 9 and math.random() < 0.6 then
+					target = nearest.Position -- ir a por el que tiene cerca
+				end
+				hum:MoveTo(target)
+				if not H.botsCalm and nearest and nd < 6.5 and os.clock() > nextPush then
+					-- mirar al objetivo y empujar
+					hrp.CFrame = CFrame.lookAt(hrp.Position, Vector3.new(nearest.Position.X, hrp.Position.Y, nearest.Position.Z))
+					H.push(bot)
+					nextPush = os.clock() + 1 + math.random() * 1.4
+				end
+				task.wait(0.25)
+			else
+				task.wait(1)
+			end
+		else
+			task.wait(1)
+		end
+	end
+end
+
 -- POBLACIÓN ----------------------------------------------------------------------------
 local function count(role)
 	local n = 0
@@ -714,7 +765,7 @@ end
 local function balance()
 	local n = realCount()
 	local t = TARGET[n] or { 0, 0 }
-	for _, spec in ipairs({ { "race", t[1] }, { "slap", t[2] } }) do
+	for _, spec in ipairs({ { "race", t[1] }, { "slap", t[2] }, { "hill", G.Hill and (t[3] or 0) or 0 } }) do
 		local role, want = spec[1], spec[2]
 		while count(role) > want do
 			-- quitar primero los que no están en mitad de algo
@@ -733,7 +784,7 @@ local function balance()
 		while count(role) < want do
 			local bot = newBot(role)
 			bot.slot = count(role) + 1
-			local spot = role == "slap" and CFrame.new(G.Slap.PLAZA + Vector3.new(math.random(-8, 8), 4, math.random(-8, 8))) or CFrame.new(C.COURSE.LOBBY + Vector3.new(math.random(-10, 10), 3, math.random(-8, 8)))
+			local spot = role == "slap" and CFrame.new(G.Slap.PLAZA + Vector3.new(math.random(-8, 8), 4, math.random(-8, 8))) or (role == "hill" and G.Hill and CFrame.new(G.Hill.CENTER + Vector3.new(math.random(-8, 8), 4, G.Hill.R + 8))) or CFrame.new(C.COURSE.LOBBY + Vector3.new(math.random(-10, 10), 3, math.random(-8, 8)))
 			if not spawnAt(bot, spot) then
 				break
 			end
@@ -741,6 +792,8 @@ local function balance()
 			if role == "slap" then
 				bot.onSlap = slapBrain(bot)
 				task.spawn(slapLoop, bot)
+			elseif role == "hill" then
+				task.spawn(hillLoop, bot)
 			else
 				task.spawn(raceLoop, bot)
 			end

@@ -274,6 +274,106 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		check("al salir, vida llena", h and h.Health >= h.MaxHealth - 0.5, h and h.Health)
 	end)
 
+	-- F. REY DE LA COLINA -----------------------------------------------------------------
+	safe("colina", function()
+		local H = G.Hill
+		check("arena construida", workspace:FindFirstChild("KingHill") and workspace.KingHill:FindFirstChild("Hill") ~= nil)
+		check("máximo 10 jugadores", H.MAX == 10)
+		local hasBoard = false
+		for _, d in ipairs(workspace.Hub:GetDescendants()) do
+			if d:IsA("TextLabel") and d.Text:find("COLINA") then
+				hasBoard = true
+			end
+		end
+		check("ranking Reyes de la colina", hasBoard)
+		if G.Slap.stationOf(p) then
+			G.Slap.leave(p)
+		end
+		waitFor(function()
+			return H.st.phase ~= "playing" and H.st.phase ~= "result"
+		end, 120)
+		check("entrar en la arena", H.join(p) == true)
+		task.wait(0.5)
+		check("en la arena (arriba)", hrp() and hrp().Position.Y > H.CENTER.Y + H.TOP, hrp() and math.floor(hrp().Position.Y))
+		check("velocidad 18 en la arena", hum() and hum().WalkSpeed == 18, hum() and hum().WalkSpeed)
+		check("con 2+: cuenta atrás", waitFor(function()
+			return H.st.phase == "starting"
+		end, 45), H.st.phase .. " · " .. #H.st.members)
+		local t0 = os.clock()
+		check("empieza a los ~15 s", waitFor(function()
+			return H.st.phase == "playing"
+		end, 20) and math.abs(os.clock() - t0 - 15) < 3, string.format("%.1f s", os.clock() - t0))
+		H.botsCalm = true
+		-- nadie entra a mitad de partida
+		local outsider
+		for _, b in ipairs(Bots.list) do
+			if not H.memberOf(b) then
+				outsider = b
+				break
+			end
+		end
+		if outsider then
+			check("no se entra con la partida en curso", H.join(outsider) == false)
+		end
+		-- puntos en la colina
+		hrp().CFrame = CFrame.new(H.CENTER + Vector3.new(0, H.TOP + 4.5, 0))
+		task.wait(2.2)
+		check("puntos al estar en la colina", (H.st.score[p] or 0) >= 1.6, H.st.score[p])
+		-- empujar a un bot
+		local target
+		for _, m in ipairs(H.st.members) do
+			if m ~= p and H.st.alive[m] and m.Character and m.Character:FindFirstChild("HumanoidRootPart") then
+				target = m
+				break
+			end
+		end
+		if target then
+			local th = target.Character.HumanoidRootPart
+			local from = th.Position + Vector3.new(0, 0, 3)
+			hrp().CFrame = CFrame.lookAt(from, Vector3.new(th.Position.X, from.Y, th.Position.Z))
+			task.wait(0.9)
+			H.lastPushed = nil
+			check("empujar da al de delante", H.push(p) and H.lastPushed == target)
+			task.wait(0.05)
+			check("el empujado sale despedido", th.AssemblyLinearVelocity.Magnitude > 30, math.floor(th.AssemblyLinearVelocity.Magnitude))
+		else
+			check("había un bot para empujar", false)
+		end
+		-- ganar: echamos a todos los demás
+		local d0 = G.Data.profiles[p].hillWins or 0
+		local c0 = G.Data.profiles[p].coins
+		local size = H.st.matchSize or 0
+		hrp().CFrame = CFrame.new(H.CENTER + Vector3.new(0, H.TOP + 4.5, 0))
+		for _, m in ipairs(H.st.members) do
+			if m ~= p and H.st.alive[m] and m.Character and m.Character:FindFirstChild("HumanoidRootPart") then
+				m.Character.HumanoidRootPart.CFrame = CFrame.new(H.CENTER + Vector3.new(0, 4, H.R + 9))
+			end
+		end
+		check("caer de la arena elimina y el último gana", waitFor(function()
+			return H.st.phase == "result" and H.lastWinner == p
+		end, 6), H.lastWinner and H.lastWinner.Name)
+		if size >= 3 then
+			check("victoria apuntada en el ranking", (G.Data.profiles[p].hillWins or 0) == d0 + 1, G.Data.profiles[p].hillWins)
+			check("premio de 20 monedas", G.Data.profiles[p].coins == c0 + 20, G.Data.profiles[p].coins - c0)
+		else
+			check("partida de 2: sin premio (anti-granjeo)", (G.Data.profiles[p].hillWins or 0) == d0)
+		end
+		-- siguiente partida: caer = eliminado y a mirar desde fuera
+		check("vuelve a empezar sola", waitFor(function()
+			return H.st.phase == "playing"
+		end, 40), H.st.phase)
+		hrp().CFrame = CFrame.new(H.CENTER + Vector3.new(0, 4, H.R + 9))
+		task.wait(1.5)
+		check("caer te elimina", H.st.alive[p] == false)
+		check("eliminado: andas normal", hum() and hum().WalkSpeed == 16, hum() and hum().WalkSpeed)
+		local dist = hrp() and (Vector3.new(hrp().Position.X, 0, hrp().Position.Z) - Vector3.new(H.CENTER.X, 0, H.CENTER.Z)).Magnitude
+		check("eliminado: miras desde fuera", dist and dist > H.R, dist and math.floor(dist))
+		H.leave(p)
+		check("salir de la arena", not H.memberOf(p))
+		check("no puedes volver a mitad de partida", H.join(p) == false)
+		H.botsCalm = false
+	end)
+
 	-- E. CARRERA --------------------------------------------------------------------------
 	safe("carrera", function()
 		check("llega la inscripción", waitFor(function()

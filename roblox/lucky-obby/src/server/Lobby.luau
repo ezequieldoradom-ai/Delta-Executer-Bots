@@ -38,6 +38,9 @@ function Lobby.init(G)
 	if Decor.PLAZA then
 		table.insert(gaps, math.atan2(Decor.PLAZA.Z - c.Z, Decor.PLAZA.X - c.X))
 	end
+	if Decor.HILL then
+		table.insert(gaps, math.atan2(Decor.HILL.Z - c.Z, Decor.HILL.X - c.X))
+	end
 	for i = 1, 12 do
 		local a = i / 12 * math.pi * 2
 		local blocked = false
