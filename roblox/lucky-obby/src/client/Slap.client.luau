@@ -126,6 +126,24 @@ corner(leaveBtn, 10)
 leaveBtn.Activated:Connect(function()
 	Net:FireServer("leave")
 end)
+-- mando (PS5/Xbox): cruceta abajo = salir, cuando el botón está a la vista
+do
+	local UISp = game:GetService("UserInputService")
+	local CASp = game:GetService("ContextActionService")
+	CASp:BindActionAtPriority("SlapLeavePad", function(_, st)
+		if st ~= Enum.UserInputState.Begin or not (panel.Visible) then
+			return Enum.ContextActionResult.Pass
+		end
+		Net:FireServer("leave")
+		return Enum.ContextActionResult.Sink
+	end, false, 2000, Enum.KeyCode.DPadDown)
+	local function hint()
+		leaveBtn.Text = L("SALIR", "LEAVE") .. (UISp.GamepadEnabled and " ⬇" or "")
+	end
+	hint()
+	UISp.LastInputTypeChanged:Connect(hint)
+end
+
 
 -- botón DAR GUANTAZO
 local slapBtn = text(gui, { Button = true, AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -120), Size = UDim2.fromOffset(380, 80), Text = "🖐️ " .. L("DAR GUANTAZO", "SLAP!"), BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(230, 70, 120), Visible = false })

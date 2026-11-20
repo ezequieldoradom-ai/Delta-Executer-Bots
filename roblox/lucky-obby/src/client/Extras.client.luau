@@ -289,19 +289,28 @@ local qp = Instance.new("UIPadding")
 qp.PaddingTop, qp.PaddingBottom = UDim.new(0, 5), UDim.new(0, 5)
 qp.Parent = quitBtn
 local quitAsk = 0
-quitBtn.Activated:Connect(function()
+local function quitPress()
 	-- doble toque para confirmar (que no se salga nadie sin querer)
 	if os.clock() - quitAsk < 2.5 then
 		Remotes.Join:FireServer("quit")
 		quitBtn.Visible = false
 	else
 		quitAsk = os.clock()
-		quitBtn.Text = es() and "¿SEGURO? PULSA OTRA VEZ" or "SURE? TAP AGAIN"
+		quitBtn.Text = es() and "¿SEGURO? PULSA OTRA VEZ" or "SURE? PRESS AGAIN"
 		task.delay(2.5, function()
 			quitBtn.Text = es() and "🚪 SALIR DE LA CARRERA" or "🚪 LEAVE RACE"
 		end)
 	end
-end)
+end
+quitBtn.Activated:Connect(quitPress)
+-- mando: cruceta abajo (dos veces) = salir de la carrera
+game:GetService("ContextActionService"):BindActionAtPriority("QuitRacePad", function(_, st)
+	if st ~= Enum.UserInputState.Begin or not quitBtn.Visible then
+		return Enum.ContextActionResult.Pass
+	end
+	quitPress()
+	return Enum.ContextActionResult.Sink
+end, false, 2000, Enum.KeyCode.DPadDown)
 
 local lastState = nil
 Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
@@ -325,7 +334,8 @@ Remotes:WaitForChild("State").OnClientEvent:Connect(function(s)
 				ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 90, 40)),
 			})
 			local uis = game:GetService("UserInputService")
-			local hint = uis.GamepadEnabled and " (Y)" or (uis.KeyboardEnabled and " (J)" or "")
+			local touchOnly = uis.TouchEnabled and not uis.MouseEnabled
+			local hint = uis.GamepadEnabled and " (Y)" or ((uis.KeyboardEnabled and not touchOnly) and " (J)" or "")
 			joinText.Text = (es() and "🏁 ENTRAR A LA CARRERA" or "🏁 JOIN THE RACE") .. hint
 		end
 	end

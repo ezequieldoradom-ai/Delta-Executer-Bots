@@ -75,6 +75,20 @@ b.Text = "🎵"
 b.TextScaled = true
 b.Parent = gui
 Instance.new("UICorner", b).CornerRadius = UDim.new(0, 12)
+-- en móvil/tablet abajo a la derecha está el botón de saltar: ahí va arriba a la izquierda
+local UIS = game:GetService("UserInputService")
+local function place()
+	local touch = UIS.TouchEnabled and not UIS.MouseEnabled
+	if touch then
+		b.AnchorPoint = Vector2.new(0, 0)
+		b.Position = UDim2.new(0, 12, 0, 56)
+	else
+		b.AnchorPoint = Vector2.new(1, 1)
+		b.Position = UDim2.new(1, -10, 1, -10)
+	end
+end
+place()
+UIS.LastInputTypeChanged:Connect(place)
 local st = Instance.new("UIStroke")
 st.Color = Color3.new(1, 1, 1)
 st.Thickness = 2

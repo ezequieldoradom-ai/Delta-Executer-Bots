@@ -100,6 +100,24 @@ corner(leave, 10)
 leave.Activated:Connect(function()
 	Net:FireServer("leave")
 end)
+-- mando (PS5/Xbox): cruceta abajo = salir, cuando el botón está a la vista
+do
+	local UISp = game:GetService("UserInputService")
+	local CASp = game:GetService("ContextActionService")
+	CASp:BindActionAtPriority("HillLeavePad", function(_, st)
+		if st ~= Enum.UserInputState.Begin or not (panel.Visible) then
+			return Enum.ContextActionResult.Pass
+		end
+		Net:FireServer("leave")
+		return Enum.ContextActionResult.Sink
+	end, false, 2000, Enum.KeyCode.DPadDown)
+	local function hint()
+		leave.Text = L("SALIR", "LEAVE") .. (UISp.GamepadEnabled and " ⬇" or "")
+	end
+	hint()
+	UISp.LastInputTypeChanged:Connect(hint)
+end
+
 local info = label(panel, { Position = UDim2.fromOffset(12, 38), Size = UDim2.new(1, -24, 0, 22), TextXAlignment = Enum.TextXAlignment.Left, Text = "" })
 local list = Instance.new("Frame")
 list.BackgroundTransparency = 1
@@ -115,6 +133,15 @@ end
 local push = label(gui, { Button = true, AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -30), Size = UDim2.fromOffset(260, 64), BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(230, 120, 40), FontFace = BANGERS, Text = "👊 " .. L("EMPUJAR", "PUSH") .. " (E)", Visible = false })
 corner(push, 20)
 local pushStroke = stroke(push, WHITE, 3)
+-- la tecla que sale depende del dispositivo: (E) teclado, (□) mando, nada en táctil
+local UIS = game:GetService("UserInputService")
+local function pushHint()
+	local touchOnly = UIS.TouchEnabled and not UIS.MouseEnabled
+	local k = UIS.GamepadEnabled and " (□)" or (touchOnly and "" or " (E)")
+	push.Text = "👊 " .. L("EMPUJAR", "PUSH") .. k
+end
+pushHint()
+UIS.LastInputTypeChanged:Connect(pushHint)
 local pushScale = Instance.new("UIScale")
 pushScale.Parent = push
 local lastPush = 0

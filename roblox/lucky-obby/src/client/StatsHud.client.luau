@@ -40,6 +40,20 @@ panel.BackgroundColor3 = Color3.fromRGB(22, 16, 38)
 panel.BackgroundTransparency = 0.12
 panel.Parent = gui
 Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 18)
+-- en móvil/tablet abajo a la izquierda va el joystick: el panel sube arriba a la derecha (bajo el buzón)
+local UIS = game:GetService("UserInputService")
+local function place()
+	local touch = UIS.TouchEnabled and not UIS.MouseEnabled
+	if touch then
+		panel.AnchorPoint = Vector2.new(1, 0)
+		panel.Position = UDim2.new(1, -10, 0, 124)
+	else
+		panel.AnchorPoint = Vector2.new(0, 1)
+		panel.Position = UDim2.new(0, 14, 1, -14)
+	end
+end
+place()
+UIS.LastInputTypeChanged:Connect(place)
 local stroke = Instance.new("UIStroke")
 stroke.Thickness = 3
 stroke.Color = WHITE
