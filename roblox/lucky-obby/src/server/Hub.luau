@@ -48,6 +48,34 @@ local function board(parent, cf, w, h, title, color)
 	t.TextColor3 = color
 	t.TextStrokeTransparency = 0.3
 	t.Parent = sg
+	-- por detrás: título grande y el nombre del juego (antes era una losa negra vacía)
+	local bsg = Instance.new("SurfaceGui")
+	bsg.Face = Enum.NormalId.Back
+	bsg.LightInfluence = 0
+	bsg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	bsg.PixelsPerStud = 20
+	bsg.Parent = back
+	local bt = Instance.new("TextLabel")
+	bt.BackgroundTransparency = 1
+	bt.Size = UDim2.new(0.9, 0, 0.45, 0)
+	bt.Position = UDim2.fromScale(0.05, 0.12)
+	bt.Font = Enum.Font.LuckiestGuy
+	bt.TextScaled = true
+	bt.Text = title
+	bt.TextColor3 = color
+	bt.TextStrokeTransparency = 0.3
+	bt.Parent = bsg
+	local bl = Instance.new("TextLabel")
+	bl.BackgroundTransparency = 1
+	bl.Size = UDim2.new(0.7, 0, 0.2, 0)
+	bl.Position = UDim2.fromScale(0.15, 0.66)
+	bl.Font = Enum.Font.FredokaOne
+	bl.TextScaled = true
+	bl.RichText = true
+	bl.Text = '<font color="#FFD54A">LUCKY</font> OBBY <font color="#FF4A5A">RACE</font>'
+	bl.TextColor3 = WHITE
+	bl.TextTransparency = 0.15
+	bl.Parent = bsg
 	local body = Instance.new("Frame")
 	body.BackgroundTransparency = 1
 	body.Size = UDim2.new(1, -30, 0.82, -10)

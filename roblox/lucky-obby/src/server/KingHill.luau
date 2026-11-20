@@ -539,10 +539,10 @@ local function build()
 		sg.Parent = sign
 	end
 	-- SE VE DESDE TODO EL MAPA: rótulo flotante gigante + haz de luz dorado
-	local beacon = part({ Name = "Beacon", Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(c + Vector3.new(0, 34, 0)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false }, f)
+	local beacon = part({ Name = "Beacon", Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(c + Vector3.new(0, 40, 0)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false }, f)
 	local big = Instance.new("BillboardGui")
 	big.Name = "HillBig"
-	big.Size = UDim2.fromScale(44, 11) -- en studs: crece con la distancia como un cartel de verdad
+	big.Size = UDim2.fromScale(30, 7.5) -- en studs: crece con la distancia como un cartel de verdad
 	big.LightInfluence = 0
 	big.MaxDistance = 900
 	big.Parent = beacon

@@ -57,19 +57,26 @@ function Lobby.init(G)
 		part({ Name = "LuckyBlock", Size = Vector3.new(2.6, 2.6, 2.6), CFrame = CFrame.new(c + Vector3.new(math.cos(a) * 55, 10 + (i % 3) * 3, math.sin(a) * 55)) * CFrame.Angles(0, a, math.rad(45)), Color = Color3.fromRGB(255, 210, 60), Material = Enum.Material.Neon })
 	end
 	local sign = part({ Name = "Sign", Size = Vector3.new(30, 8, 1), CFrame = CFrame.lookAt(c + Vector3.new(0, 23.5, 54), c + Vector3.new(0, 23.5, 0)), Color = Color3.fromRGB(30, 26, 45), Material = Enum.Material.SmoothPlastic })
-	local sg = Instance.new("SurfaceGui")
-	sg.Face = Enum.NormalId.Front
-	sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	sg.PixelsPerStud = 25
-	local l = Instance.new("TextLabel")
-	l.BackgroundTransparency = 1
-	l.Size = UDim2.fromScale(1, 1)
-	l.TextScaled = true
-	l.Font = Enum.Font.FredokaOne
-	l.TextColor3 = Color3.fromRGB(255, 220, 70)
-	l.Text = "🎁 LUCKY OBBY RACE 🏁"
-	l.Parent = sg
-	sg.Parent = sign
+	-- texto por las dos caras (por detrás antes se veía una losa negra) y marco dorado
+	for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
+		local sg = Instance.new("SurfaceGui")
+		sg.Face = face
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sg.PixelsPerStud = 25
+		sg.LightInfluence = 0
+		local l = Instance.new("TextLabel")
+		l.BackgroundTransparency = 1
+		l.Size = UDim2.fromScale(1, 1)
+		l.TextScaled = true
+		l.Font = Enum.Font.FredokaOne
+		l.TextColor3 = Color3.fromRGB(255, 220, 70)
+		l.Text = "🎁 LUCKY OBBY RACE 🏁"
+		l.Parent = sg
+		sg.Parent = sign
+	end
+	for _, e in ipairs({ { 0, 4.2, 30.8, 0.6 }, { 0, -4.2, 30.8, 0.6 }, { 15.2, 0, 0.6, 9 }, { -15.2, 0, 0.6, 9 } }) do
+		part({ Name = "SignFrame", Size = Vector3.new(e[3], e[4], 1.3), CFrame = sign.CFrame * CFrame.new(e[1], e[2], 0), Color = Color3.fromRGB(255, 200, 70), Material = Enum.Material.Neon })
+	end
 	f.Parent = workspace
 end
 
