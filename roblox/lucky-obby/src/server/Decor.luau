@@ -10,10 +10,10 @@ local Lighting = game:GetService("Lighting")
 local Decor = {}
 -- disposición del vestíbulo (la usan también Hub, Extras, Lobby y Slap)
 Decor.LOBBY_R = 58 -- radio del suelo del vestíbulo
-Decor.HILL = Vector3.new(76, 0, -134) -- arena del "Rey de la colina" (a la derecha)
+Decor.HILL = Vector3.new(80, 0, -136) -- arena del "Rey de la colina" (a la derecha)
 Decor.PLAZA = Vector3.new(-125, 0, -40) -- plaza de "¿Quién ha sido?" (a un lado, no detrás de los tablones)
 Decor.ISLAND_CENTER = Vector3.new(-55, 0, -70)
-Decor.ISLAND_R = 175
+Decor.ISLAND_R = 185
 local G, C
 
 local RAINBOW = {

@@ -13,7 +13,7 @@ local G
 
 Hill.MAX, Hill.MIN = 10, 2
 local START_DELAY, MATCH_TIME, RESULT_TIME = 15, 90, 4
-local R = 20 -- radio de la arena
+local R = 24 -- radio de la arena
 local TOP = 9 -- altura del suelo de la arena
 local HILL_R, HILL_H = 6, 1.2 -- la colina dorada del centro
 local PUSH_CD, PUSH_RANGE, PUSH_POWER = 0.8, 8, 78
@@ -458,8 +458,8 @@ local function build()
 	game:GetService("CollectionService"):AddTag(cm, "FxSpin")
 	cm.Parent = f
 	-- franja roja en el suelo alrededor: "si caes aquí, fuera"
-	cyl(R + 6, 0.08, 0.6, Color3.fromRGB(255, 70, 80), Enum.Material.Neon, false).Name = "FallZone"
-	cyl(R + 5.4, 0.1, 0.62, Color3.fromRGB(240, 230, 220), Enum.Material.SmoothPlastic, false).Name = "FallZoneInner"
+	cyl(R + 4, 0.08, 0.6, Color3.fromRGB(255, 70, 80), Enum.Material.Neon, false).Name = "FallZone"
+	cyl(R + 3.4, 0.1, 0.62, Color3.fromRGB(240, 230, 220), Enum.Material.SmoothPlastic, false).Name = "FallZoneInner"
 	-- camino corto desde el vestíbulo
 	local lobby = G.Config.COURSE.LOBBY
 	local d = toLobbyDir()

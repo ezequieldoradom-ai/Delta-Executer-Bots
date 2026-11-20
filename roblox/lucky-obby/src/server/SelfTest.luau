@@ -85,7 +85,7 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		end
 		check("6 mesas de guantazos", nSt == 6, nSt)
 		check("tienda de estelas", Extras.shop and Extras.shop.rainbow ~= nil)
-		check("8 bots con 1 jugador", #Bots.list == 8, #Bots.list)
+		check("11 bots con 1 jugador (3 carrera + 4 mesas + 4 colina)", #Bots.list == 11, #Bots.list)
 	end)
 
 	-- B. DATOS, SUERTE Y ESTELAS --------------------------------------------------------
@@ -329,9 +329,13 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		end
 		if target then
 			local th = target.Character.HumanoidRootPart
+			local th2 = target.Character:FindFirstChildOfClass("Humanoid")
+			th2.WalkSpeed = 0 -- que no se vaya mientras le apunto
+			th.CFrame = CFrame.new(H.CENTER + Vector3.new(4, H.TOP + 3.2, 0))
+			task.wait(0.3)
 			local from = th.Position + Vector3.new(0, 0, 3)
 			hrp().CFrame = CFrame.lookAt(from, Vector3.new(th.Position.X, from.Y, th.Position.Z))
-			task.wait(0.9)
+			task.wait(0.1)
 			H.lastPushed = nil
 			check("empujar da al de delante", H.push(p) and H.lastPushed == target)
 			task.wait(0.05)
