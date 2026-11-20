@@ -237,18 +237,26 @@ local function eliminate(p, why)
 	end
 	st.alive[p] = false
 	send(p, "msg", why or "💥 ¡Te han echado de la arena!")
+	-- sonido de caída: solo lo oyen los de la arena (y el que cae)
+	local ph = hrpOf(p)
 	for _, m in ipairs(st.members) do
+		send(m, "fall", { pos = ph and ph.Position or CENTER, name = p.DisplayName, me = m == p })
 		if m ~= p then
 			send(m, "msg", "💥 " .. p.DisplayName .. " eliminado")
 		end
 	end
-	task.delay(0.8, function()
-		local hrp, h = hrpOf(p), humOf(p)
-		if hrp and h and h.Health > 0 and Hill.memberOf(p) and not st.alive[p] then
-			hrp.AssemblyLinearVelocity = Vector3.zero
-			hrp.CFrame = spectatorCF()
-			walkNormal(p)
+	-- al poco, vuelve al vestíbulo central y sale de la arena
+	task.delay(1, function()
+		if not Hill.memberOf(p) or st.alive[p] then
+			return
 		end
+		local hrp, h = hrpOf(p), humOf(p)
+		if hrp and h and h.Health > 0 then
+			hrp.AssemblyLinearVelocity = Vector3.zero
+			local lobby = G.Config.COURSE.LOBBY
+			hrp.CFrame = CFrame.new(lobby + Vector3.new(math.random(-8, 8), 0, math.random(-6, 6)))
+		end
+		Hill.leave(p)
 	end)
 	broadcast()
 end

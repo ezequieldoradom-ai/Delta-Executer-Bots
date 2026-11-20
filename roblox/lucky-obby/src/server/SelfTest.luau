@@ -113,6 +113,21 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		Extras.shop.rainbow(p)
 		check("volver a pulsar la quita", d.trail == "")
 		Extras.shop.rainbow(p)
+		-- límites de la economía
+		local keepLuck, keepCoins = d.luck, d.coins
+		d.coins = 0
+		Hub.buyLuck(p)
+		check("sin monedas no se compra suerte", d.luck == keepLuck and d.coins == 0)
+		local hadToxic = table.find(d.trails, "toxic") ~= nil
+		Extras.shop.toxic(p)
+		check("sin monedas no se compra estela", hadToxic or table.find(d.trails, "toxic") == nil)
+		d.coins = 10 ^ 7
+		d.luck = 10
+		Hub.buyLuck(p)
+		check("la suerte no pasa de 10", d.luck == 10, d.luck)
+		check("al máximo no cobra", d.coins == 10 ^ 7)
+		d.luck, d.coins = keepLuck, keepCoins
+		G.Data.refresh(p)
 		G.Data.spend(p, math.max(0, d.coins - c0)) -- deja las monedas como estaban (aprox.)
 	end)
 
@@ -255,6 +270,16 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 			check("el que pega sigue en la mesa", G.Slap.stationOf(p) == k)
 			task.wait(3.5)
 		end
+		-- adivinar MAL: sigues sentado
+		if waitFor(function()
+			return st.seated == p and st.phase == "guessing"
+		end, 120) then
+			G.Slap.guess(p, -999)
+			task.wait(2.5)
+			check("fallar al adivinar: sigues sentado", st.seated == p, st.seated and st.seated.Name)
+		else
+			check("me tocó sentarme para fallar", false)
+		end
 		-- adivinar (si me sientan): acierto → se sienta el que pegó
 		if waitFor(function()
 			return st.seated == p and st.phase == "guessing"
@@ -293,6 +318,7 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 			return H.st.phase ~= "playing" and H.st.phase ~= "result"
 		end, 120)
 		check("entrar en la arena", H.join(p) == true)
+		check("fuera de partida no se empuja", H.push(p) == false)
 		task.wait(0.5)
 		check("en la arena (arriba)", hrp() and hrp().Position.Y > H.CENTER.Y + H.TOP, hrp() and math.floor(hrp().Position.Y))
 		check("velocidad 18 en la arena", hum() and hum().WalkSpeed == 18, hum() and hum().WalkSpeed)
@@ -340,6 +366,8 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 			check("empujar da al de delante", H.push(p) and H.lastPushed == target)
 			task.wait(0.05)
 			check("el empujado sale despedido", th.AssemblyLinearVelocity.Magnitude > 30, math.floor(th.AssemblyLinearVelocity.Magnitude))
+			check("hay espera entre empujones", H.push(p) == false)
+			th2.WalkSpeed = 16
 		else
 			check("había un bot para empujar", false)
 		end
@@ -368,12 +396,11 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		end, 40), H.st.phase)
 		hrp().CFrame = CFrame.new(H.CENTER + Vector3.new(0, 4, H.R + 9))
 		task.wait(1.5)
-		check("caer te elimina", H.st.alive[p] == false)
+		check("caer te elimina", not H.st.alive[p])
 		check("eliminado: andas normal", hum() and hum().WalkSpeed == 16, hum() and hum().WalkSpeed)
-		local dist = hrp() and (Vector3.new(hrp().Position.X, 0, hrp().Position.Z) - Vector3.new(H.CENTER.X, 0, H.CENTER.Z)).Magnitude
-		check("eliminado: miras desde fuera", dist and dist > H.R, dist and math.floor(dist))
-		H.leave(p)
-		check("salir de la arena", not H.memberOf(p))
+		local dist = hrp() and (hrp().Position - C.COURSE.LOBBY).Magnitude
+		check("eliminado: vuelves al vestíbulo", dist and dist < 30, dist and math.floor(dist))
+		check("eliminado: sales de la arena", not H.memberOf(p))
 		check("no puedes volver a mitad de partida", H.join(p) == false)
 		H.botsCalm = false
 	end)
@@ -398,6 +425,72 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 			end
 		end
 		check("los bots corren contigo", nb >= 3, nb)
+		-- TRAMPAS: aparecer en la meta o saltarse puntos de control no cuenta
+		hrp().CFrame = CFrame.new(0, C.COURSE.START.Y + 3, G.Course.finishZ + 4)
+		task.wait(0.8)
+		check("teletransporte a la meta no cuenta", not s.finished)
+		local cp0 = s.cp
+		local far = G.Course.checkpoints[math.min(#G.Course.checkpoints, cp0 + 3)]
+		hrp().CFrame = CFrame.new(far.pos)
+		task.wait(0.8)
+		check("saltarse puntos de control no cuenta", s.cp == cp0, s.cp)
+		local nextCp = G.Course.checkpoints[cp0 + 1]
+		hrp().AssemblyLinearVelocity = Vector3.zero
+		hrp().CFrame = CFrame.new(nextCp.pos)
+		task.wait(0.8)
+		check("el siguiente punto de control sí cuenta", s.cp == cp0 + 1, s.cp)
+		check("reapareces en tu punto de control", p:GetAttribute("Checkpoint") == nextCp.pos)
+		-- lucky block automático
+		s.item, s.rolling, s.nextLucky = nil, false, os.clock() + 0.3
+		check("el lucky block llega solo", waitFor(function()
+			return s.item ~= nil
+		end, 5), s.item)
+		local function useNow(id)
+			s.item, s.rolling, s.frozenUntil = id, false, nil
+			local h = hrp()
+			return G.Items.use(p, h and (h.Position + Vector3.new(0, 0, 30)) or Vector3.zero)
+		end
+		-- escudo
+		useNow("shield")
+		check("el escudo se activa", (s.shieldUntil or 0) > os.clock())
+		check("el escudo bloquea un golpe", G.Items.knock(p, Vector3.new(0, 40, 0), nil, "rock") == false)
+		check("el escudo se gasta", (s.shieldUntil or 0) <= os.clock())
+		-- fantasma
+		useNow("ghost")
+		check("fantasma: inmune a los golpes", G.Items.knock(p, Vector3.new(0, 40, 0), nil, "rock") == false)
+		s.immuneUntil = nil
+		task.wait(0.3)
+		-- turbo y vuelta a la normalidad
+		useNow("boost")
+		task.wait(0.2)
+		check("turbo: más velocidad", hum() and hum().WalkSpeed == C.BOOST_SPEED, hum() and hum().WalkSpeed)
+		task.wait(C.BOOST_TIME + 0.6)
+		check("turbo: luego vuelves a 20", hum() and hum().WalkSpeed == 20, hum() and hum().WalkSpeed)
+		-- congelación a los bots
+		useNow("freeze")
+		local frozen = 0
+		for b, bs in pairs(G.Race.sessions) do
+			if type(b) == "table" and b.IsBot and (bs.frozenUntil or 0) > os.clock() then
+				frozen += 1
+			end
+		end
+		check("congelación: congela a los bots", frozen >= 1, frozen)
+		-- portal al siguiente punto de control
+		local cpP = s.cp
+		local target = G.Course.checkpoints[cpP + 1]
+		if target then
+			useNow("portal")
+			task.wait(0.3)
+			check("portal: te lleva al siguiente punto de control", hrp() and (hrp().Position - target.pos).Magnitude < 8, hrp() and math.floor((hrp().Position - target.pos).Magnitude))
+		end
+		task.wait(1)
+		local adv = 0
+		for b, bs in pairs(G.Race.sessions) do
+			if type(b) == "table" and b.IsBot and (bs.progress or 0) > adv then
+				adv = bs.progress
+			end
+		end
+		check("los bots avanzan por el recorrido", adv > 20, math.floor(adv))
 		-- los 17 objetos se pueden usar
 		for _, it in ipairs(C.ITEMS) do
 			s.item, s.rolling = it.id, false
@@ -418,7 +511,13 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		check("al salir vuelves al vestíbulo", hrp() and (hrp().Position - lobby).Magnitude < 40, hrp() and math.floor((hrp().Position - lobby).Magnitude))
 		-- terminar la carrera → vestíbulo
 		s.racing, s.finished = true, false
+		local dd = G.Data.profiles[p]
+		local cBefore, wBefore = dd.coins, dd.wins
 		check("llegar a la meta", G.Race.finish(p))
+		check("corriendo solo: premio de terminar (10)", dd.coins - cBefore == C.REWARD_FINISH, dd.coins - cBefore)
+		check("corriendo solo: no cuenta victoria", dd.wins == wBefore)
+		check("récord guardado", (dd.best or 0) > 0 and p:GetAttribute("Best") == dd.best, dd.best)
+		check("no se puede llegar dos veces", G.Race.finish(p) == false)
 		task.wait(4.5)
 		check("al terminar vuelves al vestíbulo", hrp() and (hrp().Position - lobby).Magnitude < 40 and hum().WalkSpeed == 16)
 	end)

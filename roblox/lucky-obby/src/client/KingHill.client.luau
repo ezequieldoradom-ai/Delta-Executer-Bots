@@ -36,6 +36,8 @@ local S = {
 	whoosh = snd("rbxasset://sounds/action_jump.mp3", 0.6, 1.8),
 	boom = snd("rbxasset://sounds/impact_explosion_03.mp3", 0.5, 1.3),
 	tick = snd("rbxasset://sounds/action_footsteps_plastic.mp3", 0.4, 2),
+	fall = snd("rbxasset://sounds/action_falling.ogg", 1, 1.1),
+	oof = snd("rbxasset://sounds/oof.ogg", 1, 1),
 }
 
 local gui = Instance.new("ScreenGui")
@@ -230,6 +232,31 @@ Net.OnClientEvent:Connect(function(kind, d)
 		render()
 	elseif kind == "msg" then
 		msg(tostring(d))
+	elseif kind == "fall" and type(d) == "table" then
+		-- caída: silbido + "oof" en el sitio (si eres tú, más fuerte y sin posición)
+		if d.me then
+			S.fall:Play()
+			task.delay(0.35, function()
+				S.oof:Play()
+			end)
+		elseif typeof(d.pos) == "Vector3" then
+			local a = Instance.new("Part")
+			a.Anchored, a.CanCollide, a.CanQuery, a.CanTouch, a.Transparency = true, false, false, false, 1
+			a.Size = Vector3.one
+			a.CFrame = CFrame.new(d.pos)
+			a.Parent = workspace.CurrentCamera
+			for _, k in ipairs({ "fall", "oof" }) do
+				local s = S[k]:Clone()
+				s.RollOffMaxDistance = 150
+				s.Parent = a
+				task.delay(k == "oof" and 0.35 or 0, function()
+					s:Play()
+				end)
+			end
+			task.delay(4, function()
+				a:Destroy()
+			end)
+		end
 	elseif kind == "pushFx" and type(d) == "table" and typeof(d.pos) == "Vector3" then
 		-- sonido del guantazo en el sitio (más fuerte si da a alguien)
 		local a = Instance.new("Part")
