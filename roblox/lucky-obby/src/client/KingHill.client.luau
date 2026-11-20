@@ -298,6 +298,49 @@ Net.OnClientEvent:Connect(function(kind, d)
 		task.delay(3, function()
 			a:Destroy()
 		end)
+		-- impacto: anillo y chispas donde está el empujado
+		if d.hit and typeof(d.at) == "Vector3" then
+			local ring = Instance.new("Part")
+			ring.Anchored, ring.CanCollide, ring.CanQuery, ring.CanTouch = true, false, false, false
+			ring.Shape = Enum.PartType.Ball
+			ring.Material = Enum.Material.Neon
+			ring.Color = Color3.fromRGB(255, 200, 90)
+			ring.Transparency = 0.35
+			ring.Size = Vector3.new(1.5, 1.5, 1.5)
+			ring.CFrame = CFrame.new(d.at)
+			ring.Parent = workspace.CurrentCamera
+			TweenService:Create(ring, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { Size = Vector3.new(9, 9, 9), Transparency = 1 }):Play()
+			local at = Instance.new("Attachment")
+			at.Parent = ring
+			local pe = Instance.new("ParticleEmitter")
+			pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			pe.Rate = 0
+			pe.Lifetime = NumberRange.new(0.3, 0.6)
+			pe.Speed = NumberRange.new(14, 26)
+			pe.SpreadAngle = Vector2.new(180, 180)
+			pe.LightEmission = 0.7
+			pe.Color = ColorSequence.new(Color3.fromRGB(255, 240, 160), Color3.fromRGB(255, 140, 40))
+			pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
+			pe.Parent = at
+			pe:Emit(25)
+			task.delay(0.8, function()
+				ring:Destroy()
+			end)
+		end
+	elseif kind == "pushed" then
+		-- te han empujado: golpe, temblor corto y destello
+		S.oof:Play()
+		local cam = workspace.CurrentCamera
+		local t0 = os.clock()
+		local conn
+		conn = game:GetService("RunService").RenderStepped:Connect(function()
+			local k = 1 - (os.clock() - t0) / 0.35
+			if k <= 0 then
+				conn:Disconnect()
+				return
+			end
+			cam.CFrame = cam.CFrame * CFrame.new((math.random() - 0.5) * 0.6 * k, (math.random() - 0.5) * 0.6 * k, 0)
+		end)
 	elseif kind == "winner" and type(d) == "table" then
 		local me = d.id == player.UserId
 		shout(me and L("👑 ¡ERES EL REY DE LA COLINA!", "👑 YOU ARE THE KING OF THE HILL!") or ("👑 " .. tostring(d.name) .. L(" ES EL REY", " IS THE KING")), GOLD, 3)

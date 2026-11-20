@@ -62,6 +62,18 @@ if bots then
 end
 G.Race.init(G)
 G.Race.start()
+-- neón más suave en todo el mapa: los muy claros deslumbraban con el bloom
+task.defer(function()
+	for _, d in ipairs(workspace:GetDescendants()) do
+		if d:IsA("BasePart") and d.Material == Enum.Material.Neon and not d:IsDescendantOf(workspace.CurrentCamera) then
+			local c = d.Color
+			local lum = 0.3 * c.R + 0.59 * c.G + 0.11 * c.B
+			if lum > 0.55 then
+				d.Color = c:Lerp(Color3.new(0, 0, 0), 0.12 + (lum - 0.55) * 0.3)
+			end
+		end
+	end
+end)
 print("🏁 Lucky Obby Race listo")
 
 -- Solo en Studio: ServerStorage.StudioDebug:Invoke("use", player, itemId) da y usa un objeto (para probar)

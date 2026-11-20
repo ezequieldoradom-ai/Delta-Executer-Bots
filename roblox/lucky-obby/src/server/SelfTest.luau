@@ -321,14 +321,16 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		check("fuera de partida no se empuja", H.push(p) == false)
 		task.wait(0.5)
 		check("en la arena (arriba)", hrp() and hrp().Position.Y > H.CENTER.Y + H.TOP, hrp() and math.floor(hrp().Position.Y))
-		check("velocidad 18 en la arena", hum() and hum().WalkSpeed == 18, hum() and hum().WalkSpeed)
 		check("con 2+: cuenta atrás", waitFor(function()
 			return H.st.phase == "starting"
 		end, 45), H.st.phase .. " · " .. #H.st.members)
+		task.wait(0.5)
+		check("en la cuenta atrás no te puedes mover", hum() and hum().WalkSpeed == 0 and hum().JumpHeight == 0, hum() and hum().WalkSpeed)
 		local t0 = (H.st.countdown or (os.clock() + 15)) - 15 -- desde que empezó la cuenta (puede que ya estuviera en marcha)
 		check("empieza a los ~15 s", waitFor(function()
 			return H.st.phase == "playing"
 		end, 20) and math.abs(os.clock() - t0 - 15) < 3, string.format("%.1f s", os.clock() - t0))
+		check("velocidad 18 al empezar", hum() and hum().WalkSpeed == 18 and hum().JumpHeight > 7, hum() and hum().WalkSpeed)
 		H.botsCalm = true
 		-- nadie entra a mitad de partida
 		local outsider

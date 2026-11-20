@@ -984,6 +984,16 @@ local function startAnim(d)
 		anims[k .. "waist"] = { who = who, kind = "waist", from = CFrame.Angles(0, math.rad(-55), math.rad(-8)), to = CFrame.Angles(0, math.rad(50), math.rad(10)), t0 = now, dur = 0.16, style = Enum.EasingStyle.Quad, chain = { to = CFrame.new(), dur = 0.45, style = Enum.EasingStyle.Back } }
 		return
 	end
+	if d.pose == "shove" then -- empujón (Rey de la colina): los dos brazos al frente y el cuerpo hacia delante
+		local now = os.clock()
+		local k = tostring(who)
+		local fwdR = CFrame.Angles(math.rad(95), 0, math.rad(-12))
+		local fwdL = CFrame.Angles(math.rad(95), 0, math.rad(12))
+		anims[k .. "arm"] = { who = who, kind = "arm", from = CFrame.Angles(math.rad(-30), 0, 0), to = fwdR, t0 = now, dur = 0.09, style = Enum.EasingStyle.Back, chain = { to = CFrame.new(), dur = 0.4, style = Enum.EasingStyle.Quad, rest = true } }
+		anims[k .. "larmS"] = { who = who, kind = "larm", from = CFrame.Angles(math.rad(-30), 0, 0), to = fwdL, t0 = now, dur = 0.09, style = Enum.EasingStyle.Back, chain = { to = CFrame.new(), dur = 0.4, style = Enum.EasingStyle.Quad, rest = true } }
+		anims[k .. "waist"] = { who = who, kind = "waist", from = CFrame.Angles(math.rad(10), 0, 0), to = CFrame.Angles(math.rad(-22), 0, 0), t0 = now, dur = 0.1, style = Enum.EasingStyle.Quad, chain = { to = CFrame.new(), dur = 0.45, style = Enum.EasingStyle.Back } }
+		return
+	end
 	if d.pose == "coil" then -- al cargar: el torso se echa hacia atrás con el brazo
 		local k = tostring(who)
 		anims[k .. "waist"] = { who = who, kind = "waist", from = CFrame.new(), to = CFrame.Angles(math.rad(8), math.rad(-55), math.rad(-8)), t0 = os.clock(), dur = 0.35, style = Enum.EasingStyle.Quad, hold = true }
@@ -1035,7 +1045,7 @@ RunService.Stepped:Connect(function()
 		end
 		if t >= 1 then
 			if a.chain then
-				anims[key] = { who = a.who, kind = a.kind, from = a.to, to = a.chain.to, t0 = now, dur = a.chain.dur, style = a.chain.style }
+				anims[key] = { who = a.who, kind = a.kind, from = a.to, to = a.chain.to, t0 = now, dur = a.chain.dur, style = a.chain.style, rest = a.chain.rest }
 			elseif a.rest or a.kind == "neck" or a.kind == "larm" or (a.kind == "waist" and (not a.hold or now - a.t0 > 4)) or key:find("rarm2") then
 				anims[key] = nil
 			end

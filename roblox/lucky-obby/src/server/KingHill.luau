@@ -105,6 +105,10 @@ local function broadcast()
 	if st.label then
 		st.label.Text = string.format('👑 REY DE LA COLINA\n<font color="#FFE36B">%d/%d</font>', #st.members, Hill.MAX)
 	end
+	if st.bigLabel then
+		local status = st.phase == "playing" and "⚔️ PARTIDA EN CURSO" or (st.phase == "starting" and "⏳ ¡EMPIEZA YA! ENTRA" or "¡ENTRA A JUGAR!")
+		st.bigLabel.Text = string.format('👑 REY DE LA COLINA 👑\n<font size="40" color="#FFFFFF">%s · %d/%d</font>', status, #st.members, Hill.MAX)
+	end
 end
 local function msgAll(text)
 	for _, m in ipairs(st.members) do
@@ -221,6 +225,7 @@ local function startMatch()
 		if h then
 			h.Health = h.MaxHealth
 			h.WalkSpeed = WALK
+			h.JumpHeight = 7.2
 		end
 		if hrp then
 			hrp.AssemblyLinearVelocity = Vector3.zero
@@ -364,10 +369,7 @@ function Hill.push(p)
 	end
 	-- animación del brazo (la hacen los clientes, como en las mesas)
 	pcall(function()
-		G.Net.Slap:FireAllClients("anim", { who = isBot(p) and 0 or p.UserId, char = p.Character, pose = "strike", time = 0.07 })
-		task.delay(0.3, function()
-			G.Net.Slap:FireAllClients("anim", { who = isBot(p) and 0 or p.UserId, char = p.Character, pose = "rest", time = 0.25 })
-		end)
+		G.Net.Slap:FireAllClients("anim", { who = isBot(p) and 0 or p.UserId, char = p.Character, pose = "shove" })
 	end)
 	local look = flat(hrp.CFrame.LookVector)
 	look = look.Magnitude > 0.1 and look.Unit or Vector3.new(0, 0, 1)
@@ -383,8 +385,9 @@ function Hill.push(p)
 			end
 		end
 	end
+	local th0 = target and hrpOf(target)
 	for _, w in ipairs(st.members) do
-		send(w, "pushFx", { pos = hrp.Position, hit = target ~= nil })
+		send(w, "pushFx", { pos = hrp.Position, hit = target ~= nil, at = th0 and th0.Position or nil })
 	end
 	if not target then
 		return true
@@ -407,6 +410,12 @@ function Hill.push(p)
 		end
 	else
 		G.Net.Knock:FireClient(target, vel)
+	end
+	pcall(function()
+		G.Net.Slap:FireAllClients("anim", { who = isBot(target) and 0 or target.UserId, char = target.Character, pose = "react", power = 0.8, side = math.random() < 0.5 and -1 or 1 })
+	end)
+	if not isBot(target) then
+		send(target, "pushed", { from = hrp.Position })
 	end
 	Hill.lastPushed = target
 	return true
@@ -529,6 +538,79 @@ local function build()
 		l.Parent = sg
 		sg.Parent = sign
 	end
+	-- SE VE DESDE TODO EL MAPA: rótulo flotante gigante + haz de luz dorado
+	local beacon = part({ Name = "Beacon", Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(c + Vector3.new(0, 34, 0)), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false }, f)
+	local big = Instance.new("BillboardGui")
+	big.Name = "HillBig"
+	big.Size = UDim2.fromScale(44, 11) -- en studs: crece con la distancia como un cartel de verdad
+	big.LightInfluence = 0
+	big.MaxDistance = 900
+	big.Parent = beacon
+	local bl = Instance.new("TextLabel")
+	bl.BackgroundTransparency = 1
+	bl.Size = UDim2.fromScale(1, 1)
+	bl.TextScaled = true
+	bl.RichText = true
+	bl.Font = Enum.Font.LuckiestGuy
+	bl.TextColor3 = Color3.fromRGB(255, 215, 80)
+	bl.TextStrokeTransparency = 0
+	bl.TextStrokeColor3 = Color3.fromRGB(70, 30, 10)
+	bl.Parent = big
+	st.bigLabel = bl
+	local beam = part({ Name = "LightBeam", Shape = Enum.PartType.Cylinder, Size = Vector3.new(160, 5, 5), CFrame = CFrame.new(c + Vector3.new(0, TOP + 80, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(255, 210, 110), Material = Enum.Material.Neon, Transparency = 0.86, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false }, f)
+	beam.Name = "LightBeam"
+	-- PLATAFORMA en el vestíbulo que te lleva a la entrada de la arena
+	local padXZ = flat(lobby) - d * 40
+	local hit = workspace:Raycast(Vector3.new(padXZ.X, lobby.Y + 30, padXZ.Z), Vector3.new(0, -80, 0))
+	local floorY = hit and hit.Position.Y or (lobby.Y - 3.5)
+	local padPos = Vector3.new(padXZ.X, floorY, padXZ.Z)
+	part({ Name = "HillPadBase", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 10, 10), CFrame = CFrame.new(padPos + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(70, 40, 100), Material = Enum.Material.SmoothPlastic }, f)
+	local pad = part({ Name = "HillPad", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 8, 8), CFrame = CFrame.new(padPos + Vector3.new(0, 0.65, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(255, 200, 70), Material = Enum.Material.Neon, CanCollide = false }, f)
+	local padBB = Instance.new("BillboardGui")
+	padBB.Size = UDim2.fromScale(12, 3.2)
+	padBB.StudsOffsetWorldSpace = Vector3.new(0, 5, 0)
+	padBB.LightInfluence = 0
+	padBB.MaxDistance = 150
+	padBB.Parent = pad
+	local pl = Instance.new("TextLabel")
+	pl.BackgroundTransparency = 1
+	pl.Size = UDim2.fromScale(1, 1)
+	pl.TextScaled = true
+	pl.Font = Enum.Font.LuckiestGuy
+	pl.TextColor3 = Color3.fromRGB(255, 220, 90)
+	pl.TextStrokeTransparency = 0
+	pl.Text = "👑 IR AL REY DE LA COLINA"
+	pl.Parent = padBB
+	local pfx = Instance.new("ParticleEmitter")
+	pfx.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	pfx.Rate = 12
+	pfx.Lifetime = NumberRange.new(1, 1.6)
+	pfx.Speed = NumberRange.new(3, 6)
+	pfx.EmissionDirection = Enum.NormalId.Right -- (el cilindro está tumbado: "derecha" es hacia arriba)
+	pfx.SpreadAngle = Vector2.new(10, 10)
+	pfx.LightEmission = 0.5
+	pfx.Color = ColorSequence.new(Color3.fromRGB(255, 230, 140))
+	pfx.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 0) })
+	pfx.Parent = pad
+	local cool = {}
+	local entry = CFrame.lookAt(c + d * (R + 9) + Vector3.new(0, 3.5, 0), c + Vector3.new(0, 3.5, 0))
+	pad.Touched:Connect(function(hitPart)
+		local char = hitPart.Parent
+		local p = char and Players:GetPlayerFromCharacter(char)
+		if not p or (cool[p] and os.clock() - cool[p] < 3) then
+			return
+		end
+		if G.Race.sessions[p] and G.Race.sessions[p].racing then
+			return
+		end
+		cool[p] = os.clock()
+		local hrp = hrpOf(p)
+		if hrp then
+			hrp.AssemblyLinearVelocity = Vector3.zero
+			hrp.CFrame = entry
+			send(p, "msg", "👑 ¡Pulsa en el poste para entrar a la arena!")
+		end
+	end)
 	f.Parent = workspace
 	broadcast()
 end
@@ -579,6 +661,12 @@ function Hill.init(g)
 					local m = st.members[i]
 					local hrp, h = hrpOf(m), humOf(m)
 					local dist = hrp and flat(hrp.Position - CENTER).Magnitude or 0
+					-- cuenta atrás: todos quietos en su sitio del anillo hasta que empiece
+					if h and st.phase == "starting" then
+						h.WalkSpeed, h.JumpHeight = 0, 0
+					elseif h and st.phase == "idle" and h.WalkSpeed == 0 then
+						h.WalkSpeed, h.JumpHeight = WALK, 7.2
+					end
 					if st.phase == "playing" and st.alive[m] then
 						if not hrp or not h or h.Health <= 0 then
 							eliminate(m, "💀 ¡Eliminado!")

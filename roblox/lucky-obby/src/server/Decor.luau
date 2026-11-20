@@ -145,8 +145,14 @@ end
 
 -- Ambiente general
 local function sky()
-	Lighting.Brightness = 2.6
-	Lighting.OutdoorAmbient = Color3.fromRGB(165, 150, 200)
+	-- luz de calidad: menos exposición (no quema los suelos claros), reflejos del entorno y sombras suaves
+	Lighting.Brightness = 2.1
+	Lighting.OutdoorAmbient = Color3.fromRGB(128, 118, 165)
+	Lighting.Ambient = Color3.fromRGB(55, 50, 75)
+	Lighting.ExposureCompensation = -0.2
+	Lighting.EnvironmentDiffuseScale = 1
+	Lighting.EnvironmentSpecularScale = 1
+	Lighting.ShadowSoftness = 0.3
 	Lighting.ClockTime = 14.5
 	-- CIELO GALÁCTICO (textura de nebulosa propia del dueño) sin sol ni luna; lo animan los clientes (GalaxySky)
 	local skyObj = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
@@ -163,24 +169,33 @@ local function sky()
 		end
 	end)
 	local atm = Lighting:FindFirstChildOfClass("Atmosphere") or Instance.new("Atmosphere")
-	atm.Density = 0.12
-	atm.Haze = 0
+	atm.Density = 0.16
+	atm.Haze = 0.4
 	atm.Glare = 0
 	atm.Color = Color3.fromRGB(150, 120, 230)
 	atm.Decay = Color3.fromRGB(90, 60, 160)
 	atm.Parent = Lighting
 	local bloom = Lighting:FindFirstChildOfClass("BloomEffect") or Instance.new("BloomEffect")
-	bloom.Intensity = 0.6
-	bloom.Size = 24
-	bloom.Threshold = 1.6
+	-- bloom fino: solo brilla lo que de verdad es muy luminoso (antes deslumbraba)
+	bloom.Intensity = 0.32
+	bloom.Size = 20
+	bloom.Threshold = 2.4
 	bloom.Parent = Lighting
 	local rays = Lighting:FindFirstChildOfClass("SunRaysEffect") or Instance.new("SunRaysEffect")
-	rays.Intensity = 0.1
+	rays.Intensity = 0.04
 	rays.Parent = Lighting
 	local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect")
-	cc.Saturation = 0.2
-	cc.Contrast = 0.08
+	cc.Saturation = 0.14
+	cc.Contrast = 0.12
+	cc.Brightness = -0.02
 	cc.Parent = Lighting
+	-- profundidad: lo lejano se suaviza un poco (lo cercano se ve nítido)
+	local dof = Lighting:FindFirstChildOfClass("DepthOfFieldEffect") or Instance.new("DepthOfFieldEffect")
+	dof.FarIntensity = 0.12
+	dof.NearIntensity = 0
+	dof.FocusDistance = 70
+	dof.InFocusRadius = 90
+	dof.Parent = Lighting
 
 end
 
