@@ -2,6 +2,9 @@
   "name": "LuckyObbyRace",
   "tree": {
     "$className": "DataModel",
+    "ReplicatedFirst": {
+      "Loading": { "$path": "src/first/Loading.client.luau" }
+    },
     "ReplicatedStorage": {
       "Shared": { "$path": "src/shared" }
     },

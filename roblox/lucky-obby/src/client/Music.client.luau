@@ -89,4 +89,13 @@ b.Activated:Connect(function()
 	switch(c or "obby")
 end)
 
-switch("obby")
+-- la pantalla de carga trae su propia música: empezamos cuando se cierra
+task.spawn(function()
+	local t = os.clock()
+	while player:GetAttribute("Loading") and os.clock() - t < 30 do
+		task.wait(0.2)
+	end
+	if current == nil then
+		switch("obby")
+	end
+end)
