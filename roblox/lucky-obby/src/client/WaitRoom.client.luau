@@ -232,10 +232,10 @@ task.spawn(function()
 end)
 
 -- FLAPPY BEAR ----------------------------------------------------------------------------
-local W, H = 420, 560
+local W, H = 400, 480
 local fb = Instance.new("Frame")
 fb.AnchorPoint = Vector2.new(0.5, 0.5)
-fb.Position = UDim2.fromScale(0.5, 0.45)
+fb.Position = UDim2.new(0.5, 0, 0.5, -30)
 fb.Size = UDim2.fromOffset(W, H)
 fb.BackgroundColor3 = Color3.fromRGB(110, 190, 255)
 fb.ClipsDescendants = true

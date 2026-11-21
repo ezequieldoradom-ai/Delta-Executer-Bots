@@ -56,9 +56,9 @@ local function build()
 		end
 	end
 	-- cartel flotante
-	local sign = part({ Name = "Sign", Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(c + Vector3.new(0, 9, 0)), Transparency = 1, CanCollide = false }, f)
+	local sign = part({ Name = "Sign", Size = Vector3.new(1, 1, 1), CFrame = CFrame.new(c + Vector3.new(0, 12, 0)), Transparency = 1, CanCollide = false }, f)
 	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.fromScale(20, 5)
+	bb.Size = UDim2.fromOffset(380, 96) -- tamaño fijo en pantalla: de cerca no lo tapa todo
 	bb.LightInfluence = 0
 	bb.MaxDistance = 120
 	bb.Parent = sign
