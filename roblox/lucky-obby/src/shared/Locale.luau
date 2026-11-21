@@ -5,8 +5,18 @@ local isSpanish = true
 function Locale.setSpanish(on)
 	isSpanish = on
 end
+-- en Studio se puede forzar un idioma para probar: workspace:SetAttribute("ForceLang", "en") (en modo edición)
+function Locale.code(localeId)
+	if game:GetService("RunService"):IsStudio() then
+		local f = workspace:GetAttribute("ForceLang")
+		if type(f) == "string" and f ~= "" then
+			return f
+		end
+	end
+	return type(localeId) == "string" and localeId:sub(1, 2) or "es"
+end
 function Locale.detect(localeId)
-	isSpanish = type(localeId) == "string" and localeId:sub(1, 2) == "es"
+	isSpanish = Locale.code(localeId) == "es"
 end
 function Locale.lang()
 	return isSpanish and "es" or "en"

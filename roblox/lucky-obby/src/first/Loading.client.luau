@@ -15,6 +15,9 @@ end)
 local es = true
 pcall(function()
 	es = string.sub(player.LocaleId or "es", 1, 2) == "es"
+	if RunService:IsStudio() and type(workspace:GetAttribute("ForceLang")) == "string" then
+		es = workspace:GetAttribute("ForceLang") == "es"
+	end
 end)
 local function L(a, b)
 	return es and a or b
