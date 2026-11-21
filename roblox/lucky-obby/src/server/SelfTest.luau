@@ -334,7 +334,7 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		G.Slap.leave(p)
 		task.wait(0.5)
 		h = hum()
-		check("al salir te puedes mover", h and h.WalkSpeed == 16 and h.JumpHeight > 7, h and h.WalkSpeed)
+		check("al salir te puedes mover", h and h.WalkSpeed >= 16 and h.JumpHeight > 7, h and h.WalkSpeed)
 		check("al salir, vida llena", h and h.Health >= h.MaxHealth - 0.5, h and h.Health)
 	end)
 
@@ -460,7 +460,7 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		hrp().CFrame = CFrame.new(H.CENTER + Vector3.new(0, 4, H.R + 9))
 		task.wait(1.5)
 		check("caer te elimina", not H.st.alive[p])
-		check("eliminado: andas normal", hum() and hum().WalkSpeed == 16, hum() and hum().WalkSpeed)
+		check("eliminado: andas normal", hum() and hum().WalkSpeed >= 16, hum() and hum().WalkSpeed)
 		local dist = hrp() and (hrp().Position - C.COURSE.LOBBY).Magnitude
 		check("eliminado: vuelves al vestíbulo", dist and dist < 30, dist and math.floor(dist))
 		check("eliminado: sales de la arena", not H.memberOf(p))
@@ -582,7 +582,7 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		check("récord guardado", (dd.best or 0) > 0 and p:GetAttribute("Best") == dd.best, dd.best)
 		check("no se puede llegar dos veces", G.Race.finish(p) == false)
 		task.wait(4.5)
-		check("al terminar vuelves al vestíbulo", hrp() and (hrp().Position - lobby).Magnitude < 40 and hum().WalkSpeed == 16)
+		check("al terminar vuelves al vestíbulo", hrp() and (hrp().Position - lobby).Magnitude < 40 and hum().WalkSpeed >= 16)
 	end)
 
 	-- G. OBBYS NORMALES -------------------------------------------------------------------
@@ -678,6 +678,44 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		hrp().CFrame = CFrame.new(lobby + Vector3.new(0, 3, 0))
 		task.wait(0.6)
 		check("fuera del obby se acaba la sesión", O.sessions[p] == nil)
+	end)
+
+	-- H. VELOCIDAD EN LA PLAZA CENTRAL -------------------------------------------------------
+	safe("plaza", function()
+		if G.Slap.stationOf(p) then
+			G.Slap.leave(p)
+		end
+		if G.Hill and G.Hill.memberOf(p) then
+			G.Hill.leave(p)
+		end
+		if G.Obbies and G.Obbies.sessions[p] then
+			G.Obbies.leave(p, true)
+		end
+		local lobby = C.COURSE.LOBBY
+		hrp().CFrame = CFrame.new(lobby + Vector3.new(0, 3, 0))
+		hum().WalkSpeed = 16
+		task.wait(0.6)
+		check("en la plaza central andas más rápido (24)", hum().WalkSpeed == 24, hum().WalkSpeed)
+		-- en un obby vuelve a la normal
+		G.Obbies.start(p, "easy")
+		task.wait(0.6)
+		check("en un obby, velocidad normal (16)", hum().WalkSpeed == 16, hum().WalkSpeed)
+		G.Obbies.leave(p, true)
+		task.wait(0.6)
+		check("al volver a la plaza, otra vez rápido", hum().WalkSpeed == 24, hum().WalkSpeed)
+		-- sentado en una mesa no se toca
+		local k
+		for kk = 1, G.Slap.COUNT do
+			if not G.Slap.station(kk).match and G.Slap.freeSlots(kk) >= 1 and G.Slap.join(p, kk) then
+				k = kk
+				break
+			end
+		end
+		if k then
+			task.wait(0.6)
+			check("en una mesa no se acelera", hum().WalkSpeed == 0, hum().WalkSpeed)
+			G.Slap.leave(p)
+		end
 	end)
 
 	print(string.format("TEST RESUMEN: %d bien · %d mal%s", ok, bad, #fails > 0 and (" · fallos: " .. table.concat(fails, ", ")) or ""))

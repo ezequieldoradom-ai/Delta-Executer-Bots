@@ -56,6 +56,10 @@ local obbies = script:FindFirstChild("Obbies")
 if obbies then
 	require(obbies).init(G) -- obbys normales: fácil, medio y difícil (Shadow)
 end
+local lobbySpeed = script:FindFirstChild("LobbySpeed")
+if lobbySpeed then
+	require(lobbySpeed).init(G) -- en la plaza central se anda más rápido (Shadow)
+end
 local feedback = script:FindFirstChild("Feedback")
 if feedback then
 	require(feedback).init(G) -- buzón de ideas y fallos (Shadow)
