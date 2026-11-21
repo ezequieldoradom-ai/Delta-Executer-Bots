@@ -23,7 +23,7 @@ end
 
 local DEFS = {
 	easy = { icon = "🟢", es = "FÁCIL", en = "EASY", segments = 30, color = Color3.fromRGB(90, 230, 120) },
-	medium = { icon = "🟡", es = "MEDIO", en = "MEDIUM", segments = 45, color = Color3.fromRGB(255, 210, 70) },
+	medium = { icon = "🟠", es = "MEDIO", en = "MEDIUM", segments = 45, color = Color3.fromRGB(255, 140, 40) },
 	hard = { icon = "🔴", es = "DIFÍCIL", en = "HARD", segments = 60, color = Color3.fromRGB(255, 80, 90) },
 }
 local function title(def)

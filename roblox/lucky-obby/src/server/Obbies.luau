@@ -10,7 +10,7 @@ local G, C
 
 local DEFS = {
 	{ id = "easy", icon = "🟢", es = "FÁCIL", en = "EASY", segments = 30, x = -300, seed = 11, reward = 60, color = Color3.fromRGB(90, 230, 120), minTime = 45, types = { "steps", "stones", "lava", "beams", "pads", "movers" } },
-	{ id = "medium", icon = "🟡", es = "MEDIO", en = "MEDIUM", segments = 45, x = -380, seed = 22, reward = 180, color = Color3.fromRGB(255, 210, 70), minTime = 90, types = { "stones", "lava", "spinners", "movers", "beams", "pads", "belts", "pillars", "gaps" } },
+	{ id = "medium", icon = "🟠", es = "MEDIO", en = "MEDIUM", segments = 45, x = -380, seed = 22, reward = 180, color = Color3.fromRGB(255, 140, 40), minTime = 90, types = { "stones", "lava", "spinners", "movers", "beams", "pads", "belts", "pillars", "gaps" } },
 	{ id = "hard", icon = "🔴", es = "DIFÍCIL", en = "HARD", segments = 60, x = -460, seed = 33, reward = 450, color = Color3.fromRGB(255, 80, 90), minTime = 150, types = { "spinners", "sweepers", "gaps", "tightrope", "belts", "pillars", "movers", "stones", "gaps", "tightrope" } },
 }
 Obbies.DEFS = DEFS
@@ -184,7 +184,7 @@ local function portals()
 	f.Name = "ObbyPortals"
 	local L = C.COURSE.LOBBY
 	local function free(pos)
-		for _, x in ipairs(workspace:GetPartBoundsInBox(CFrame.new(pos + Vector3.new(0, 5.5, 0)), Vector3.new(12, 9, 12))) do
+		for _, x in ipairs(workspace:GetPartBoundsInBox(CFrame.new(pos + Vector3.new(0, 5.5, 0)), Vector3.new(9, 9, 9))) do
 			if x.CanCollide and x.Name ~= "LobbyFloor" and x.Name ~= "Platform" and x.Name ~= "LobbyRim" then
 				return false
 			end
@@ -207,6 +207,18 @@ local function portals()
 			table.insert(lanes, math.atan2(t.Z - L.Z, t.X - L.X))
 		end
 	end
+	local stands = {}
+	local shop = workspace:FindFirstChild("TrailShop")
+	if shop then
+		for _, d in ipairs(shop:GetChildren()) do
+			if d.Name == "Pedestal" then
+				table.insert(stands, d.Position)
+			end
+		end
+	end
+	if hillPad then
+		table.insert(stands, hillPad) -- (y de la plataforma dorada de la colina)
+	end
 	local function spotAt(r, deg)
 		local a = math.rad(deg)
 		for _, g in ipairs(lanes) do
@@ -223,6 +235,12 @@ local function portals()
 		if not free(pos) then
 			return nil
 		end
+		-- lejos de los puestos de estelas (sus carteles flotantes se pisarían con los de los portales)
+		for _, st in ipairs(stands) do
+			if Vector3.new(st.X - pos.X, 0, st.Z - pos.Z).Magnitude < 16 then
+				return nil
+			end
+		end
 		if hillPad and Vector3.new(hillPad.X - pos.X, 0, hillPad.Z - pos.Z).Magnitude < 16 then
 			return nil
 		end
@@ -236,11 +254,11 @@ local function portals()
 	end
 	-- 1) los tres JUNTOS (uno al lado del otro en el mismo arco)
 	local spots = {}
-	for _, r in ipairs({ 30, 34, 26, 38, 22 }) do
+	for _, r in ipairs({ 30, 34, 26, 38, 22, 42, 18 }) do
 		if #spots == 3 then
 			break
 		end
-		local step = math.deg(2 * math.asin(6.5 / r)) + 2
+		local step = math.deg(2 * math.asin(4.8 / r)) + 1
 		for a0 = 0, 355, 5 do
 			local a, b2, c = spotAt(r, a0 - step), spotAt(r, a0), spotAt(r, a0 + step)
 			if a and b2 and c then
@@ -249,22 +267,48 @@ local function portals()
 			end
 		end
 	end
-	-- 2) si no caben juntos, sueltos pero con las mismas reglas
+	Obbies.together = #spots == 3
+	-- 2) si no caben en un mismo arco: los tres huecos libres MÁS CERCANOS entre sí
 	if #spots < 3 then
-		spots = {}
-		for _, r in ipairs({ 30, 36, 24, 42, 20 }) do
+		local cands = {}
+		for r = 23, 44, 3 do
 			for deg = 0, 350, 10 do
-				local pos = #spots < 3 and spotAt(r, deg)
+				local pos = spotAt(r, deg)
 				if pos then
-					local okFar = true
-					for _, q in ipairs(spots) do
-						if (q - pos).Magnitude < 13 then
-							okFar = false
+					table.insert(cands, pos)
+				end
+			end
+		end
+		local best, bestCost
+		for _, a in ipairs(cands) do
+			-- los dos más cercanos a 'a' que estén a 9+ studs de él y entre sí
+			local near = {}
+			for _, b2 in ipairs(cands) do
+				local d = (b2 - a).Magnitude
+				if d >= 9 then
+					table.insert(near, { pos = b2, d = d })
+				end
+			end
+			table.sort(near, function(x, y)
+				return x.d < y.d
+			end)
+			for k = 1, math.min(#near, 6) do
+				for m = k + 1, math.min(#near, 7) do
+					local d3 = (near[k].pos - near[m].pos).Magnitude
+					if d3 >= 9 then
+						local cost = near[k].d + near[m].d + d3
+						if not bestCost or cost < bestCost then
+							best, bestCost = { near[k].pos, a, near[m].pos }, cost
 						end
 					end
-					if okFar then
-						table.insert(spots, pos)
-					end
+				end
+			end
+		end
+		spots = best or {}
+		if #spots < 3 then
+			for _, c in ipairs(cands) do
+				if #spots < 3 then
+					table.insert(spots, c)
 				end
 			end
 		end
@@ -279,7 +323,7 @@ local function portals()
 		local base = Instance.new("Part")
 		base.Anchored = true
 		base.Shape = Enum.PartType.Cylinder
-		base.Size = Vector3.new(0.6, 10, 10)
+		base.Size = Vector3.new(0.6, 8, 8)
 		base.CFrame = CFrame.new(pos + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90))
 		base.Color = Color3.fromRGB(50, 40, 80)
 		base.Material = Enum.Material.SmoothPlastic
@@ -287,15 +331,15 @@ local function portals()
 		base.Parent = f
 		local pad = base:Clone()
 		pad.Name = "ObbyPad_" .. def.id
-		pad.Size = Vector3.new(0.2, 8, 8)
+		pad.Size = Vector3.new(0.2, 6.4, 6.4)
 		pad.CFrame = CFrame.new(pos + Vector3.new(0, 0.65, 0)) * CFrame.Angles(0, 0, math.rad(90))
 		pad.Color = def.color
 		pad.Material = Enum.Material.Neon
 		pad.CanCollide = false
 		pad.Parent = f
 		local bb = Instance.new("BillboardGui")
-		bb.Size = UDim2.fromScale(11, 4.2)
-		bb.StudsOffsetWorldSpace = Vector3.new(0, 5.5, 0)
+		bb.Size = UDim2.fromScale(8.5, 3.2)
+		bb.StudsOffsetWorldSpace = Vector3.new(0, 4.6, 0)
 		bb.LightInfluence = 0
 		bb.MaxDistance = 160
 		bb.Parent = pad
@@ -335,7 +379,7 @@ local function portals()
 					for id, pos in pairs(pads) do
 						local d = Vector3.new(hrp.Position.X - pos.X, 0, hrp.Position.Z - pos.Z).Magnitude
 						local dy = hrp.Position.Y - pos.Y
-						if d < 4 and dy > 0 and dy < 6 then
+						if d < 3.2 and dy > 0 and dy < 6 then
 							cool[p] = os.clock()
 							Obbies.start(p, id)
 							break

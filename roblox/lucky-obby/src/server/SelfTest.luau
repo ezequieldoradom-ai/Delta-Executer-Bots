@@ -371,6 +371,20 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		check("con 2+: cuenta atrás", waitFor(function()
 			return H.st.phase == "starting"
 		end, 45), H.st.phase .. " · " .. #H.st.members)
+		-- si la cuenta ya estaba a punto de acabar, se espera a la siguiente (si no, la prueba mide décimas)
+		if H.st.countdown and H.st.countdown - os.clock() < 3 then
+			waitFor(function()
+				return H.st.phase == "playing"
+			end, 6)
+			H.botsCalm = true
+			waitFor(function()
+				return H.st.phase == "starting" and H.st.countdown and H.st.countdown - os.clock() > 5
+			end, 150)
+			if not H.memberOf(p) then
+				H.join(p)
+			end
+			H.botsCalm = nil
+		end
 		task.wait(0.5)
 		check("en la cuenta atrás no te puedes mover", hum() and hum().WalkSpeed == 0 and hum().JumpHeight == 0, hum() and hum().WalkSpeed)
 		local t0 = (H.st.countdown or (os.clock() + 15)) - 15 -- desde que empezó la cuenta (puede que ya estuviera en marcha)
