@@ -285,7 +285,7 @@ local function portals()
 			local near = {}
 			for _, b2 in ipairs(cands) do
 				local d = (b2 - a).Magnitude
-				if d >= 9 then
+				if d >= 13 then
 					table.insert(near, { pos = b2, d = d })
 				end
 			end
@@ -295,7 +295,7 @@ local function portals()
 			for k = 1, math.min(#near, 6) do
 				for m = k + 1, math.min(#near, 7) do
 					local d3 = (near[k].pos - near[m].pos).Magnitude
-					if d3 >= 9 then
+					if d3 >= 13 then
 						local cost = near[k].d + near[m].d + d3
 						if not bestCost or cost < bestCost then
 							best, bestCost = { near[k].pos, a, near[m].pos }, cost

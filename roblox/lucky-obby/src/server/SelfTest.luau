@@ -299,7 +299,7 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		-- supremo de verdad: elimina
 		do
 			local r, victim = slapAt(0)
-			task.wait(1.5)
+			-- (se mira enseguida: si acaba la partida, el bot eliminado puede volver a entrar)
 			check("supremo elimina al sentado", r and r.supreme and not table.find(st.members, victim), r and tostring(r.supreme))
 			check("el que pega sigue en la mesa", G.Slap.stationOf(p) == k)
 			task.wait(3.5)
