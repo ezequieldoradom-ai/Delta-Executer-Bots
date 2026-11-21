@@ -54,6 +54,12 @@ function Race.rankOf(player)
 	return #list, #list
 end
 
+-- ¿está corriendo AHORA? (el que ya llegó a la meta y volvió al vestíbulo, no: puede ir a otros juegos)
+function Race.isRacing(player)
+	local s = Race.sessions[player]
+	return s ~= nil and s.racing == true and not s.finished
+end
+
 local setCheckpoint
 function Race.setCheckpoint(player, s, idx)
 	setCheckpoint(player, s, idx)
@@ -297,9 +303,13 @@ function Race.loop()
 		for _, p in ipairs(list) do
 			local s = Race.sessions[p]
 			if s then
+				local wasOnCourse = s.racing and not s.finished
 				s.racing, s.item, s.rolling = false, nil, false
-				setWalk(p, 16, 7.2)
-				teleport(p, C.COURSE.LOBBY + Vector3.new(math.random(-8, 8), 0, math.random(-6, 6)))
+				-- los que ya llegaron volvieron solos al vestíbulo (y puede que estén en otro juego): no se les mueve
+				if wasOnCourse then
+					setWalk(p, 16, 7.2)
+					teleport(p, C.COURSE.LOBBY + Vector3.new(math.random(-8, 8), 0, math.random(-6, 6)))
+				end
 			end
 		end
 	end

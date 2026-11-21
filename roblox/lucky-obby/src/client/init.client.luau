@@ -99,9 +99,10 @@ local function shout(text, color, seconds)
 	big.TextColor3 = color or WHITE
 	big.Visible = true
 	bump(big, 1.5)
-	local my = text
+	big:SetAttribute("Gen", (big:GetAttribute("Gen") or 0) + 1)
+	local my = big:GetAttribute("Gen")
 	task.delay(seconds or 1.6, function()
-		if big.Text == my then
+		if big:GetAttribute("Gen") == my then
 			big.Visible = false
 		end
 	end)
@@ -400,6 +401,8 @@ player.CharacterAdded:Connect(function(char)
 end)
 
 local lastRespawn, lastPad = 0, 0
+local nearSpins, nearMoves, nearAt = {}, {}, 0
+local NEAR = 450
 local function respawn()
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -425,12 +428,30 @@ RunService.Heartbeat:Connect(function()
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	local pos = hrp and hrp.Position or Vector3.zero
-	for p, it in pairs(spins) do
+	-- solo se animan las piezas cercanas a la cámara (los obbys normales añaden muchas y están lejos)
+	if os.clock() - nearAt > 0.5 then
+		nearAt = os.clock()
+		local cam = workspace.CurrentCamera
+		local ref = cam and cam.CFrame.Position or pos
+		table.clear(nearSpins)
+		table.clear(nearMoves)
+		for p, it in pairs(spins) do
+			if p.Parent and (it.base.Position - ref).Magnitude < NEAR then
+				nearSpins[p] = it
+			end
+		end
+		for p, it in pairs(moves) do
+			if p.Parent and (it.base.Position - ref).Magnitude < NEAR then
+				nearMoves[p] = it
+			end
+		end
+	end
+	for p, it in pairs(nearSpins) do
 		if p.Parent then
 			p.CFrame = it.base * CFrame.Angles(0, T * it.speed, 0)
 		end
 	end
-	for p, it in pairs(moves) do
+	for p, it in pairs(nearMoves) do
 		if p.Parent then
 			local w = 2 * math.pi / it.period
 			p.CFrame = it.base * CFrame.new(it.amp * math.sin(T * w + it.phase), 0, 0)

@@ -178,7 +178,7 @@ function Hill.join(p)
 		Hill.leave(p)
 		return false
 	end
-	if G.Race.sessions[p] and G.Race.sessions[p].racing then
+	if G.Race.isRacing(p) then
 		return false
 	end
 	if st.phase == "playing" or st.phase == "result" then
@@ -604,7 +604,7 @@ local function build()
 				if hrp and not (cool[p] and os.clock() - cool[p] < 3) then
 					local dxz = flat(hrp.Position - padPos).Magnitude
 					local dy = hrp.Position.Y - padPos.Y
-					if dxz < 4 and dy > 0 and dy < 6 and not (G.Race.sessions[p] and G.Race.sessions[p].racing) then
+					if dxz < 4 and dy > 0 and dy < 6 and not (G.Race.isRacing(p)) then
 						cool[p] = os.clock()
 						hrp.AssemblyLinearVelocity = Vector3.zero
 						hrp.CFrame = entry

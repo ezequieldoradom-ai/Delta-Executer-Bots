@@ -15,7 +15,7 @@ local G = {
 -- Canales servidor <-> cliente
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
-for _, name in ipairs({ "State", "Event", "Knock", "Use", "Join", "Slap", "Hill", "BotChat" }) do
+for _, name in ipairs({ "State", "Event", "Knock", "Use", "Join", "Slap", "Hill", "BotChat", "Obby" }) do
 	local ev = Instance.new("RemoteEvent")
 	ev.Name = name
 	ev.Parent = remotes
@@ -28,7 +28,8 @@ G.Course.init(G)
 G.Lobby.init(G)
 local hub = script:FindFirstChild("Hub")
 if hub then
-	require(hub).init(G) -- clasificaciones y santuario de la suerte (Shadow)
+	G.Hub = require(hub)
+	G.Hub.init(G) -- clasificaciones y santuario de la suerte (Shadow)
 end
 -- decoración (solo visual; módulo opcional de Shadow): isla del vestíbulo, islas, arcos, meta
 local decor = script:FindFirstChild("Decor")
@@ -50,6 +51,10 @@ end
 local kinghill = script:FindFirstChild("KingHill")
 if kinghill then
 	require(kinghill).init(G) -- minijuego "Rey de la colina" (Shadow)
+end
+local obbies = script:FindFirstChild("Obbies")
+if obbies then
+	require(obbies).init(G) -- obbys normales: fácil, medio y difícil (Shadow)
 end
 local feedback = script:FindFirstChild("Feedback")
 if feedback then

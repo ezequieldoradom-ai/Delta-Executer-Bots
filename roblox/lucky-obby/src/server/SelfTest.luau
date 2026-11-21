@@ -571,6 +571,101 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		check("al terminar vuelves al vestíbulo", hrp() and (hrp().Position - lobby).Magnitude < 40 and hum().WalkSpeed == 16)
 	end)
 
+	-- G. OBBYS NORMALES -------------------------------------------------------------------
+	safe("obbys", function()
+		local O = G.Obbies
+		check("módulo de obbys", O ~= nil)
+		if not O then
+			return
+		end
+		for _, def in ipairs(O.DEFS) do
+			local info = O.built[def.id]
+			local want = math.floor((def.segments - 1) / 3)
+			check("obby " .. def.id .. ": construido con " .. def.segments .. " tramos", info ~= nil and info.segments == def.segments and #info.checkpoints == want, info and #info.checkpoints)
+			check("obby " .. def.id .. ": portal en el vestíbulo", O.PADS and O.PADS[def.id] ~= nil)
+		end
+		check("más largo cuanto más difícil", O.DEFS[1].segments < O.DEFS[2].segments and O.DEFS[2].segments < O.DEFS[3].segments)
+		check("más premio cuanto más difícil", O.DEFS[1].reward < O.DEFS[2].reward and O.DEFS[2].reward < O.DEFS[3].reward)
+		-- pisar el portal fácil te lleva a la salida
+		if G.Slap.stationOf(p) then
+			G.Slap.leave(p)
+		end
+		if G.Hill and G.Hill.memberOf(p) then
+			G.Hill.leave(p)
+		end
+		local pad = O.PADS and O.PADS.easy
+		if pad and hrp() then
+			hrp().CFrame = CFrame.new(pad + Vector3.new(0, 3, 0))
+			waitFor(function()
+				return p:GetAttribute("Obby") == "easy"
+			end, 3)
+		end
+		local info = O.built.easy
+		local s = O.sessions[p]
+		check("el portal te mete en el obby fácil", p:GetAttribute("Obby") == "easy" and s ~= nil, p:GetAttribute("Obby"))
+		check("apareces en la salida", hrp() and (hrp().Position - info.checkpoints[0].pos).Magnitude < 6)
+		if not s then
+			return
+		end
+		-- trampa: saltar al punto de control 3 no cuenta
+		local cp3 = info.checkpoints[3].pos
+		hrp().CFrame = CFrame.new(cp3)
+		task.wait(0.6)
+		check("obby: no se saltan puntos de control", s.cp == 0, s.cp)
+		-- trampa: ir a la meta de golpe no da premio
+		local dd = G.Data.profiles[p]
+		local c0, o0 = dd.coins, dd.obbies or 0
+		hrp().CFrame = CFrame.new(info.x, info.y + 3, info.finishZ + 6)
+		task.wait(0.6)
+		check("obby: teletransporte a la meta no da premio", dd.coins == c0 and O.sessions[p] ~= nil)
+		-- avanzar a saltos imposibles: el servidor te devuelve a tu punto de control
+		hrp().CFrame = CFrame.new(info.checkpoints[0].pos)
+		task.wait(0.5)
+		hrp().CFrame = CFrame.new(info.checkpoints[0].pos + Vector3.new(0, 0, 300))
+		task.wait(0.6)
+		check("obby: velocidad imposible te devuelve atrás", hrp() and (hrp().Position - info.checkpoints[0].pos).Magnitude < 8, hrp() and math.floor((hrp().Position - info.checkpoints[0].pos).Magnitude))
+		-- de uno en uno sí cuentan (la prueba va a saltos: sin el control de velocidad)
+		O.noSpeedCheck = true
+		for i = 1, #info.checkpoints do
+			hrp().CFrame = CFrame.new(info.checkpoints[i].pos)
+			task.wait(0.35)
+		end
+		check("obby: puntos de control de uno en uno", s.cp == #info.checkpoints, s.cp .. "/" .. #info.checkpoints)
+		check("obby: guarda tu punto de control", p:GetAttribute("ObbyCP") == info.checkpoints[s.cp].pos)
+		check("obby: cuenta el tramo", (p:GetAttribute("ObbyStage") or 0) >= info.segments - 3, p:GetAttribute("ObbyStage"))
+		-- caída muy lejos: el servidor te devuelve
+		hrp().CFrame = CFrame.new(info.x, info.y - 80, info.checkpoints[s.cp].pos.Z)
+		task.wait(0.6)
+		check("obby: si caes, vuelves al punto de control", hrp() and (hrp().Position - info.checkpoints[s.cp].pos).Magnitude < 8)
+		-- demasiado rápido: no cuenta
+		hrp().CFrame = CFrame.new(info.x, info.y + 3, info.finishZ + 6)
+		task.wait(0.6)
+		check("obby: tiempo imposible no da premio", dd.coins == c0, dd.coins - c0)
+		-- tiempo creíble: premio
+		s.t0 -= 1000
+		task.wait(0.6)
+		check("obby fácil completado: +60 monedas", dd.coins - c0 == O.DEFS[1].reward, dd.coins - c0)
+		check("obby: cuenta para el tablón", (dd.obbies or 0) == o0 + 1 and (dd.obby.easy or 0) >= 1)
+		check("obby: se acaba la sesión", O.sessions[p] == nil and p:GetAttribute("Obby") == nil)
+		O.noSpeedCheck = nil
+		task.wait(4.5)
+		local lobby = C.COURSE.LOBBY
+		check("obby: al terminar vuelves al vestíbulo", hrp() and (hrp().Position - lobby).Magnitude < 40)
+		-- salir a mitad
+		O.start(p, "hard")
+		task.wait(0.3)
+		check("entrar al obby difícil", p:GetAttribute("Obby") == "hard")
+		O.leave(p, true)
+		task.wait(0.3)
+		check("salir del obby: vuelves al vestíbulo", p:GetAttribute("Obby") == nil and hrp() and (hrp().Position - lobby).Magnitude < 40)
+		-- irte andando/teletransportado fuera del obby también te saca
+		O.start(p, "medium")
+		task.wait(0.3)
+		hrp().CFrame = CFrame.new(lobby + Vector3.new(0, 3, 0))
+		task.wait(0.6)
+		check("fuera del obby se acaba la sesión", O.sessions[p] == nil)
+	end)
+
 	print(string.format("TEST RESUMEN: %d bien · %d mal%s", ok, bad, #fails > 0 and (" · fallos: " .. table.concat(fails, ", ")) or ""))
 	return ok, bad
 end

@@ -34,7 +34,7 @@ end
 Data.refresh = stats
 
 function Data.load(player)
-	local d = { coins = 0, wins = 0, luck = 0, best = 0, trails = {}, trail = "", slapWins = 0, hillWins = 0, loaded = true }
+	local d = { coins = 0, wins = 0, luck = 0, best = 0, trails = {}, trail = "", slapWins = 0, hillWins = 0, obbies = 0, obby = {}, loaded = true }
 	if store and typeof(player) == "Instance" then
 		-- hasta 3 intentos; si todos fallan, el perfil NO se guarda nunca (para no machacar sus datos con ceros)
 		local ok, raw
@@ -61,6 +61,12 @@ function Data.load(player)
 			d.best = math.max(0, tonumber(raw.best) or 0) -- mejor tiempo en segundos (0 = sin récord)
 			d.slapWins = math.max(0, math.floor(tonumber(raw.slapWins) or 0)) -- mesas de guantazos ganadas
 			d.hillWins = math.max(0, math.floor(tonumber(raw.hillWins) or 0)) -- partidas de rey de la colina ganadas
+			d.obbies = math.max(0, math.floor(tonumber(raw.obbies) or 0)) -- obbys normales completados (total)
+			if type(raw.obby) == "table" then -- por dificultad
+				for _, k in ipairs({ "easy", "medium", "hard" }) do
+					d.obby[k] = math.max(0, math.floor(tonumber(raw.obby[k]) or 0))
+				end
+			end
 			if type(raw.trails) == "table" then
 				for _, id in ipairs(raw.trails) do
 					if type(id) == "string" then
@@ -90,7 +96,7 @@ function Data.save(player, force)
 	d.savedAt = os.clock()
 	d.dirty = false
 	local ok = pcall(function()
-		store:SetAsync(key(player), { coins = d.coins, wins = d.wins, luck = d.luck or 0, best = d.best or 0, trails = d.trails or {}, trail = d.trail or "", slapWins = d.slapWins or 0, hillWins = d.hillWins or 0 })
+		store:SetAsync(key(player), { coins = d.coins, wins = d.wins, luck = d.luck or 0, best = d.best or 0, trails = d.trails or {}, trail = d.trail or "", slapWins = d.slapWins or 0, hillWins = d.hillWins or 0, obbies = d.obbies or 0, obby = d.obby or {} })
 	end)
 	return ok
 end
@@ -130,6 +136,16 @@ function Data.addHillWin(player)
 	local d = Data.profiles[player]
 	if d then
 		d.hillWins = (d.hillWins or 0) + 1
+		d.dirty = true
+	end
+end
+
+function Data.addObby(player, id)
+	local d = Data.profiles[player]
+	if d then
+		d.obbies = (d.obbies or 0) + 1
+		d.obby = d.obby or {}
+		d.obby[id] = (d.obby[id] or 0) + 1
 		d.dirty = true
 	end
 end

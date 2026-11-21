@@ -64,6 +64,9 @@ local EXACT = {
 	["🚫 Mesa llena (4/4)"] = "🚫 Table full (4/4)",
 	["💀 ¡ELIMINADO! Espera a la siguiente partida"] = "💀 ELIMINATED! Wait for the next match",
 	["🖐️ ¡Te toca dar el guantazo!"] = "🖐️ Your turn to slap!",
+	-- obbys normales
+	["🏅 OBBYS COMPLETADOS"] = "🏅 OBBIES COMPLETED",
+	["⚠️ Te falta un punto de control: vuelve atrás"] = "⚠️ You missed a checkpoint: go back",
 	-- buzón
 	["📬 BUZÓN (solo tú lo ves)"] = "📬 INBOX (only you can see it)",
 	["Todavía no hay mensajes"] = "No messages yet",
@@ -98,9 +101,14 @@ local PATTERNS = {
 	{ "^🥊 ¡K%.O%.! (.+) se ha quedado sin vida%. ¡Eliminado!$", "🥊 K.O.! %1 ran out of health. Eliminated!" },
 	{ "^🎯 ¡(.+) ha acertado! Fue (.+)%. ¡Se sienta!$", "🎯 %1 guessed right! It was %2. They take the seat!" },
 	{ "^💥 (.+) eliminado$", "💥 %1 eliminated" },
+	{ "^❌ (.+) ha fallado %(fue (.+)%)%. Sigue sentado$", "❌ %1 guessed wrong (it was %2). Still in the seat" },
+	{ "^❌ (.+) ha fallado%. Sigue sentado$", "❌ %1 guessed wrong. Still in the seat" },
 	{ "^☄️ ¡(.+) ha invocado una lluvia de meteoritos!$", "☄️ %1 summoned a meteor shower!" },
 	{ "^👑 ¡(.+) lleva la CORONA DORADA!$", "👑 %1 has the GOLDEN CROWN!" },
 	{ "^🍀 ¡Suerte nivel (%d+)! Objetos más fuertes$", "🍀 Luck level %1! Stronger items" },
+	{ "^(%S+) OBBY FÁCIL$", "%1 EASY OBBY" },
+	{ "^(%S+) OBBY MEDIO$", "%1 MEDIUM OBBY" },
+	{ "^(%S+) OBBY DIFÍCIL$", "%1 HARD OBBY" },
 }
 -- con función (necesitan traducir el nombre de la estela)
 local FN_PATTERNS = {
@@ -123,6 +131,7 @@ local PIECES = {
 	{ "⚔️ PARTIDA EN CURSO", "⚔️ MATCH IN PROGRESS" },
 	{ "⏳ ¡EMPIEZA YA! ENTRA", "⏳ STARTING! JOIN NOW" },
 	{ "¡ENTRA A JUGAR!", "JOIN TO PLAY!" },
+	{ " tramos · 💰", " stages · 💰" },
 	{ "👑 REY DE LA COLINA 👑", "👑 KING OF THE HILL 👑" },
 	{ "👑 REY DE LA COLINA", "👑 KING OF THE HILL" },
 	{ "🖐️ ¿QUIÉN HA SIDO?", "🖐️ WHO SLAPPED ME?" },

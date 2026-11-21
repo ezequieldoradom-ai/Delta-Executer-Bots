@@ -11,6 +11,7 @@ local CollectionService = game:GetService("CollectionService")
 local Course = {}
 local C, K
 local folder = nil
+local target = nil -- carpeta donde se construye ahora (la carrera o un obby normal)
 
 Course.checkpoints = {} -- [i] = { pos = Vector3 (encima), z0, z1 } (0 = salida)
 Course.finishZ = 0
@@ -32,7 +33,7 @@ local function part(props, parent)
 	for _, t in ipairs(props.Tags or {}) do
 		CollectionService:AddTag(p, t)
 	end
-	p.Parent = parent or folder
+	p.Parent = parent or target or folder
 	return p
 end
 
@@ -56,9 +57,11 @@ end
 -- Obstáculos: z de a a b (mundo), y = altura del recorrido; rng = Random de la ronda
 local OB = {}
 function OB.stones(a, b, y, th, rng)
+	local prev
 	for row = 0, 3 do
 		local z = a + 4 + row * (b - a - 6) / 3
-		local must = rng:NextInteger(1, 3)
+		local must = prev and math.clamp(prev + rng:NextInteger(-1, 1), 1, 3) or rng:NextInteger(1, 3)
+		prev = must
 		for k, x in ipairs({ -6, 0, 6 }) do
 			if k == must or rng:NextNumber() < 0.8 then
 				part({ Name = "Stone", Size = Vector3.new(3.6, 1, 3.6), CFrame = CFrame.new(x + rng:NextNumber(-1, 1), y - 0.5, z), Color = (row % 2 == 0) and th.floor or th.alt, Material = th.mat })
@@ -123,6 +126,29 @@ function OB.sweepers(a, b, y, th, rng)
 		local z = a + (b - a) * (i - 0.5) / 3
 		local base = CFrame.new(0, y + 2, z)
 		part({ Name = "Sweeper", Size = Vector3.new(5, 4, 2), CFrame = base, Color = th.alt, Material = Enum.Material.SmoothPlastic, Tags = { "Move" }, Attrs = { Amp = C.WIDTH / 2 - 2.5, Period = rng:NextNumber(1.8, 2.6), Phase = rng:NextNumber(0, 6.28), BaseCF = base } })
+	end
+end
+-- (solo obbys normales) escalones anchos: el más fácil
+function OB.steps(a, b, y, th, rng)
+	for i = 1, 4 do
+		local z = a + 2 + (b - a - 4) * (i - 0.5) / 4
+		part({ Name = "Step", Size = Vector3.new(8, 1, 5), CFrame = CFrame.new(rng:NextNumber(-3, 3), y - 0.5 + (i % 2) * 1.2, z), Color = (i % 2 == 0) and th.floor or th.alt, Material = th.mat })
+	end
+end
+-- bloques pequeños con huecos (medio / difícil)
+function OB.gaps(a, b, y, th, rng)
+	local n = 6
+	for i = 1, n do
+		local z = a + 1.5 + (b - a - 3) * (i - 0.5) / n
+		part({ Name = "Block", Size = Vector3.new(3, 1, 3), CFrame = CFrame.new(rng:NextNumber(-5, 5), y - 0.5 + rng:NextNumber(0, 1.5), z), Color = (i % 2 == 0) and th.floor or th.alt, Material = th.mat })
+	end
+end
+-- cuerda floja: viga estrecha con lava a los lados (difícil)
+function OB.tightrope(a, b, y, th, rng)
+	local x = rng:NextNumber(-3, 3)
+	part({ Name = "Rope", Size = Vector3.new(1.4, 1, b - a), CFrame = CFrame.new(x, y - 0.5, (a + b) / 2), Color = th.alt, Material = th.mat })
+	for _, side in ipairs({ -1, 1 }) do
+		kill({ Name = "RopeLava", Size = Vector3.new(4, 0.4, b - a - 4), CFrame = CFrame.new(x + side * 3.4, y - 2.2, (a + b) / 2) })
 	end
 end
 Course.TYPES = { "stones", "lava", "spinners", "movers", "beams", "pads", "belts", "pillars", "sweepers" }
@@ -191,6 +217,81 @@ function Course.build(seed)
 	folder.Parent = workspace
 	Course.kinds = kinds
 	return folder
+end
+
+-- OBBY NORMAL (fácil / medio / difícil): recorrido fijo aparte de la carrera
+-- opts = { name, seed, segments, types, x, y, z, every (checkpoint cada N) }
+-- devuelve { folder, checkpoints = {[i] = {pos, z0, z1}}, finishZ, z0, y, x, segLen }
+function Course.generate(opts)
+	local rng = Random.new(opts.seed or 1)
+	local f = Instance.new("Folder")
+	f.Name = opts.name or "Obby"
+	local prev = target
+	target = f
+	local y, z = opts.y, opts.z
+	local every = opts.every or 3
+	local cps = {}
+	part({ Name = "StartPad", Size = Vector3.new(C.WIDTH + 6, 1, 22), CFrame = CFrame.new(0, y - 0.5, z), Color = Color3.fromRGB(240, 240, 250), Material = Enum.Material.SmoothPlastic })
+	cps[0] = { pos = Vector3.new(0, y + 3, z), z0 = z - 11, z1 = z + 11 }
+	z += 11
+	local z0 = z
+	local last
+	for i = 1, opts.segments do
+		local kind
+		repeat
+			kind = opts.types[rng:NextInteger(1, #opts.types)]
+		until kind ~= last or #opts.types == 1
+		last = kind
+		local th = THEMES[(math.floor((i - 1) / every) % #THEMES) + 1]
+		local cp = (i - 1) % every == 0 and i > 1
+		local rest = part({ Name = cp and "Checkpoint" or "Rest", Size = Vector3.new(C.WIDTH, 1, 6), CFrame = CFrame.new(0, y - 0.5, z + 3), Color = cp and Color3.fromRGB(245, 245, 255) or th.floor:Lerp(Color3.new(1, 1, 1), 0.3), Material = th.mat })
+		if cp then
+			local idx = #cps + 1
+			rest:SetAttribute("Checkpoint", idx)
+			part({ Name = "CPRing", Size = Vector3.new(C.WIDTH - 2, 0.14, 4), CFrame = CFrame.new(0, y + 0.07, z + 3), Color = Color3.fromRGB(110, 255, 150), Material = Enum.Material.Neon, CanCollide = false, Transparency = 0.35 })
+			cps[idx] = { pos = Vector3.new(0, y + 3, z + 3), z0 = z, z1 = z + 6 }
+		end
+		OB[kind](z + 6, z + C.SEG_LEN, y, th, rng)
+		z += C.SEG_LEN
+	end
+	part({ Name = "FinishPad", Size = Vector3.new(C.WIDTH + 10, 1, 24), CFrame = CFrame.new(0, y - 0.5, z + 12), Color = Color3.fromRGB(255, 220, 90), Material = Enum.Material.SmoothPlastic })
+	for side = -1, 1, 2 do
+		part({ Name = "FinishPole", Size = Vector3.new(1.6, 16, 1.6), CFrame = CFrame.new(side * (C.WIDTH / 2 + 3), y + 8, z + 4), Color = Color3.fromRGB(255, 255, 255), Material = Enum.Material.SmoothPlastic })
+	end
+	local banner = part({ Name = "FinishBanner", Size = Vector3.new(C.WIDTH + 8, 4, 0.6), CFrame = CFrame.new(0, y + 15, z + 4), Color = Color3.fromRGB(30, 30, 40), Material = Enum.Material.SmoothPlastic })
+	for _, face in ipairs({ Enum.NormalId.Back, Enum.NormalId.Front }) do
+		local sg = Instance.new("SurfaceGui")
+		sg.Face = face
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sg.PixelsPerStud = 30
+		local l = Instance.new("TextLabel")
+		l.BackgroundTransparency = 1
+		l.Size = UDim2.fromScale(1, 1)
+		l.TextScaled = true
+		l.Font = Enum.Font.FredokaOne
+		l.TextColor3 = Color3.fromRGB(255, 230, 90)
+		l.Text = "🏁 FINISH 🏁"
+		l.Parent = sg
+		sg.Parent = banner
+	end
+	target = prev
+	-- a su sitio (los tramos se hacen en x = 0)
+	local off = Vector3.new(opts.x or 0, 0, 0)
+	for _, d in ipairs(f:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.CFrame = d.CFrame + off
+			local bc = d:GetAttribute("BaseCF")
+			if typeof(bc) == "CFrame" then
+				d:SetAttribute("BaseCF", bc + off)
+			end
+		end
+	end
+	for _, cp in pairs(cps) do
+		cp.pos += off
+	end
+	f:SetAttribute("X", opts.x or 0)
+	f:SetAttribute("Y", y)
+	return { folder = f, checkpoints = cps, finishZ = z + 2, z0 = z0, y = y, x = opts.x or 0, segLen = C.SEG_LEN, segments = opts.segments }
 end
 
 -- ¿En qué punto de control está esta posición? (nil si en ninguno)

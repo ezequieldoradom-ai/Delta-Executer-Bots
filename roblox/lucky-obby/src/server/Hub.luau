@@ -369,6 +369,18 @@ function Hub.init(g)
 			return string.format("%d:%05.2f", math.floor(secs / 60), secs % 60)
 		end,
 	})
+	-- tablones que añaden otros módulos (p. ej. los obbys normales)
+	function Hub.addBoard(cf, title, color, stat, storeName)
+		local body = board(f, cf, 18, 14, title, color)
+		local store
+		if not RunService:IsStudio() then
+			pcall(function()
+				store = DataStoreService:GetOrderedDataStore(storeName)
+			end)
+		end
+		table.insert(boards, { body = body, stat = stat, store = store })
+		return body -- (se rellena en la primera pasada del bucle, a los 5 s, como los demás)
+	end
 	-- nivel de suerte de cada jugador (para su cartel) y refresco de tablones
 	local function onPlayer(p)
 		task.spawn(function()

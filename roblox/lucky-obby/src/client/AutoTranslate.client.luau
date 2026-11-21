@@ -12,6 +12,9 @@ local Translate = require(Shared:WaitForChild("Translate"))
 
 local hooked = setmetatable({}, { __mode = "k" })
 local function fix(obj, prop)
+	if obj:GetAttribute("NoTranslate") then
+		return
+	end
 	local ok, cur = pcall(function()
 		return obj[prop]
 	end)

@@ -127,6 +127,7 @@ list.Parent = panel
 local rows = {}
 for i = 1, 10 do
 	rows[i] = label(list, { Position = UDim2.new(0, 0, 0, (i - 1) * 16.4), Size = UDim2.new(1, 0, 0, 15), TextXAlignment = Enum.TextXAlignment.Left, Text = "" })
+	rows[i]:SetAttribute("NoTranslate", true) -- solo llevan nombres de jugador: no se traducen
 end
 
 -- BOTÓN EMPUJAR ----------------------------------------------------------------------
@@ -177,9 +178,10 @@ local function shout(t, color, secs)
 	big.Text = t
 	big.TextColor3 = color or WHITE
 	big.TextTransparency, big.TextStrokeTransparency = 0, 0.3
-	local my = t
+	big:SetAttribute("Gen", (big:GetAttribute("Gen") or 0) + 1)
+	local my = big:GetAttribute("Gen")
 	task.delay(secs or 2, function()
-		if big.Text == my then
+		if big:GetAttribute("Gen") == my then
 			TweenService:Create(big, TweenInfo.new(0.4), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 		end
 	end)
@@ -188,9 +190,10 @@ local msgL = label(gui, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.ne
 local function msg(t)
 	msgL.Text = t
 	msgL.TextTransparency, msgL.TextStrokeTransparency = 0, 0.4
-	local my = t
+	msgL:SetAttribute("Gen", (msgL:GetAttribute("Gen") or 0) + 1)
+	local my = msgL:GetAttribute("Gen")
 	task.delay(3, function()
-		if msgL.Text == my then
+		if msgL:GetAttribute("Gen") == my then
 			TweenService:Create(msgL, TweenInfo.new(0.4), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 		end
 	end)

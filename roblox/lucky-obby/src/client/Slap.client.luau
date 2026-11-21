@@ -331,9 +331,10 @@ local function shout(t, color, secs)
 	big.TextTransparency, big.TextStrokeTransparency = 0, 0.2
 	bigScale.Scale = 1.8
 	TweenService:Create(bigScale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	local my = t
+	big:SetAttribute("Gen", (big:GetAttribute("Gen") or 0) + 1)
+	local my = big:GetAttribute("Gen")
 	task.delay(secs or 1.5, function()
-		if big.Text == my then
+		if big:GetAttribute("Gen") == my then
 			TweenService:Create(big, TweenInfo.new(0.4), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 		end
 	end)
@@ -342,9 +343,10 @@ local msgLabel = text(gui, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2
 local function msg(t)
 	msgLabel.Text = t
 	msgLabel.TextTransparency, msgLabel.TextStrokeTransparency = 0, 0.3
-	local my = t
+	msgLabel:SetAttribute("Gen", (msgLabel:GetAttribute("Gen") or 0) + 1)
+	local my = msgLabel:GetAttribute("Gen")
 	task.delay(3.5, function()
-		if msgLabel.Text == my then
+		if msgLabel:GetAttribute("Gen") == my then
 			TweenService:Create(msgLabel, TweenInfo.new(0.5), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 		end
 	end)

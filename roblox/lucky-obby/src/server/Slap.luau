@@ -457,7 +457,7 @@ local function join(p, st)
 		Slap.leave(p)
 		return
 	end
-	if G.Race.sessions[p] and G.Race.sessions[p].racing then
+	if G.Race.isRacing(p) then
 		return
 	end
 	if #st.members >= MAX_PLAYERS then
