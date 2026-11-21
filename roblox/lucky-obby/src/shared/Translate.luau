@@ -67,6 +67,9 @@ local EXACT = {
 	-- obbys normales
 	["🏅 OBBYS COMPLETADOS"] = "🏅 OBBIES COMPLETED",
 	["⚠️ Te falta un punto de control: vuelve atrás"] = "⚠️ You missed a checkpoint: go back",
+	["⏳ Carrera en curso: te apuntamos a la siguiente"] = "⏳ Race in progress: you're signed up for the next one",
+	["⏳ SALA DE ESPERA"] = "⏳ WAITING ROOM",
+	["Siguiente carrera en breve"] = "Next race coming up",
 	-- buzón
 	["📬 BUZÓN (solo tú lo ves)"] = "📬 INBOX (only you can see it)",
 	["Todavía no hay mensajes"] = "No messages yet",

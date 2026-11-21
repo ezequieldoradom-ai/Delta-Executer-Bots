@@ -15,7 +15,7 @@ local G = {
 -- Canales servidor <-> cliente
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
-for _, name in ipairs({ "State", "Event", "Knock", "Use", "Join", "Slap", "Hill", "BotChat", "Obby" }) do
+for _, name in ipairs({ "State", "Event", "Knock", "Use", "Join", "Slap", "Hill", "BotChat", "Obby", "Wait" }) do
 	local ev = Instance.new("RemoteEvent")
 	ev.Name = name
 	ev.Parent = remotes
@@ -55,6 +55,10 @@ end
 local obbies = script:FindFirstChild("Obbies")
 if obbies then
 	require(obbies).init(G) -- obbys normales: fácil, medio y difícil (Shadow)
+end
+local waitRoom = script:FindFirstChild("WaitRoom")
+if waitRoom then
+	require(waitRoom).init(G) -- sala de espera de la carrera (Shadow)
 end
 local lobbySpeed = script:FindFirstChild("LobbySpeed")
 if lobbySpeed then

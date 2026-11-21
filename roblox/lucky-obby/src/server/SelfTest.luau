@@ -718,6 +718,43 @@ function SelfTest.run(G, p, Hub, Extras, Feedback, Bots)
 		end
 	end)
 
+	-- I. SALA DE ESPERA ------------------------------------------------------------------
+	safe("sala de espera", function()
+		local Wr = G.WaitRoom
+		check("sala de espera construida", Wr ~= nil and workspace:FindFirstChild("WaitRoom") ~= nil)
+		if not Wr then
+			return
+		end
+		-- esperar a que la carrera NO esté en inscripción
+		waitFor(function()
+			return G.Race.state ~= "joining"
+		end, 60)
+		local portal = workspace:FindFirstChild("PortalPad", true)
+		if portal and hrp() then
+			hrp().CFrame = CFrame.new(portal.Position + Vector3.new(0, 3, 0))
+			waitFor(function()
+				return Wr.waiting[p] == true
+			end, 3)
+		end
+		check("portal con carrera en marcha → sala de espera", Wr.waiting[p] == true and p:GetAttribute("Waiting") == true)
+		check("apareces dentro de la sala", hrp() and (hrp().Position - Wr.CENTER).Magnitude < 20)
+		-- al abrirse la inscripción te apunta solo
+		local opened = waitFor(function()
+			return G.Race.state == "joining"
+		end, 150)
+		if opened then
+			task.wait(1)
+			check("en la sala: apuntado solo a la siguiente carrera", G.Race.joined[p] == true)
+		end
+		-- salir: vuelves al vestíbulo y ya no estás apuntado
+		Wr.leave(p, true)
+		task.wait(0.4)
+		check("salir de la sala: al vestíbulo", not Wr.waiting[p] and p:GetAttribute("Waiting") == nil and hrp() and (hrp().Position - C.COURSE.LOBBY).Magnitude < 40)
+		if opened and G.Race.state == "joining" then
+			check("salir de la sala: te desapunta", not G.Race.joined[p])
+		end
+	end)
+
 	print(string.format("TEST RESUMEN: %d bien · %d mal%s", ok, bad, #fails > 0 and (" · fallos: " .. table.concat(fails, ", ")) or ""))
 	return ok, bad
 end

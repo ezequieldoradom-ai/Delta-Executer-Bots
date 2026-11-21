@@ -215,6 +215,15 @@ function Plaza.init(g)
 			bl.Text = state == "joining" and "🏁 ¡PISA EL PORTAL Y CORRE!" or (state == "break" and "☕ DESCANSO · ENSEGUIDA SE ABRE" or "🏁 CARRERA EN CURSO")
 			if state ~= "joining" then
 				table.clear(told)
+				-- carrera en marcha: el portal te lleva a la sala de espera
+				if G.WaitRoom then
+					for _, p in ipairs(Players:GetPlayers()) do
+						local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+						if hrp and (hrp.Position - portalPos).Magnitude < 8 then
+							G.WaitRoom.enter(p)
+						end
+					end
+				end
 			else
 				for _, p in ipairs(Players:GetPlayers()) do
 					local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
