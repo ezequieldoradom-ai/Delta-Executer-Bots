@@ -258,10 +258,10 @@ local function portals()
 		if #spots == 3 then
 			break
 		end
-		local step = math.deg(2 * math.asin(4.8 / r)) + 1
+		local step = math.deg(2 * math.asin(math.min(1, 7 / r))) -- 14 studs entre portales
 		for a0 = 0, 355, 5 do
 			local a, b2, c = spotAt(r, a0 - step), spotAt(r, a0), spotAt(r, a0 + step)
-			if a and b2 and c then
+			if a and b2 and c and (a - b2).Magnitude >= 13 and (b2 - c).Magnitude >= 13 then
 				spots = { a, b2, c }
 				break
 			end
@@ -271,8 +271,8 @@ local function portals()
 	-- 2) si no caben en un mismo arco: los tres huecos libres MÁS CERCANOS entre sí
 	if #spots < 3 then
 		local cands = {}
-		for r = 23, 44, 3 do
-			for deg = 0, 350, 10 do
+		for r = 23, 46, 2 do
+			for deg = 0, 357, 3 do
 				local pos = spotAt(r, deg)
 				if pos then
 					table.insert(cands, pos)
@@ -306,8 +306,16 @@ local function portals()
 		end
 		spots = best or {}
 		if #spots < 3 then
+			-- último recurso: los que haya, pero nunca pegados entre sí
+			spots = {}
 			for _, c in ipairs(cands) do
-				if #spots < 3 then
+				local ok = #spots < 3
+				for _, q in ipairs(spots) do
+					if (q - c).Magnitude < 13 then
+						ok = false
+					end
+				end
+				if ok then
 					table.insert(spots, c)
 				end
 			end
