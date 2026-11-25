@@ -1,0 +1,6 @@
+{
+  "name": "steal-a-god-render",
+  "private": true,
+  "type": "module",
+  "dependencies": { "three": "0.160.0" }
+}
